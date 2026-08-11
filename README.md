@@ -1,24 +1,26 @@
-# EDU SHARE+ Rebuild — Phase 1 Local Frontend
+# EDU SHARE+ Rebuild
 
-Checkpoint hiện tại: **1H — Teacher/Admin Dashboard (`admin`)**.
+Current checkpoint: **2A — Frontend Architecture Audit**.
 
-## Chạy local
+The user-tested **Phase 1 local frontend baseline is PASS & FROZEN**. Checkpoint 2A changes documentation only; it does not redesign or change runtime behavior.
+
+## Run local
 
 ```bash
 npm install
 npm run dev
 ```
 
-Các route chính:
+Main routes:
 
 - Landing: `http://localhost:5173/`
 - Marketplace: `http://localhost:5173/?page=index`
-- Đăng bài: `http://localhost:5173/?page=add`
-- Bài của tôi: `http://localhost:5173/?page=myPosts`
-- Chi tiết bài mẫu: `http://localhost:5173/?page=myDetail&id=OWN-001`
-- Chỉnh sửa bài mẫu: `http://localhost:5173/?page=editPost&id=OWN-003`
-- Hồ sơ: `http://localhost:5173/?page=profile`
-- Giáo viên/Admin: `http://localhost:5173/?page=admin`
+- Add Post: `http://localhost:5173/?page=add`
+- My Posts: `http://localhost:5173/?page=myPosts`
+- Owner Detail: `http://localhost:5173/?page=myDetail&id=OWN-001`
+- Edit Post: `http://localhost:5173/?page=editPost&id=OWN-003`
+- Profile: `http://localhost:5173/?page=profile`
+- Teacher/Admin: `http://localhost:5173/?page=admin`
 
 ## Build check
 
@@ -26,29 +28,9 @@ Các route chính:
 npm run build
 ```
 
-## Phạm vi 1H
+## Architecture docs
 
-Đã port từ `admin.html`, `Admin.gs`, `Analytics.gs` và `stylesAdmin` của source GAS cũ ở cấp UI/UX/flow:
+- `docs/16_PHASE1_INTEGRATION_AUDIT.md`
+- `docs/17_FRONTEND_ARCHITECTURE_AUDIT.md`
 
-- Topbar giáo viên và đăng xuất.
-- 6 summary metrics.
-- Thống kê nâng cao và xếp hạng danh mục/lớp.
-- 4 chart panels.
-- Danh sách bài kiểm duyệt.
-- Tìm kiếm + lọc trạng thái + lọc lớp + sort.
-- Pagination.
-- Chỉnh status bài, bật/tắt hiển thị, bật/tắt bình luận.
-- Bắt buộc nhập lý do khi từ chối.
-- Detail moderation modal.
-- Duyệt tất cả bài chờ.
-- Kiểm tra trạng thái hệ thống local.
-- Làm mới/đồng bộ thống kê local.
-
-`Xuất báo cáo PDF` chưa tạo file thật vì Phase 1 chưa có backend/analytics runtime. Nút được giữ đúng vị trí và trả thông báo rõ ràng thay vì giả lập một PDF production.
-
-Toàn bộ số liệu/bài đăng trong Admin 1H là **LOCAL_UI_SAMPLE**. Không dùng chúng làm số liệu nghiên cứu, không migrate chúng và không ghi vào backend.
-
-
-## Checkpoint 1I — Phase 1 Integration Audit
-
-This package integrates the Phase 1 local frontend baseline and fixes cross-screen local-state gaps without adding backend/database/storage behavior. See `docs/16_PHASE1_INTEGRATION_AUDIT.md`.
+Checkpoint 2A does **not** connect Supabase, a database, authentication, storage or production services.
