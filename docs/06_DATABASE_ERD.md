@@ -2,7 +2,7 @@
 
 ## Status
 
-**Checkpoint 3B target ERD — design approved candidate, not yet implemented.**
+**Checkpoint 3B ERD accepted; Checkpoint 3C adds the physical PostgreSQL/RLS contract. Still not implemented.**
 
 This document defines the target relational model for EDU SHARE+. It does not create tables, migrations, RLS policies, Supabase projects, Auth users, Storage buckets, or production data.
 

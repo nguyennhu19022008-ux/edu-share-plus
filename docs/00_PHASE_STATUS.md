@@ -27,8 +27,9 @@ Phase 1 baseline is frozen. Further visible UI/UX changes require explicit appro
 ## Phase 3 — Database Design
 
 - Checkpoint 3A — **PASS:** database requirements + entity audit + provisional backend permission matrix. No database/SQL created.
-- Checkpoint 3B — **CURRENT / CANDIDATE:** target database ERD + relationship decisions + implementation-wave boundaries. No database/SQL created.
-- Next after acceptance: **Checkpoint 3C — PostgreSQL Schema Contract + Constraints + Index/RLS Blueprint**.
+- Checkpoint 3B — **PASS:** target database ERD + relationship decisions + implementation-wave boundaries. No database/SQL created.
+- Checkpoint 3C — **CURRENT / CANDIDATE:** PostgreSQL physical schema contract + constraints + index blueprint + RLS/security model. No database/SQL created.
+- Next after acceptance: database implementation-readiness / migration SQL checkpoint before any live Supabase execution.
 
 See:
 
@@ -40,3 +41,5 @@ See:
 - `docs/20_PHASE2D_DATA_ACCESS_BOUNDARY.md`
 - `docs/21_PHASE3A_DATABASE_REQUIREMENTS_ENTITY_AUDIT.md`
 - `docs/22_PHASE3B_DATABASE_ERD_RELATIONSHIP_DECISIONS.md`
+- `docs/23_PHASE3C_POSTGRESQL_SCHEMA_CONTRACT.md`
+- `docs/08_SECURITY_MODEL.md`
