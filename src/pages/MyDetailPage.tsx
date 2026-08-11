@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { navigateLegacy } from '../app/legacyRouter';
 import StudentHeader from '../components/student/StudentHeader';
 import { buildOwnerEffectiveness, type OwnerContactLog, type OwnerDetailBundle } from '../features/my-posts/mockMyPostDetail';
@@ -53,12 +53,6 @@ export default function MyDetailPage() {
   const [post, setPost] = useState<MyPost | undefined>(() => getOwnerPost(postId));
   const [detail, setDetail] = useState<OwnerDetailBundle>(() => post ? getOwnerDetailLocal(post) : { favorites:[], contacts:[], comments:[], timeline:[] });
   const [notice, setNotice] = useState('');
-
-  useEffect(() => {
-    document.body.className = 'ecommerce-body';
-    return () => { document.body.className = ''; };
-  }, []);
-
   const effectiveness = useMemo(() => post ? buildOwnerEffectiveness(post) : null, [post]);
   const lastContactAt = detail.contacts[0]?.date || 'Chưa có';
 

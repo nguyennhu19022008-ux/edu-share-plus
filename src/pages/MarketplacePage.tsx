@@ -142,10 +142,6 @@ export default function MarketplacePage() {
   const [savedIds,setSavedIds]=useState<Set<string>>(()=>getSavedPostIdsLocal());
   const filtersRef=useRef<HTMLElement | null>(null);
 
-  useEffect(()=>{
-    document.body.className='ecommerce-body';
-    return()=>{ document.body.className=''; };
-  },[]);
 
   const classes=useMemo(()=>Array.from(new Set(LOCAL_UI_SAMPLE_POSTS.map((post)=>post.className))).sort((a,b)=>a.localeCompare(b,'vi')),[]);
   const globalStats=useMemo(()=>({

@@ -25,13 +25,9 @@ export default function EditPostPage() {
   const savedObjectUrlRef = useRef('');
   const redirectTimerRef = useRef<number | null>(null);
 
-  useEffect(() => {
-    document.body.className = 'ecommerce-body';
-    return () => {
-      document.body.className = '';
-      if (redirectTimerRef.current) window.clearTimeout(redirectTimerRef.current);
-      if (newObjectUrl && savedObjectUrlRef.current !== newObjectUrl) URL.revokeObjectURL(newObjectUrl);
-    };
+  useEffect(() => () => {
+    if (redirectTimerRef.current) window.clearTimeout(redirectTimerRef.current);
+    if (newObjectUrl && savedObjectUrlRef.current !== newObjectUrl) URL.revokeObjectURL(newObjectUrl);
   }, [newObjectUrl]);
 
   if (!post) {

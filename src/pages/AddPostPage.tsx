@@ -34,12 +34,8 @@ export default function AddPostPage() {
 
   const isSale = tradeType === 'Bán giá rẻ';
 
-  useEffect(() => {
-    document.body.className = 'ecommerce-body';
-    return () => {
-      document.body.className = '';
-      if (redirectTimerRef.current) window.clearTimeout(redirectTimerRef.current);
-    };
+  useEffect(() => () => {
+    if (redirectTimerRef.current) window.clearTimeout(redirectTimerRef.current);
   }, []);
 
   useEffect(() => () => {

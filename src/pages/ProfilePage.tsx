@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { FormEvent, useMemo, useState } from 'react';
 import { navigateLegacy } from '../app/legacyRouter';
 import StudentHeader from '../components/student/StudentHeader';
 import {
@@ -34,12 +34,6 @@ export default function ProfilePage() {
   const [avatarStatus, setAvatarStatus] = useState('Chưa chọn ảnh mới.');
   const [faceStatus, setFaceStatus] = useState('Chưa chọn ảnh mới.');
   const [message, setMessage] = useState<MessageState>(null);
-
-  useEffect(() => {
-    document.body.className = 'ecommerce-body';
-    return () => { document.body.className = ''; };
-  }, []);
-
   const handlePrivacySubmit = (event:FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const next = updatePrivacyLocal(privacy);

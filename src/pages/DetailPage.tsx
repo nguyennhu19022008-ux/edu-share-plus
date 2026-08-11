@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { FormEvent, useMemo, useState } from 'react';
 import { navigateLegacy } from '../app/legacyRouter';
 import StudentHeader from '../components/student/StudentHeader';
 import { LOCAL_UI_SAMPLE_POSTS } from '../features/marketplace/mockPosts';
@@ -40,12 +40,6 @@ export default function DetailPage() {
   const [contactVisible, setContactVisible] = useState(false);
   const [comments, setComments] = useState<LocalComment[]>(LOCAL_UI_COMMENTS);
   const [commentText, setCommentText] = useState('');
-
-  useEffect(() => {
-    document.body.className = 'ecommerce-body';
-    return () => { document.body.className = ''; };
-  }, []);
-
   const similarPosts = useMemo(() => {
     if (!post) return [];
     const preferred = LOCAL_UI_SAMPLE_POSTS.filter((item) => item.id !== post.id && (item.category === post.category || item.tradeType === post.tradeType));

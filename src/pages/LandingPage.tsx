@@ -1,14 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { navigateLegacy } from '../app/legacyRouter';
 
 export default function LandingPage() {
   const [search, setSearch] = useState('');
-
-  useEffect(() => {
-    document.body.className = 'landing-body landing-v2-body ecommerce-body';
-    return () => { document.body.className = ''; };
-  }, []);
-
   const startMarketplaceSearch = (prefill?: string) => {
     const keyword = String(prefill ?? search).trim();
     if (prefill !== undefined) setSearch(keyword);

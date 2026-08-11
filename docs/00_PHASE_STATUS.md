@@ -19,7 +19,11 @@ Phase 1 baseline is frozen. Further visible UI/UX changes require explicit appro
 
 ## Phase 2 — Frontend Architecture
 
-- **Checkpoint 2A — CURRENT / COMPLETE:** frontend architecture audit only; no product behavior change.
-- Next: **2B — application shell + lazy legacy route registry**.
+- Checkpoint 2A — **PASS:** frontend architecture audit; no runtime behavior change.
+- Checkpoint 2B — **CURRENT / CANDIDATE:** shared application shell + exhaustive lazy legacy route registry + centralized route metadata and boundaries.
+- Next after acceptance: **2C — feature modularization**.
 
-See `docs/17_FRONTEND_ARCHITECTURE_AUDIT.md`.
+See:
+
+- `docs/17_FRONTEND_ARCHITECTURE_AUDIT.md`
+- `docs/18_PHASE2B_APPLICATION_SHELL.md`

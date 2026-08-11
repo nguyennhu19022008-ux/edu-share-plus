@@ -70,3 +70,61 @@ button, input, textarea, select { font: inherit; }
 .admin-local-legend{display:grid;gap:9px}.admin-local-legend>div{display:grid;grid-template-columns:9px 1fr auto;gap:7px;align-items:center;font-size:9px;color:#64748b}.admin-local-legend i{width:8px;height:8px;border-radius:2px}.admin-local-legend b{color:#334155}
 .admin-local-hot{height:100%;display:grid;align-content:center;gap:11px}.admin-local-hot>div{display:grid;grid-template-columns:minmax(100px,1fr) minmax(110px,1.2fr) 24px;align-items:center;gap:8px}.admin-local-hot span{font-size:9px;color:#475569;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.admin-local-hot i{height:8px;border-radius:99px;background:#f1f5f9;overflow:hidden}.admin-local-hot i>b{display:block;height:100%;border-radius:inherit;background:#8b5cf6}.admin-local-hot strong{text-align:right;font-size:9px;color:#64748b}
 @media(max-width:620px){.admin-local-donut-wrap{grid-template-columns:1fr}.admin-local-donut{width:120px}.admin-local-legend{grid-template-columns:1fr 1fr}}
+
+/* Phase 2B — route-level loading/error shell. These states are intentionally
+   neutral so they do not alter the frozen EDU SHARE+ page designs. */
+.checkpoint-route-loading,
+.checkpoint-route-error {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.checkpoint-route-loading-card,
+.checkpoint-route-error-card {
+  width: min(100%, 440px);
+  background: #fff;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  border-radius: 14px;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+  padding: 22px;
+  text-align: center;
+}
+
+.checkpoint-route-loading-card {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  color: #475569;
+  font-weight: 700;
+}
+
+.checkpoint-route-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(238, 77, 45, 0.2);
+  border-top-color: #ee4d2d;
+  border-radius: 999px;
+  animation: checkpoint-route-spin 0.7s linear infinite;
+}
+
+.checkpoint-route-error-card h1 {
+  margin: 0 0 8px;
+  font-size: 1.35rem;
+}
+
+.checkpoint-route-error-card p {
+  margin: 0 0 16px;
+  color: #64748b;
+  line-height: 1.55;
+}
+
+@keyframes checkpoint-route-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .checkpoint-route-spinner { animation: none; }
+}

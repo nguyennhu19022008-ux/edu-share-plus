@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import { navigateLegacy, type LegacyPage } from '../app/legacyRouter';
 
 const LABELS: Record<Exclude<LegacyPage, 'landing' | 'loginStudent' | 'registerStudent' | 'loginGV'>, string> = {
@@ -15,11 +14,6 @@ const LABELS: Record<Exclude<LegacyPage, 'landing' | 'loginStudent' | 'registerS
 type StubPage = keyof typeof LABELS;
 
 export default function LegacyPageStub({ page }: { page: LegacyPage }) {
-  useEffect(() => {
-    document.body.className = 'checkpoint-stub-body';
-    return () => { document.body.className = ''; };
-  }, []);
-
   const safePage = page as StubPage;
   return (
     <main className="checkpoint-stub">

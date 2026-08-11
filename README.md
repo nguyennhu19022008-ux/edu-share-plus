@@ -1,8 +1,8 @@
 # EDU SHARE+ Rebuild
 
-Current checkpoint: **2A — Frontend Architecture Audit**.
+Current checkpoint: **2B — Application Shell + Lazy Legacy Route Registry**.
 
-The user-tested **Phase 1 local frontend baseline is PASS & FROZEN**. Checkpoint 2A changes documentation only; it does not redesign or change runtime behavior.
+The user-tested **Phase 1 local frontend baseline is PASS & FROZEN**. Checkpoint 2B refactors routing/application-shell architecture without redesigning the product or changing the legacy URL model.
 
 ## Run local
 
@@ -11,7 +11,7 @@ npm install
 npm run dev
 ```
 
-Main routes:
+Main routes remain unchanged:
 
 - Landing: `http://localhost:5173/`
 - Marketplace: `http://localhost:5173/?page=index`
@@ -28,9 +28,12 @@ Main routes:
 npm run build
 ```
 
+A successful 2B production build should emit multiple page/route JavaScript chunks because pages are now dynamically imported.
+
 ## Architecture docs
 
 - `docs/16_PHASE1_INTEGRATION_AUDIT.md`
 - `docs/17_FRONTEND_ARCHITECTURE_AUDIT.md`
+- `docs/18_PHASE2B_APPLICATION_SHELL.md`
 
-Checkpoint 2A does **not** connect Supabase, a database, authentication, storage or production services.
+Checkpoint 2B does **not** connect Supabase, a database, authentication, storage or production services.

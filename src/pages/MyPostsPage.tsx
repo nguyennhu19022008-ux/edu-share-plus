@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { navigateLegacy } from '../app/legacyRouter';
 import StudentHeader from '../components/student/StudentHeader';
 import { duplicateOwnerPost, getOwnerPosts, updateOwnerPost as updateOwnerPostStore } from '../features/my-posts/localOwnerStore';
@@ -82,12 +82,6 @@ export default function MyPostsPage() {
   const [keyword, setKeyword] = useState('');
   const [sort, setSort] = useState<MyPostSort>('new');
   const [notice, setNotice] = useState('');
-
-  useEffect(() => {
-    document.body.className = 'ecommerce-body';
-    return () => { document.body.className = ''; };
-  }, []);
-
   const dashboard = useMemo(() => {
     const result = { total:items.length, open:0, done:0, needAction:0 };
     items.forEach((post) => {

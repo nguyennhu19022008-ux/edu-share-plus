@@ -73,12 +73,6 @@ export default function AdminPage() {
   const [modalComments, setModalComments] = useState<CommentStatus>('Mở');
   const [modalReason, setModalReason] = useState('');
   const [notice, setNotice] = useState<Notice>({ tone:'warn', text:'Checkpoint 1H dùng LOCAL_UI_SAMPLE để kiểm thử dashboard. Các số dưới đây không phải số liệu nghiên cứu hoặc dữ liệu production.' });
-
-  useEffect(() => {
-    document.body.className = 'ecommerce-body admin-redesign-body';
-    return () => { document.body.className = ''; };
-  }, []);
-
   useEffect(() => { setPage(1); }, [keyword,status,className,sort]);
 
   useEffect(() => {

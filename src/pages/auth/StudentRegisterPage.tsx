@@ -1,13 +1,8 @@
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useState } from 'react';
 import { navigateLegacy } from '../../app/legacyRouter';
 
 export default function StudentRegisterPage() {
   const [message, setMessage] = useState('');
-  useEffect(() => {
-    document.body.className = 'auth-ecommerce-body';
-    return () => { document.body.className = ''; };
-  }, []);
-
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
