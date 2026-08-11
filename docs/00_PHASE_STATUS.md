@@ -3,7 +3,7 @@
 ## Phase 0 — Audit
 Architecture-level audit completed from the supplied ZIP. Source ZIP remains read-only/source-of-truth.
 
-## Phase 1 — Local Frontend
+## Phase 1 — Local Frontend — PASS & FROZEN
 
 - Checkpoint 1A — PASS: landing + student/teacher auth UI shell.
 - Checkpoint 1B — PASS: student marketplace, search/filter/sort/pagination local behavior.
@@ -13,19 +13,13 @@ Architecture-level audit completed from the supplied ZIP. Source ZIP remains rea
 - Checkpoint 1F — PASS: legacy owner detail (`myDetail`) + edit/resubmit (`editPost`).
 - Checkpoint 1G — PASS: legacy student profile (`profile`).
 - Checkpoint 1H — PASS: legacy Teacher/Admin Dashboard (`admin`).
-- Checkpoint 1I — CURRENT: Phase 1 integration audit + cross-screen local-state fixes.
+- Checkpoint 1I — PASS: integration audit + cross-screen flow validation.
 
-### 1I scope
+Phase 1 baseline is frozen. Further visible UI/UX changes require explicit approval unless fixing a regression against the frozen baseline.
 
-- No redesign and no new product module.
-- Audits all 12 legacy routes and their navigation targets.
-- Connects Add Post → My Posts in the shared local owner store.
-- Unifies save/favorite state between Marketplace, Detail and Profile.
-- Keeps student header identity/avatar/notification state consistent across student pages.
-- Preserves Landing search keyword through local Student Login into Marketplace.
-- Persists owner-detail handled-contact/timeline state while navigating inside the SPA session.
-- Clears stale landing hash fragments when switching legacy pages.
-- Records owner timeline entries for list actions and edit/resubmit.
-- Documents boundaries intentionally deferred to database/auth/storage/backend phases.
+## Phase 2 — Frontend Architecture
 
-See `docs/16_PHASE1_INTEGRATION_AUDIT.md` for findings and acceptance gates.
+- **Checkpoint 2A — CURRENT / COMPLETE:** frontend architecture audit only; no product behavior change.
+- Next: **2B — application shell + lazy legacy route registry**.
+
+See `docs/17_FRONTEND_ARCHITECTURE_AUDIT.md`.
