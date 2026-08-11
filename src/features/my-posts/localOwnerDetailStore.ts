@@ -1,4 +1,5 @@
-import { getOwnerDetailSample, type OwnerDetailBundle, type OwnerTimelineItem } from './mockMyPostDetail';
+import { getOwnerDetailSample } from './mockMyPostDetail';
+import type { OwnerDetailBundle, OwnerTimelineItem } from './detailTypes';
 import type { MyPost } from './types';
 
 /**

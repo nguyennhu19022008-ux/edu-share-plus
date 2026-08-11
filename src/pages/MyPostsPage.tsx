@@ -1,16 +1,16 @@
 import { useMemo, useState } from 'react';
 import { navigateLegacy } from '../app/legacyRouter';
+import { useDataAccess } from '../app/providers/DataAccessProvider';
 import StudentHeader from '../components/student/StudentHeader';
 import MyPostsFilters from '../features/my-posts/components/MyPostsFilters';
 import MyPostsSummary from '../features/my-posts/components/MyPostsSummary';
 import OwnerPostCard from '../features/my-posts/components/OwnerPostCard';
-import { prependOwnerTimelineLocal } from '../features/my-posts/localOwnerDetailStore';
-import { duplicateOwnerPost, getOwnerPosts, updateOwnerPost as updateOwnerPostStore } from '../features/my-posts/localOwnerStore';
 import type { MyPost, MyPostSort, MyPostStatus } from '../features/my-posts/types';
 import { doneButtonText, myPostStatusLabel, normalizeMyPostText } from '../features/my-posts/viewUtils';
 
 export default function MyPostsPage() {
-  const [items, setItems] = useState<MyPost[]>(() => getOwnerPosts());
+  const { ownerPosts, ownerDetail } = useDataAccess();
+  const [items, setItems] = useState<MyPost[]>(() => ownerPosts.list());
   const [status, setStatus] = useState<'' | MyPostStatus>('');
   const [keyword, setKeyword] = useState('');
   const [sort, setSort] = useState<MyPostSort>('new');
@@ -57,8 +57,8 @@ export default function MyPostsPage() {
   const clearFilters = () => { setStatus(''); setKeyword(''); setSort('new'); };
 
   const updatePost = (id:string, updater:(post:MyPost)=>MyPost, message:string):MyPost | undefined => {
-    const updated = updateOwnerPostStore(id, updater);
-    if (updated) setItems(getOwnerPosts());
+    const updated = ownerPosts.update(id, updater);
+    if (updated) setItems(ownerPosts.list());
     setNotice(message);
     return updated;
   };
@@ -67,25 +67,25 @@ export default function MyPostsPage() {
     const nextHidden = !post.hidden;
     if (!window.confirm(nextHidden ? 'Tạm ẩn bài khỏi trang chủ?' : 'Hiển thị lại bài trên trang chủ?')) return;
     const updated = updatePost(post.id, (current) => ({ ...current, hidden:nextHidden }), nextHidden ? 'Đã tạm ẩn bài trong phiên local.' : 'Đã hiển thị lại bài trong phiên local.');
-    if (updated) prependOwnerTimelineLocal(updated, { type:'post', title:nextHidden ? 'Bài được tạm ẩn' : 'Bài được hiển thị lại', description:nextHidden ? 'Chủ bài tạm ẩn bài khỏi Marketplace.' : 'Chủ bài hiển thị lại bài trên Marketplace.', date:'Vừa xong • phiên local' });
+    if (updated) ownerDetail.prependTimeline(updated, { type:'post', title:nextHidden ? 'Bài được tạm ẩn' : 'Bài được hiển thị lại', description:nextHidden ? 'Chủ bài tạm ẩn bài khỏi Marketplace.' : 'Chủ bài hiển thị lại bài trên Marketplace.', date:'Vừa xong • phiên local' });
   };
 
   const completePost = (post:MyPost) => {
     if (!window.confirm(`Xác nhận ${doneButtonText(post.tradeType).toLowerCase()} và chuyển bài sang lịch sử?`)) return;
     const updated = updatePost(post.id, (current) => ({ ...current, status:'Đã xong', source:'Archive', hidden:false, doneTs:Date.now() }), 'Đã đánh dấu hoàn tất trong phiên local.');
-    if (updated) prependOwnerTimelineLocal(updated, { type:'post', title:'Bài đã hoàn tất', description:`Chủ bài xác nhận ${doneButtonText(post.tradeType).toLowerCase()} và chuyển bài vào lịch sử.`, date:'Vừa xong • phiên local' });
+    if (updated) ownerDetail.prependTimeline(updated, { type:'post', title:'Bài đã hoàn tất', description:`Chủ bài xác nhận ${doneButtonText(post.tradeType).toLowerCase()} và chuyển bài vào lịch sử.`, date:'Vừa xong • phiên local' });
   };
 
   const withdrawPost = (post:MyPost) => {
     if (!window.confirm('Thu hồi bài đăng này? Bài sẽ không còn hiển thị công khai và được lưu vào lịch sử.')) return;
     const updated = updatePost(post.id, (current) => ({ ...current, status:'Đã thu hồi', source:'Archive', hidden:false, doneTs:Date.now() }), 'Đã thu hồi bài trong phiên local.');
-    if (updated) prependOwnerTimelineLocal(updated, { type:'post', title:'Bài đã được thu hồi', description:'Chủ bài thu hồi bài khỏi Marketplace và chuyển vào lịch sử.', date:'Vừa xong • phiên local' });
+    if (updated) ownerDetail.prependTimeline(updated, { type:'post', title:'Bài đã được thu hồi', description:'Chủ bài thu hồi bài khỏi Marketplace và chuyển vào lịch sử.', date:'Vừa xong • phiên local' });
   };
 
   const duplicatePost = (post:MyPost) => {
     if (!window.confirm('Nhân bản bài này thành bài mới ở trạng thái chờ duyệt?')) return;
-    const duplicate = duplicateOwnerPost(post);
-    setItems(getOwnerPosts());
+    const duplicate = ownerPosts.duplicate(post);
+    setItems(ownerPosts.list());
     setNotice('Đã tạo bản sao local ở trạng thái chờ duyệt.');
     window.setTimeout(() => navigateLegacy('editPost', { id:duplicate.id }), 450);
   };

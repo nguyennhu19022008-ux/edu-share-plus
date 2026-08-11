@@ -1,8 +1,8 @@
 # EDU SHARE+ Rebuild
 
-Current checkpoint: **2C — Feature Modularization**.
+Current checkpoint: **2D — Data Access Boundary**.
 
-The user-tested **Phase 1 local frontend baseline is PASS & FROZEN**. Checkpoint 2C reorganizes the largest frontend pages into feature-owned components/utilities while preserving the approved UI, UX, behavior and legacy URL model.
+The user-tested **Phase 1 local frontend baseline is PASS & FROZEN**. Phase 2A–2C audited and modularized the frontend. Checkpoint 2D adds provider-neutral repository contracts and a React data-access provider so pages/components no longer import controlled mock/local stores directly.
 
 ## Run local
 
@@ -34,5 +34,6 @@ npm run build
 - `docs/17_FRONTEND_ARCHITECTURE_AUDIT.md`
 - `docs/18_PHASE2B_APPLICATION_SHELL.md`
 - `docs/19_PHASE2C_FEATURE_MODULARIZATION.md`
+- `docs/20_PHASE2D_DATA_ACCESS_BOUNDARY.md`
 
-Checkpoint 2C does **not** connect Supabase, a database, authentication, storage or production services. Data-access decoupling is reserved for Checkpoint 2D.
+Checkpoint 2D still uses controlled local UI samples. It does **not** connect Supabase, PostgreSQL, real authentication, storage, migration or production services.

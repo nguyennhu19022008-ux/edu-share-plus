@@ -1,9 +1,9 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { navigateLegacy } from '../app/legacyRouter';
+import { useDataAccess } from '../app/providers/DataAccessProvider';
 import StudentHeader from '../components/student/StudentHeader';
-import { buildOwnerEffectiveness, type OwnerContactLog, type OwnerDetailBundle } from '../features/my-posts/mockMyPostDetail';
-import { getOwnerDetailLocal, prependOwnerTimelineLocal, updateOwnerDetailLocal } from '../features/my-posts/localOwnerDetailStore';
-import { duplicateOwnerPost, getOwnerPost, updateOwnerPost } from '../features/my-posts/localOwnerStore';
+import { buildOwnerEffectiveness } from '../features/my-posts/effectiveness';
+import type { OwnerContactLog, OwnerDetailBundle } from '../features/my-posts/detailTypes';
 import type { MyPost, MyPostStatus } from '../features/my-posts/types';
 
 function getPostId(): string {
@@ -49,9 +49,10 @@ function doneButtonText(type:MyPost['tradeType']):string {
 }
 
 export default function MyDetailPage() {
+  const { ownerPosts, ownerDetail } = useDataAccess();
   const postId = getPostId();
-  const [post, setPost] = useState<MyPost | undefined>(() => getOwnerPost(postId));
-  const [detail, setDetail] = useState<OwnerDetailBundle>(() => post ? getOwnerDetailLocal(post) : { favorites:[], contacts:[], comments:[], timeline:[] });
+  const [post, setPost] = useState<MyPost | undefined>(() => ownerPosts.getById(postId));
+  const [detail, setDetail] = useState<OwnerDetailBundle>(() => post ? ownerDetail.get(post) : { favorites:[], contacts:[], comments:[], timeline:[] });
   const [notice, setNotice] = useState('');
   const effectiveness = useMemo(() => post ? buildOwnerEffectiveness(post) : null, [post]);
   const lastContactAt = detail.contacts[0]?.date || 'Chưa có';
@@ -79,31 +80,31 @@ export default function MyDetailPage() {
   const toggleHidden = () => {
     const nextHidden = !post.hidden;
     if (!window.confirm(nextHidden ? 'Tạm ẩn bài khỏi trang chủ?' : 'Hiển thị lại bài trên trang chủ?')) return;
-    const updated = updateOwnerPost(post.id, (current) => ({ ...current, hidden:nextHidden }));
+    const updated = ownerPosts.update(post.id, (current) => ({ ...current, hidden:nextHidden }));
     if (!updated) return;
     setPost(updated);
     setNotice(nextHidden ? 'Đã tạm ẩn bài trong phiên local.' : 'Đã hiển thị lại bài trong phiên local.');
-    const nextDetail = prependOwnerTimelineLocal(updated, { type:'post', title:nextHidden ? 'Bài được tạm ẩn' : 'Bài được hiển thị lại', description:nextHidden ? 'Chủ bài tạm ẩn bài khỏi Marketplace.' : 'Chủ bài hiển thị lại bài trên Marketplace.', date:'Vừa xong • phiên local' });
+    const nextDetail = ownerDetail.prependTimeline(updated, { type:'post', title:nextHidden ? 'Bài được tạm ẩn' : 'Bài được hiển thị lại', description:nextHidden ? 'Chủ bài tạm ẩn bài khỏi Marketplace.' : 'Chủ bài hiển thị lại bài trên Marketplace.', date:'Vừa xong • phiên local' });
     setDetail(nextDetail);
   };
 
   const completePost = () => {
     if (!window.confirm(`Xác nhận ${doneButtonText(post.tradeType).toLowerCase()} và chuyển bài sang lịch sử?`)) return;
-    updateOwnerPost(post.id, (current) => ({ ...current, status:'Đã xong', source:'Archive', hidden:false, doneTs:Date.now() }));
+    ownerPosts.update(post.id, (current) => ({ ...current, status:'Đã xong', source:'Archive', hidden:false, doneTs:Date.now() }));
     window.alert('Đã đánh dấu hoàn tất trong phiên local.');
     navigateLegacy('myPosts');
   };
 
   const withdrawPost = () => {
     if (!window.confirm('Thu hồi bài đăng này? Bài sẽ không còn hiển thị công khai.')) return;
-    updateOwnerPost(post.id, (current) => ({ ...current, status:'Đã thu hồi', source:'Archive', hidden:false, doneTs:Date.now() }));
+    ownerPosts.update(post.id, (current) => ({ ...current, status:'Đã thu hồi', source:'Archive', hidden:false, doneTs:Date.now() }));
     window.alert('Đã thu hồi bài trong phiên local.');
     navigateLegacy('myPosts');
   };
 
   const duplicatePost = () => {
     if (!window.confirm('Nhân bản bài này thành bài mới ở trạng thái chờ duyệt?')) return;
-    const duplicate = duplicateOwnerPost(post);
+    const duplicate = ownerPosts.duplicate(post);
     window.alert('Đã nhân bản bài trong phiên local.');
     navigateLegacy('editPost', { id:duplicate.id });
   };
@@ -112,13 +113,13 @@ export default function MyDetailPage() {
     const note = window.prompt('Ghi chú ngắn sau khi đã liên hệ lại:', 'Đã liên hệ lại');
     if (note === null) return;
     const now = 'Vừa xong • phiên local';
-    const nextDetail = updateOwnerDetailLocal(post, (current) => ({
+    const nextDetail = ownerDetail.update(post, (current) => ({
       ...current,
       contacts:current.contacts.map((item) => item.id === contact.id ? { ...item, contacted:true, contactedAt:now, note:note.trim() || 'Đã liên hệ lại' } : item),
       timeline:[{ id:`TL-${Date.now()}`, type:'handled', title:'Đã phản hồi người quan tâm', description:`Đánh dấu đã liên hệ lại với ${contact.requesterName}.`, date:now }, ...current.timeline],
     }));
     setDetail(nextDetail);
-    const updated = updateOwnerPost(post.id, (current) => ({ ...current, contactedCount:Math.min(current.contactViewCount, current.contactedCount + 1) }));
+    const updated = ownerPosts.update(post.id, (current) => ({ ...current, contactedCount:Math.min(current.contactViewCount, current.contactedCount + 1) }));
     if (updated) setPost(updated);
     setNotice('Đã đánh dấu đã liên hệ lại trong phiên local.');
   };

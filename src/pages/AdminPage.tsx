@@ -1,12 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import {
-  approveAllPendingLocal,
-  getAdminDashboardSummaryLocal,
-  getAdminPostLocal,
-  getAdminPostsLocal,
-  resetAdminPostsLocal,
-  updateAdminPostLocal,
-} from '../features/admin/localAdminStore';
+import { useDataAccess } from '../app/providers/DataAccessProvider';
 import type { AdminPost, AdminPostStatus, CommentStatus } from '../features/admin/types';
 import { AdminModalMeta, AdminSwitch, CheckIcon, SearchIcon, ShieldIcon, adminStatusClass, adminStatusLabel } from '../features/admin/components/AdminVisuals';
 import { AdminOverview, AdminPageHeading, AdminTopbar } from '../features/admin/components/AdminShellSections';
@@ -48,8 +41,9 @@ function compactPages(totalPages:number, active:number):(number|'...')[] {
 }
 
 export default function AdminPage() {
-  const [posts, setPosts] = useState<AdminPost[]>(() => getAdminPostsLocal());
-  const [drafts, setDrafts] = useState<Record<string,Draft>>(() => buildDrafts(getAdminPostsLocal()));
+  const { admin } = useDataAccess();
+  const [posts, setPosts] = useState<AdminPost[]>(() => admin.listPosts());
+  const [drafts, setDrafts] = useState<Record<string,Draft>>(() => buildDrafts(admin.listPosts()));
   const [keyword, setKeyword] = useState('');
   const [status, setStatus] = useState<''|AdminPostStatus>('');
   const [className, setClassName] = useState('');
@@ -74,7 +68,7 @@ export default function AdminPage() {
     };
   }, [modalPost]);
 
-  const summary = useMemo(() => getAdminDashboardSummaryLocal(), [posts]);
+  const summary = useMemo(() => admin.getDashboardSummary(), [posts]);
   const classes = useMemo(() => [...new Set(posts.map((post)=>post.className).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'vi')), [posts]);
 
   const filtered = useMemo(() => {
@@ -97,7 +91,7 @@ export default function AdminPage() {
   const shown = filtered.slice((safePage-1)*PAGE_SIZE, safePage*PAGE_SIZE);
 
   const syncPosts = (message?:string) => {
-    const next = getAdminPostsLocal();
+    const next = admin.listPosts();
     setPosts(next);
     setDrafts(buildDrafts(next));
     if (message) setNotice({ tone:'ok', text:message });
@@ -119,7 +113,7 @@ export default function AdminPage() {
       }
     } else rejectionReason = '';
 
-    updateAdminPostLocal(post.id, {
+    admin.updatePost(post.id, {
       status:draft.status,
       hidden:!draft.visible,
       commentStatus:draft.comments ? 'Mở' : 'Tắt',
@@ -129,7 +123,7 @@ export default function AdminPage() {
   };
 
   const openModal = (post:AdminPost) => {
-    const latest = getAdminPostLocal(post.id) || post;
+    const latest = admin.getPostById(post.id) || post;
     setModalPost(latest);
     setModalStatus(latest.status);
     setModalHidden(latest.hidden);
@@ -143,7 +137,7 @@ export default function AdminPage() {
       window.alert('Vui lòng nhập lý do từ chối để học sinh biết cần chỉnh sửa gì.');
       return;
     }
-    updateAdminPostLocal(modalPost.id, {
+    admin.updatePost(modalPost.id, {
       status:modalStatus,
       hidden:modalHidden,
       commentStatus:modalComments,
@@ -155,25 +149,25 @@ export default function AdminPage() {
 
   const approveAll = () => {
     if (!window.confirm('Duyệt tất cả bài đang chờ giáo viên duyệt?')) return;
-    const count = approveAllPendingLocal();
+    const count = admin.approveAllPending();
     syncPosts(`Đã duyệt ${count} bài đang chờ trong phiên local.`);
   };
 
   const refresh = () => {
-    setPosts(getAdminPostsLocal());
-    setDrafts(buildDrafts(getAdminPostsLocal()));
+    setPosts(admin.listPosts());
+    setDrafts(buildDrafts(admin.listPosts()));
     setNotice({ tone:'ok', text:'Đã làm mới dashboard từ local in-memory store. Chưa có request backend.' });
   };
 
   const rebuildStats = () => {
     if (!window.confirm('Đồng bộ lại cache và thống kê quản trị local?')) return;
-    setPosts([...getAdminPostsLocal()]);
+    setPosts([...admin.listPosts()]);
     setNotice({ tone:'ok', text:'Đã tính lại thống kê từ LOCAL_UI_SAMPLE. Không có dữ liệu nghiên cứu nào bị thay đổi.' });
   };
 
   const resetLocal = () => {
     if (!window.confirm('Khôi phục toàn bộ dữ liệu kiểm thử 1H về trạng thái ban đầu?')) return;
-    const next = resetAdminPostsLocal();
+    const next = admin.resetPosts();
     setPosts(next);
     setDrafts(buildDrafts(next));
     setKeyword(''); setStatus(''); setClassName(''); setSort('new'); setPage(1);
@@ -181,7 +175,7 @@ export default function AdminPage() {
   };
 
   const showSystemHealth = () => {
-    const current = getAdminPostsLocal();
+    const current = admin.listPosts();
     const message = [
       'Trạng thái: local-ui-ready',
       'Phiên bản: Phase 1 / Checkpoint 1H',

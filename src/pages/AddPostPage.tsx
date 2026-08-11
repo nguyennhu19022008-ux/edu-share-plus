@@ -1,7 +1,7 @@
 import { ChangeEvent, FormEvent, useEffect, useRef, useState } from 'react';
 import { navigateLegacy } from '../app/legacyRouter';
+import { useDataAccess } from '../app/providers/DataAccessProvider';
 import StudentHeader from '../components/student/StudentHeader';
-import { insertOwnerPost } from '../features/my-posts/localOwnerStore';
 import type { MyPost } from '../features/my-posts/types';
 
 const CATEGORIES = [
@@ -24,6 +24,7 @@ type SubmitState =
   | { tone:'error'; message:string };
 
 export default function AddPostPage() {
+  const { ownerPosts } = useDataAccess();
   const [tradeType, setTradeType] = useState<(typeof TRADE_TYPES)[number]>('Cho mượn');
   const [previewUrl, setPreviewUrl] = useState('');
   const [previewName, setPreviewName] = useState('');
@@ -114,7 +115,7 @@ export default function AddPostPage() {
       reportCount:0,
       contactInfo:contactInfo.slice(0, 300),
     };
-    insertOwnerPost(newPost);
+    ownerPosts.insert(newPost);
 
     // Phase 1: chỉ lưu bài vào in-memory owner store để kiểm tra flow xuyên trang.
     // Ảnh vẫn chỉ là preview local và chưa được giữ sau khi rời form vì Storage chưa triển khai.

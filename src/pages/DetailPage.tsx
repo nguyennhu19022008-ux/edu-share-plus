@@ -1,8 +1,7 @@
 import { FormEvent, useMemo, useState } from 'react';
 import { navigateLegacy } from '../app/legacyRouter';
+import { useDataAccess } from '../app/providers/DataAccessProvider';
 import StudentHeader from '../components/student/StudentHeader';
-import { LOCAL_UI_SAMPLE_POSTS } from '../features/marketplace/mockPosts';
-import { isPostSavedLocal, setPostSavedLocal, wasPostInitiallySavedLocal } from '../features/profile/localProfileStore';
 import type { MarketPost } from '../features/marketplace/types';
 
 type LocalComment = {
@@ -23,9 +22,9 @@ function formatMoney(value: number) {
   return value > 0 ? `${new Intl.NumberFormat('vi-VN').format(value)} ₫` : 'Miễn phí / Thỏa thuận';
 }
 
-function getRequestedPost(): MarketPost | null {
-  const requestedId = new URLSearchParams(window.location.search).get('id') || LOCAL_UI_SAMPLE_POSTS[0]?.id;
-  return LOCAL_UI_SAMPLE_POSTS.find((post) => post.id === requestedId) || null;
+function getRequestedPost(posts:MarketPost[]): MarketPost | null {
+  const requestedId = new URLSearchParams(window.location.search).get('id') || posts[0]?.id;
+  return posts.find((post) => post.id === requestedId) || null;
 }
 
 function localImageFor(post: MarketPost) {
@@ -35,25 +34,27 @@ function localImageFor(post: MarketPost) {
 }
 
 export default function DetailPage() {
-  const [post] = useState<MarketPost | null>(() => getRequestedPost());
-  const [saved, setSaved] = useState(() => post ? isPostSavedLocal(post.id) : false);
+  const { marketplace, profile } = useDataAccess();
+  const marketPosts=useMemo(()=>marketplace.listPosts(),[marketplace]);
+  const [post] = useState<MarketPost | null>(() => getRequestedPost(marketPosts));
+  const [saved, setSaved] = useState(() => post ? profile.isPostSaved(post.id) : false);
   const [contactVisible, setContactVisible] = useState(false);
   const [comments, setComments] = useState<LocalComment[]>(LOCAL_UI_COMMENTS);
   const [commentText, setCommentText] = useState('');
   const similarPosts = useMemo(() => {
     if (!post) return [];
-    const preferred = LOCAL_UI_SAMPLE_POSTS.filter((item) => item.id !== post.id && (item.category === post.category || item.tradeType === post.tradeType));
-    const fallback = LOCAL_UI_SAMPLE_POSTS.filter((item) => item.id !== post.id && !preferred.includes(item));
+    const preferred = marketPosts.filter((item) => item.id !== post.id && (item.category === post.category || item.tradeType === post.tradeType));
+    const fallback = marketPosts.filter((item) => item.id !== post.id && !preferred.includes(item));
     return [...preferred, ...fallback].slice(0, 4);
-  }, [post]);
+  }, [marketPosts, post]);
 
-  const initiallySaved = post ? wasPostInitiallySavedLocal(post.id) : false;
+  const initiallySaved = post ? profile.wasPostInitiallySaved(post.id) : false;
   const favoriteCount = Math.max(0, Number(post?.favoriteCount || 0) + (saved ? 1 : 0) - (initiallySaved ? 1 : 0));
 
   const toggleSaved = () => {
     if (!post) return;
     const next = !saved;
-    setPostSavedLocal(post.id, next);
+    profile.setPostSaved(post.id, next);
     setSaved(next);
   };
 

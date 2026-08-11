@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { navigateLegacy, type LegacyPage } from '../../app/legacyRouter';
-import { getProfileBundleLocal } from '../../features/profile/localProfileStore';
+import { useDataAccess } from '../../app/providers/DataAccessProvider';
 
 interface HeaderNotification { id:string; title:string; message:string; date:string; read:boolean }
 
@@ -11,8 +11,9 @@ interface StudentHeaderProps {
 }
 
 export default function StudentHeader({ activePage, user, notifications }: StudentHeaderProps) {
+  const { profile } = useDataAccess();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const fallbackBundle = getProfileBundleLocal();
+  const fallbackBundle = profile.getBundle();
   const resolvedUser = user || { name:fallbackBundle.profile.name, email:fallbackBundle.profile.email, avatarUrl:fallbackBundle.profile.avatarUrl };
   const resolvedNotifications = notifications || fallbackBundle.notifications;
   const isHomePage = ['index', 'detail', 'add'].includes(activePage);

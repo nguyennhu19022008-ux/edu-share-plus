@@ -1,12 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { navigateLegacy } from '../app/legacyRouter';
+import { useDataAccess } from '../app/providers/DataAccessProvider';
 import StudentHeader from '../components/student/StudentHeader';
 import { MarketplacePostCard, MarketplaceSmartStrip, MarketStatIcon } from '../features/marketplace/components/MarketplaceCards';
 import MarketplacePagination from '../features/marketplace/components/MarketplacePagination';
-import { LOCAL_UI_SAMPLE_POSTS } from '../features/marketplace/mockPosts';
 import type { MarketFilters, MarketSort, SmartMode, TradeType } from '../features/marketplace/types';
 import { CATEGORIES, normalizeMarketText, PAGE_SIZE, TRADE_TYPES } from '../features/marketplace/viewUtils';
-import { getSavedPostIdsLocal, togglePostSavedLocal } from '../features/profile/localProfileStore';
 
 const INITIAL_FILTERS: MarketFilters = { kw:'', trade:'', category:'', className:'', sort:'new', smartMode:'off' };
 
@@ -15,24 +14,26 @@ function getInitialSearchKeyword():string {
 }
 
 export default function MarketplacePage() {
+  const { marketplace, profile } = useDataAccess();
+  const marketPosts=useMemo(()=>marketplace.listPosts(),[marketplace]);
   const initialSearch = getInitialSearchKeyword();
   const [filters,setFilters]=useState<MarketFilters>(() => ({ ...INITIAL_FILTERS, kw:initialSearch }));
   const [heroKeyword,setHeroKeyword]=useState(initialSearch);
   const [page,setPage]=useState(1);
-  const [savedIds,setSavedIds]=useState<Set<string>>(()=>getSavedPostIdsLocal());
+  const [savedIds,setSavedIds]=useState<Set<string>>(()=>profile.getSavedPostIds());
   const filtersRef=useRef<HTMLElement | null>(null);
 
-  const classes=useMemo(()=>Array.from(new Set(LOCAL_UI_SAMPLE_POSTS.map((post)=>post.className))).sort((a,b)=>a.localeCompare(b,'vi')),[]);
+  const classes=useMemo(()=>Array.from(new Set(marketPosts.map((post)=>post.className))).sort((a,b)=>a.localeCompare(b,'vi')),[]);
   const globalStats=useMemo(()=>({
-    totalOpen:LOCAL_UI_SAMPLE_POSTS.length,
-    free:LOCAL_UI_SAMPLE_POSTS.filter((post)=>post.price<=0).length,
-    sale:LOCAL_UI_SAMPLE_POSTS.filter((post)=>post.tradeType==='Bán giá rẻ').length,
-    hasImage:LOCAL_UI_SAMPLE_POSTS.filter((post)=>post.hasImage).length,
+    totalOpen:marketPosts.length,
+    free:marketPosts.filter((post)=>post.price<=0).length,
+    sale:marketPosts.filter((post)=>post.tradeType==='Bán giá rẻ').length,
+    hasImage:marketPosts.filter((post)=>post.hasImage).length,
   }),[]);
 
   const filteredPosts=useMemo(()=>{
     const keyword=normalizeMarketText(filters.kw);
-    let posts=LOCAL_UI_SAMPLE_POSTS.filter((post)=>{
+    let posts=marketPosts.filter((post)=>{
       if(filters.trade && post.tradeType!==filters.trade) return false;
       if(filters.category && post.category!==filters.category) return false;
       if(filters.className && post.className!==filters.className) return false;
@@ -161,7 +162,7 @@ export default function MarketplacePage() {
         </div>
 
         <section className="post-grid">
-          {pagePosts.length ? pagePosts.map((post)=><MarketplacePostCard key={post.id} post={post} saved={savedIds.has(post.id)} onToggleSaved={()=>{ const nextSaved=togglePostSavedLocal(post.id); setSavedIds((current)=>{ const next=new Set(current); if(nextSaved) next.add(post.id); else next.delete(post.id); return next; }); }}/>) : <div className="state">Chưa có bài đăng phù hợp.</div>}
+          {pagePosts.length ? pagePosts.map((post)=><MarketplacePostCard key={post.id} post={post} saved={savedIds.has(post.id)} onToggleSaved={()=>{ const nextSaved=profile.togglePostSaved(post.id); setSavedIds((current)=>{ const next=new Set(current); if(nextSaved) next.add(post.id); else next.delete(post.id); return next; }); }}/>) : <div className="state">Chưa có bài đăng phù hợp.</div>}
         </section>
 
         <MarketplacePagination totalPages={totalPages} safePage={safePage} filteredCount={filteredPosts.length} onChange={changePage} />

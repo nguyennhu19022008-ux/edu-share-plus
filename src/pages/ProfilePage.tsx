@@ -1,14 +1,8 @@
 import { FormEvent, useMemo, useState } from 'react';
 import { navigateLegacy } from '../app/legacyRouter';
+import { useDataAccess } from '../app/providers/DataAccessProvider';
 import StudentHeader from '../components/student/StudentHeader';
 import { NotificationsSection, PrivacyLine, ProfileInfoCard, ProfileSidebar, ProfileUploadBox, SavedPostsSection } from '../features/profile/components/ProfileSections';
-import {
-  getProfileBundleLocal,
-  markAllNotificationsReadLocal,
-  recordPasswordChangedLocal,
-  updatePrivacyLocal,
-  updateProfileImagesLocal,
-} from '../features/profile/localProfileStore';
 import type { ProfilePrivacy, StudentProfileLocal } from '../features/profile/types';
 
 type MessageState = { tone:'ok' | 'error'; text:string } | null;
@@ -18,7 +12,8 @@ function passwordIsReasonable(value:string):boolean {
 }
 
 export default function ProfilePage() {
-  const initial = useMemo(() => getProfileBundleLocal(), []);
+  const { profile:profileRepository } = useDataAccess();
+  const initial = useMemo(() => profileRepository.getBundle(), [profileRepository]);
   const [profile, setProfile] = useState<StudentProfileLocal>(initial.profile);
   const [savedPosts] = useState(initial.savedPosts);
   const [notifications, setNotifications] = useState(initial.notifications);
@@ -31,7 +26,7 @@ export default function ProfilePage() {
 
   const handlePrivacySubmit = (event:FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const next = updatePrivacyLocal(privacy);
+    const next = profileRepository.updatePrivacy(privacy);
     setProfile(next);
     setMessage({ tone:'ok', text:'Đã lưu quyền riêng tư trong phiên local.' });
   };
@@ -60,7 +55,7 @@ export default function ProfilePage() {
 
   const handleImageSave = (event:FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const next = updateProfileImagesLocal({ avatarUrl:avatarDraft, faceUrl:faceDraft });
+    const next = profileRepository.updateImages({ avatarUrl:avatarDraft, faceUrl:faceDraft });
     setProfile(next);
     setMessage({ tone:'ok', text:'Đã lưu ảnh hồ sơ trong phiên local. Chưa có file nào được upload lên server/storage.' });
   };
@@ -85,15 +80,15 @@ export default function ProfilePage() {
       return;
     }
 
-    const next = recordPasswordChangedLocal();
+    const next = profileRepository.recordPasswordChanged();
     setProfile(next);
-    setNotifications(getProfileBundleLocal().notifications);
+    setNotifications(profileRepository.getBundle().notifications);
     event.currentTarget.reset();
     setMessage({ tone:'ok', text:'Đã hoàn tất mô phỏng đổi mật khẩu local. Mật khẩu thật chưa bị thay đổi vì Auth sẽ được triển khai ở Phase 4.' });
   };
 
   const handleReadAll = () => {
-    setNotifications(markAllNotificationsReadLocal());
+    setNotifications(profileRepository.markAllNotificationsRead());
     setMessage({ tone:'ok', text:'Đã đánh dấu tất cả thông báo là đã đọc trong phiên local.' });
   };
 

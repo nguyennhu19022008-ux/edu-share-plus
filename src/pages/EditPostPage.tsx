@@ -1,8 +1,7 @@
 import { ChangeEvent, FormEvent, useEffect, useRef, useState } from 'react';
 import { navigateLegacy } from '../app/legacyRouter';
+import { useDataAccess } from '../app/providers/DataAccessProvider';
 import StudentHeader from '../components/student/StudentHeader';
-import { getOwnerPost, replaceOwnerPost } from '../features/my-posts/localOwnerStore';
-import { prependOwnerTimelineLocal } from '../features/my-posts/localOwnerDetailStore';
 import type { MyPost } from '../features/my-posts/types';
 
 const CATEGORIES = ['Sách','Sách giáo khoa','Sách tham khảo','Dụng cụ học tập','Vở','Bút','Đồng phục','Đồ điện tử nhỏ','Khác'] as const;
@@ -13,8 +12,9 @@ function getPostId():string {
 }
 
 export default function EditPostPage() {
+  const { ownerPosts, ownerDetail } = useDataAccess();
   const postId = getPostId();
-  const [post] = useState<MyPost | undefined>(() => getOwnerPost(postId));
+  const [post] = useState<MyPost | undefined>(() => ownerPosts.getById(postId));
   const [tradeType, setTradeType] = useState<MyPost['tradeType']>(() => post?.tradeType || 'Cho mượn');
   const [priceValue, setPriceValue] = useState(() => post?.tradeType === 'Bán giá rẻ' && post.price ? String(post.price) : '');
   const [previewUrl, setPreviewUrl] = useState(post?.imageUrl || '');
@@ -103,8 +103,8 @@ export default function EditPostPage() {
       hidden:false,
       rejectionReason:'',
     };
-    replaceOwnerPost(nextPost);
-    prependOwnerTimelineLocal(nextPost, { type:'post', title:'Bài được chỉnh sửa và gửi duyệt lại', description:'Chủ bài cập nhật thông tin; trạng thái chuyển về chờ giáo viên duyệt.', date:'Vừa xong • phiên local' });
+    ownerPosts.replace(nextPost);
+    ownerDetail.prependTimeline(nextPost, { type:'post', title:'Bài được chỉnh sửa và gửi duyệt lại', description:'Chủ bài cập nhật thông tin; trạng thái chuyển về chờ giáo viên duyệt.', date:'Vừa xong • phiên local' });
     if (newObjectUrl) savedObjectUrlRef.current = newObjectUrl;
     setMessage({ tone:'ok', text:'Đã lưu local. Bài đã chuyển về trạng thái chờ giáo viên duyệt lại, đúng workflow cũ.' });
     redirectTimerRef.current = window.setTimeout(() => navigateLegacy('myDetail', { id:post.id }), 900);

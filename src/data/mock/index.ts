@@ -1,0 +1,1 @@
+export { createMockRepositories } from './mockAdapters';
