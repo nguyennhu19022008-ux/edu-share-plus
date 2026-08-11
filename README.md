@@ -1,8 +1,8 @@
 # EDU SHARE+ Rebuild
 
-Current checkpoint: **2B — Application Shell + Lazy Legacy Route Registry**.
+Current checkpoint: **2C — Feature Modularization**.
 
-The user-tested **Phase 1 local frontend baseline is PASS & FROZEN**. Checkpoint 2B refactors routing/application-shell architecture without redesigning the product or changing the legacy URL model.
+The user-tested **Phase 1 local frontend baseline is PASS & FROZEN**. Checkpoint 2C reorganizes the largest frontend pages into feature-owned components/utilities while preserving the approved UI, UX, behavior and legacy URL model.
 
 ## Run local
 
@@ -28,12 +28,11 @@ Main routes remain unchanged:
 npm run build
 ```
 
-A successful 2B production build should emit multiple page/route JavaScript chunks because pages are now dynamically imported.
-
 ## Architecture docs
 
 - `docs/16_PHASE1_INTEGRATION_AUDIT.md`
 - `docs/17_FRONTEND_ARCHITECTURE_AUDIT.md`
 - `docs/18_PHASE2B_APPLICATION_SHELL.md`
+- `docs/19_PHASE2C_FEATURE_MODULARIZATION.md`
 
-Checkpoint 2B does **not** connect Supabase, a database, authentication, storage or production services.
+Checkpoint 2C does **not** connect Supabase, a database, authentication, storage or production services. Data-access decoupling is reserved for Checkpoint 2D.

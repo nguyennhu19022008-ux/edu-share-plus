@@ -1,6 +1,7 @@
 import { FormEvent, useMemo, useState } from 'react';
 import { navigateLegacy } from '../app/legacyRouter';
 import StudentHeader from '../components/student/StudentHeader';
+import { NotificationsSection, PrivacyLine, ProfileInfoCard, ProfileSidebar, ProfileUploadBox, SavedPostsSection } from '../features/profile/components/ProfileSections';
 import {
   getProfileBundleLocal,
   markAllNotificationsReadLocal,
@@ -10,14 +11,7 @@ import {
 } from '../features/profile/localProfileStore';
 import type { ProfilePrivacy, StudentProfileLocal } from '../features/profile/types';
 
-const IMAGE_ACCEPT = 'image/*,.heic,.heif,.tif,.tiff,.avif,.gif,.bmp,.svg';
-
 type MessageState = { tone:'ok' | 'error'; text:string } | null;
-
-function initials(profile:StudentProfileLocal):string {
-  const value = (profile.name || profile.email || 'H').trim();
-  return value.charAt(0).toUpperCase() || 'H';
-}
 
 function passwordIsReasonable(value:string):boolean {
   return value.length >= 6 && /[A-Za-zÀ-ỹ]/.test(value) && /\d/.test(value);
@@ -34,6 +28,7 @@ export default function ProfilePage() {
   const [avatarStatus, setAvatarStatus] = useState('Chưa chọn ảnh mới.');
   const [faceStatus, setFaceStatus] = useState('Chưa chọn ảnh mới.');
   const [message, setMessage] = useState<MessageState>(null);
+
   const handlePrivacySubmit = (event:FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const next = updatePrivacyLocal(privacy);
@@ -117,39 +112,12 @@ export default function ProfilePage() {
 
         <section className="profile-shell card">
           <div className="profile-grid profile-grid-v24">
-            <aside className="profile-side">
-              <div
-                className={`profile-avatar${profile.avatarUrl ? ' has-photo' : ''}`}
-                style={profile.avatarUrl ? { backgroundImage:`url("${profile.avatarUrl}")` } : undefined}
-                aria-label="Ảnh đại diện"
-              >
-                {profile.avatarUrl ? null : <span>{initials(profile)}</span>}
-              </div>
-              <h2>{profile.name || 'Học sinh'}</h2>
-              <div className="profile-sub">{profile.className || 'Chưa có lớp'} • {profile.email}</div>
-              <div className="profile-note reputation-box">
-                <b>Điểm uy tín: {profile.reputation.score}/10</b>
-                <span>{profile.reputation.label}</span>
-                <small>Hoàn tất: {profile.reputation.detail.done} • Báo cáo: {profile.reputation.detail.reports} • Lượt lưu: {profile.reputation.detail.saves}</small>
-              </div>
-              <div className="mini-stat-grid">
-                <MiniStat label="Bài đã đăng" value={profile.activity.posts} />
-                <MiniStat label="Đang mở" value={profile.activity.open} />
-                <MiniStat label="Đã lưu" value={profile.activity.savedPosts} />
-                <MiniStat label="Bình luận" value={profile.activity.comments} />
-                <MiniStat label="Xem liên hệ" value={profile.activity.contactViews} />
-                <MiniStat label="Hoàn tất" value={profile.activity.done} />
-              </div>
-            </aside>
-
+            <ProfileSidebar profile={profile} />
             <section className="profile-main">
-              <InfoCard profile={profile} />
+              <ProfileInfoCard profile={profile} />
 
               <form className="profile-card" onSubmit={handlePrivacySubmit}>
-                <div className="profile-card-head">
-                  <h3>Cài đặt quyền riêng tư</h3>
-                  <span className="tag cat">Khuyến nghị bật bảo vệ</span>
-                </div>
+                <div className="profile-card-head"><h3>Cài đặt quyền riêng tư</h3><span className="tag cat">Khuyến nghị bật bảo vệ</span></div>
                 <PrivacyLine name="showName" label="Hiển thị tên trên bài đăng" checked={privacy.showName} help="Nên bật để giao dịch dễ tin cậy." onChange={(checked) => setPrivacy((value) => ({ ...value, showName:checked }))} />
                 <PrivacyLine name="showClass" label="Hiển thị lớp trên bài đăng" checked={privacy.showClass} help="Nên bật để học sinh cùng trường dễ nhận biết." onChange={(checked) => setPrivacy((value) => ({ ...value, showClass:checked }))} />
                 <PrivacyLine name="showEmail" label="Hiển thị email công khai" checked={privacy.showEmail} help="Mặc định nên tắt. Email chỉ nên hiện khi thật cần." onChange={(checked) => setPrivacy((value) => ({ ...value, showEmail:checked }))} />
@@ -157,25 +125,13 @@ export default function ProfilePage() {
                 <div className="btn-row"><button className="btn primary" type="submit">Lưu quyền riêng tư</button></div>
               </form>
 
-              <div className="profile-card">
-                <div className="profile-card-head"><h3>Bài tôi đã lưu</h3><span className="tag price">{savedPosts.length} bài</span></div>
-                {savedPosts.length ? (
-                  <div className="saved-list">
-                    {savedPosts.slice(0,8).map((post) => (
-                      <div className="saved-item" key={post.id}>
-                        <div className="profile-list-copy"><b>{post.title}</b><span>{post.tradeType} • {post.category} • Lưu lúc: {post.savedAt}</span></div>
-                        <button className="btn small primary" type="button" onClick={() => navigateLegacy('detail', { id:post.id })}>Xem</button>
-                      </div>
-                    ))}
-                  </div>
-                ) : <div className="state">Bạn chưa lưu bài nào. Hãy bấm ♡ Lưu bài ở trang chủ hoặc trang chi tiết.</div>}
-              </div>
+              <SavedPostsSection savedPosts={savedPosts} />
 
               <form className="profile-card" onSubmit={handleImageSave}>
                 <div className="profile-card-head"><h3>Ảnh hồ sơ</h3><span className="tag cat">ĐA ĐỊNH DẠNG</span></div>
                 <div className="profile-upload-grid">
-                  <UploadBox inputId="avatarFile" title="Ảnh đại diện" help="Ảnh hiển thị trên thanh tài khoản" imageUrl={avatarDraft} status={avatarStatus} onFile={(file) => handleImagePick('avatar', file)} />
-                  <UploadBox inputId="faceFile" title="Ảnh khuôn mặt" help="Ảnh nhận diện nội bộ, không công khai" imageUrl={faceDraft} status={faceStatus} onFile={(file) => handleImagePick('face', file)} />
+                  <ProfileUploadBox inputId="avatarFile" title="Ảnh đại diện" help="Ảnh hiển thị trên thanh tài khoản" imageUrl={avatarDraft} status={avatarStatus} onFile={(file) => handleImagePick('avatar', file)} />
+                  <ProfileUploadBox inputId="faceFile" title="Ảnh khuôn mặt" help="Ảnh nhận diện nội bộ, không công khai" imageUrl={faceDraft} status={faceStatus} onFile={(file) => handleImagePick('face', file)} />
                 </div>
                 <div className="btn-row"><button className="btn primary" type="submit">Lưu ảnh hồ sơ</button></div>
                 <div className="form-note">Hỗ trợ HEIC/HEIF, TIFF, AVIF, GIF, BMP, SVG và nhiều định dạng phổ biến; ảnh sẽ được chuyển về JPEG tối ưu.</div>
@@ -192,19 +148,7 @@ export default function ProfilePage() {
                 <div className="btn-row"><button className="btn green" type="submit">Đổi mật khẩu</button></div>
               </form>
 
-              <div className="profile-card">
-                <div className="profile-card-head"><h3>Thông báo gần đây</h3><button className="btn small gray" type="button" onClick={handleReadAll}>Đánh dấu đã đọc</button></div>
-                {notifications.length ? (
-                  <div className="saved-list">
-                    {notifications.slice(0,6).map((notification) => (
-                      <div className={`saved-item${notification.read ? '' : ' unread-mini'}`} key={notification.id}>
-                        <div className="profile-list-copy"><b>{notification.title}</b><span>{notification.message}</span><small>{notification.date}</small></div>
-                      </div>
-                    ))}
-                  </div>
-                ) : <div className="state">Chưa có thông báo.</div>}
-              </div>
-
+              <NotificationsSection notifications={notifications} onReadAll={handleReadAll} />
               {message ? <div className={`state ${message.tone}`}>{message.text}</div> : null}
             </section>
           </div>
@@ -212,55 +156,5 @@ export default function ProfilePage() {
       </main>
       <footer className="page-footer">Edu Share+ • Chia sẻ đồ dùng học tập an toàn trong trường</footer>
     </>
-  );
-}
-
-function MiniStat({ label, value }:{ label:string; value:number }) {
-  return <div className="mini-stat"><b>{value}</b><span>{label}</span></div>;
-}
-
-function InfoCard({ profile }:{ profile:StudentProfileLocal }) {
-  return (
-    <div className="profile-card">
-      <div className="profile-card-head"><h3>Thông tin tài khoản</h3><span className="tag">{profile.passwordStatus || 'Đã thiết lập'}</span></div>
-      <div className="profile-info-grid">
-        <InfoItem label="Họ và tên" value={profile.name} />
-        <InfoItem label="Lớp" value={profile.className} />
-        <InfoItem label="Email" value={profile.email} />
-        <InfoItem label="Số điện thoại" value={profile.phoneMasked || profile.phone} />
-        <InfoItem label="Mật khẩu" value="••••••••" />
-        <InfoItem label="Lần đăng nhập gần nhất" value={profile.lastLogin || 'Chưa có dữ liệu'} />
-      </div>
-      <div className="form-note">Thông tin liên hệ được che mặc định ở trang công khai; người khác phải bấm Xem liên hệ thì hệ thống mới ghi nhận lượt xem.</div>
-    </div>
-  );
-}
-
-function InfoItem({ label, value }:{ label:string; value:string }) {
-  return <div className="profile-info-item"><span>{label}</span><b>{value || 'Chưa cập nhật'}</b></div>;
-}
-
-function PrivacyLine({ name, label, checked, help, onChange }:{ name:string; label:string; checked:boolean; help:string; onChange:(checked:boolean)=>void }) {
-  return (
-    <label className="privacy-switch">
-      <input type="checkbox" name={name} value="TRUE" checked={checked} onChange={(event) => onChange(event.target.checked)} />
-      <span><b>{label}</b><small>{help}</small></span>
-    </label>
-  );
-}
-
-function UploadBox({ inputId, title, help, imageUrl, status, onFile }:{ inputId:string; title:string; help:string; imageUrl:string; status:string; onFile:(file?:File)=>void }) {
-  return (
-    <div className="profile-upload-box">
-      <div className={`profile-preview${imageUrl ? ' has-photo' : ''}`} style={imageUrl ? { backgroundImage:`url("${imageUrl}")` } : undefined}>
-        {imageUrl ? null : <span>Chưa có ảnh</span>}
-      </div>
-      <div className="field">
-        <label htmlFor={inputId}>{title}</label>
-        <input id={inputId} type="file" accept={IMAGE_ACCEPT} onChange={(event) => onFile(event.target.files?.[0])} />
-        <small>{help}</small>
-        <div className="form-note">{status}</div>
-      </div>
-    </div>
   );
 }

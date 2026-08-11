@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react';
-import { navigateLegacy } from '../app/legacyRouter';
 import {
   approveAllPendingLocal,
   getAdminDashboardSummaryLocal,
@@ -9,6 +8,8 @@ import {
   updateAdminPostLocal,
 } from '../features/admin/localAdminStore';
 import type { AdminPost, AdminPostStatus, CommentStatus } from '../features/admin/types';
+import { AdminModalMeta, AdminSwitch, CheckIcon, SearchIcon, ShieldIcon, adminStatusClass, adminStatusLabel } from '../features/admin/components/AdminVisuals';
+import { AdminOverview, AdminPageHeading, AdminTopbar } from '../features/admin/components/AdminShellSections';
 
 const PAGE_SIZE = 6;
 const STATUS_OPTIONS:AdminPostStatus[] = ['Chờ duyệt','Đang mở','Từ chối'];
@@ -20,19 +21,6 @@ type Notice = { tone:'ok'|'warn'; text:string } | null;
 function money(value:number):string {
   if (!value) return '';
   return new Intl.NumberFormat('vi-VN').format(value) + 'đ';
-}
-
-function statusLabel(value:AdminPostStatus):string {
-  if (value === 'Đang mở') return 'Đang giao dịch';
-  if (value === 'Đã xong') return 'Đã hoàn tất';
-  return value;
-}
-
-function statusClass(value:AdminPostStatus):string {
-  const map:Record<AdminPostStatus,string> = {
-    'Đang mở':'open', 'Chờ duyệt':'pending', 'Đã xong':'done', 'Từ chối':'rejected', 'Đã thu hồi':'withdrawn',
-  };
-  return map[value];
 }
 
 function buildDrafts(items:AdminPost[]):Record<string,Draft> {
@@ -212,69 +200,14 @@ export default function AdminPage() {
 
   return (
     <>
-      <header className="admin-topbar">
-        <div className="admin-topbar-inner">
-          <button className="admin-brand-button" type="button" onClick={() => navigateLegacy('admin')} aria-label="Trang quản trị Edu Share+">
-            <span className="admin-brand-mark" aria-hidden="true"><ShieldIcon /></span>
-            <span className="admin-brand-copy">
-              <span className="admin-brand-title">Edu Share<span>+</span> <em>Admin Panel</em></span>
-              <small>Hệ thống quản trị, duyệt bài và báo cáo tác động xanh</small>
-            </span>
-          </button>
-          <div className="admin-account-actions">
-            <button className="admin-icon-button notify-btn" type="button" onClick={() => setNotice({tone:'ok',text:'Không có thông báo backend ở Phase 1. Badge chỉ là trạng thái UI local.'})} title="Thông báo" aria-label="Mở thông báo">
-              <BellIcon />
-              <span className="notify-badge">{summary.pending + summary.reports || ''}</span>
-            </button>
-            <div className="admin-user-block">
-              <span className="admin-user-avatar avatar">GV</span>
-              <span className="admin-user-copy"><strong>Xin chào, Giáo viên</strong><small><i></i><span>Đang hoạt động</span></small></span>
-            </div>
-            <button className="admin-logout-button" type="button" onClick={() => navigateLegacy('landing')}><LogoutIcon /><span>Thoát</span></button>
-          </div>
-        </div>
-      </header>
+      <AdminTopbar alertCount={summary.pending + summary.reports} onNotify={() => setNotice({tone:'ok',text:'Không có thông báo backend ở Phase 1. Badge chỉ là trạng thái UI local.'})} />
 
       <main className="admin-shell">
-        <section className="admin-page-heading">
-          <div><h1>Quản trị Edu Share+</h1><p>Duyệt bài, quản lý hiển thị, bình luận và theo dõi tác động của hệ thống.</p></div>
-          <div className="admin-page-actions">
-            <button className="admin-secondary-button" type="button" onClick={refresh}><RefreshIcon />Làm mới dữ liệu</button>
-            <button className="admin-primary-button" type="button" onClick={exportPdf}><DocumentIcon />Xuất báo cáo PDF</button>
-          </div>
-        </section>
+        <AdminPageHeading onRefresh={refresh} onExportPdf={exportPdf} />
 
         {notice ? <div className={`checkpoint-state admin-local-state ${notice.tone === 'ok' ? 'is-ok' : ''}`} role="status">{notice.text}</div> : null}
 
-        <section className="admin-summary-grid" aria-label="Tổng quan quản trị">
-          <SummaryCard label="Tổng bài đăng" value={summary.totalPosts} note="Toàn bộ bài trong hệ thống" tone="blue" icon="▤" />
-          <SummaryCard label="Đã hoàn thành" value={summary.done} note="Giao dịch đã hoàn tất" tone="green" icon="✓" />
-          <SummaryCard label="Chờ duyệt" value={summary.pending} note={summary.pending ? 'Cần xử lý' : 'Không có bài chờ'} tone="amber" icon="◷" />
-          <SummaryCard label="Báo cáo" value={summary.reports} note={summary.reports ? 'Cần kiểm tra' : 'Không có báo cáo mới'} tone="red" icon="!" />
-          <SummaryCard label="Tiết kiệm học sinh" value={money(summary.financialSaved) || '0đ'} note="Chi phí tái sử dụng ước tính" tone="mint" icon="₫" />
-          <SummaryCard label="Giảm rác thải" value={`${summary.wasteReducedKg} kg`} note="Tác động từ giao dịch hoàn tất" tone="cyan" icon="↗" />
-        </section>
-
-        <section className="admin-insights-grid">
-          <article className="admin-insight-card admin-rate-card">
-            <div className="admin-card-heading"><h2>Thống kê nâng cao</h2><span className="admin-live-chip">Realtime</span></div>
-            <div className="admin-rate-list">
-              <Rate label="Tỷ lệ duyệt / đăng bài" value={summary.approvalRate} tone="green" />
-              <Rate label="Tỷ lệ hoàn thành trao đổi" value={summary.completionRate} tone="blue" />
-              <Rate label="Tỷ lệ bài bị báo cáo" value={summary.reportRate} tone="red" />
-            </div>
-            <div className="admin-rate-footer"><span>Cập nhật: {summary.updatedAt}</span><button type="button" onClick={rebuildStats}>Đồng bộ thống kê</button></div>
-          </article>
-          <article className="admin-insight-card admin-rank-card">
-            <div className="admin-card-heading"><h2>Top danh mục & lớp học tích cực</h2><span className="admin-card-note">LOCAL_UI_SAMPLE</span></div>
-            <div className="admin-rank-grid">
-              <RankColumn title="Danh mục nhiều nhất" items={summary.topCategories} />
-              <RankColumn title="Top lớp sôi nổi" items={summary.topClasses} isClass />
-            </div>
-          </article>
-        </section>
-
-        <AdminCharts posts={posts} />
+        <AdminOverview summary={summary} posts={posts} onRebuildStats={rebuildStats} />
 
         <section className="admin-moderation-card">
           <div className="admin-moderation-header">
@@ -313,11 +246,11 @@ export default function AdminPage() {
                         <td className="admin-date-cell"><span>{date || 'Chưa có'}</span><small>{time.join(' ') || post.doneAt || ''}</small></td>
                         <td className="admin-owner-cell"><strong>{post.name || 'Ẩn danh'}</strong><span>{post.emailMasked || 'Email đã ẩn'}</span></td>
                         <td className="align-center admin-status-cell">
-                          <span className={`admin-status-pill ${statusClass(post.status)}`}><i />{statusLabel(post.status)}</span>
-                          <select className="admin-row-status-select" disabled={archived} value={draft.status} onChange={(event)=>setDraft(post.id,{status:event.target.value as AdminPostStatus})} aria-label="Trạng thái bài đăng">{options.map((item)=><option key={item} value={item}>{statusLabel(item)}</option>)}</select>
+                          <span className={`admin-status-pill ${adminStatusClass(post.status)}`}><i />{adminStatusLabel(post.status)}</span>
+                          <select className="admin-row-status-select" disabled={archived} value={draft.status} onChange={(event)=>setDraft(post.id,{status:event.target.value as AdminPostStatus})} aria-label="Trạng thái bài đăng">{options.map((item)=><option key={item} value={item}>{adminStatusLabel(item)}</option>)}</select>
                         </td>
-                        <td className="align-center admin-visibility-cell"><Switch checked={draft.visible} disabled={archived} label="Hiển thị bài đăng" onChange={(checked)=>setDraft(post.id,{visible:checked})} /></td>
-                        <td className="align-center admin-comment-cell"><div className="admin-comment-toggle-wrap"><Switch checked={draft.comments} disabled={archived} label="Cho phép bình luận" onChange={(checked)=>setDraft(post.id,{comments:checked})} /><span className="admin-comment-count">({post.commentCount})</span></div></td>
+                        <td className="align-center admin-visibility-cell"><AdminSwitch checked={draft.visible} disabled={archived} label="Hiển thị bài đăng" onChange={(checked)=>setDraft(post.id,{visible:checked})} /></td>
+                        <td className="align-center admin-comment-cell"><div className="admin-comment-toggle-wrap"><AdminSwitch checked={draft.comments} disabled={archived} label="Cho phép bình luận" onChange={(checked)=>setDraft(post.id,{comments:checked})} /><span className="admin-comment-count">({post.commentCount})</span></div></td>
                         <td className="align-center"><span className={`admin-report-count${post.reportCount?' active':''}`} title={`${post.reportCount} báo cáo`}>{post.reportCount}</span></td>
                         <td className="admin-action-cell"><div className="admin-row-actions"><button type="button" className="admin-table-primary admin-row-save-button" disabled={archived} onClick={()=>saveRow(post)}>Lưu</button><button type="button" className="admin-table-neutral admin-row-detail-button" onClick={()=>openModal(post)}>Chi tiết</button></div></td>
                       </tr>
@@ -349,7 +282,7 @@ export default function AdminPage() {
             <header className="admin-modal-header"><div><span className="admin-modal-label">CHI TIẾT KIỂM DUYỆT</span><h2 id="adminModalTitle">{modalPost.title}</h2></div><button className="admin-modal-close" type="button" onClick={()=>setModalPost(null)} aria-label="Đóng">×</button></header>
             <div className="admin-modal-body">
               {modalPost.imageUrl ? <img className="admin-modal-image" src={modalPost.imageUrl} alt={modalPost.title} /> : null}
-              <div className="admin-modal-meta-grid"><ModalMeta label="Hình thức" value={modalPost.tradeType}/><ModalMeta label="Danh mục" value={modalPost.category}/><ModalMeta label="Lớp" value={modalPost.className}/><ModalMeta label="Ngày đăng" value={modalPost.date}/><ModalMeta label="Người đăng" value={modalPost.name}/><ModalMeta label="Email" value={modalPost.email}/></div>
+              <div className="admin-modal-meta-grid"><AdminModalMeta label="Hình thức" value={modalPost.tradeType}/><AdminModalMeta label="Danh mục" value={modalPost.category}/><AdminModalMeta label="Lớp" value={modalPost.className}/><AdminModalMeta label="Ngày đăng" value={modalPost.date}/><AdminModalMeta label="Người đăng" value={modalPost.name}/><AdminModalMeta label="Email" value={modalPost.email}/></div>
               <section className="admin-modal-section"><h3>Mô tả bài đăng</h3><p>{modalPost.description || 'Không có mô tả.'}</p></section>
               <section className="admin-modal-section"><h3>Thông tin liên hệ</h3><p>{modalPost.contactInfo || 'Chưa có thông tin liên hệ.'}</p></section>
               {modalPost.rejectionReason ? <section className="admin-modal-section warning"><h3>Lý do từ chối hiện tại</h3><p>{modalPost.rejectionReason}</p></section> : null}
@@ -372,73 +305,3 @@ export default function AdminPage() {
     </>
   );
 }
-
-function SummaryCard({label,value,note,tone,icon}:{label:string;value:string|number;note:string;tone:string;icon:string}) {
-  return <article className={`admin-summary-card tone-${tone}`}><div className="admin-summary-card-head"><span className="admin-summary-label">{label}</span><span className="admin-summary-icon">{icon}</span></div><strong>{value}</strong><small>{note}</small></article>;
-}
-
-function Rate({label,value,tone}:{label:string;value:number;tone:'green'|'blue'|'red'}) {
-  const safe = Math.max(0,Math.min(100,value));
-  return <div className="admin-rate-item"><div className="admin-rate-row"><span>{label}</span><b className={`rate-${tone}`}>{safe.toFixed(1)}%</b></div><div className="admin-rate-track"><i className={`rate-${tone}`} style={{width:`${Math.max(tone==='red'&&safe>0?2:0,safe)}%`}} /></div></div>;
-}
-
-function RankColumn({title,items,isClass=false}:{title:string;items:Array<{name:string;count:number}>;isClass?:boolean}) {
-  const medals = ['🥇','🥈','🥉'];
-  return <div className="admin-rank-column"><h3>{title}</h3><div className="admin-rank-list">{items.length ? items.slice(0,4).map((item,index)=><div key={item.name} className={`admin-rank-row${isClass&&index===0?' featured':''}`}><span>{isClass&&index<3?`${medals[index]} `:`${index+1}. `}{item.name}</span><b>{item.count}{isClass?' lượt':' món'}</b></div>) : <div className="admin-rank-empty">Chưa có dữ liệu.</div>}</div></div>;
-}
-
-function Switch({checked,disabled,label,onChange}:{checked:boolean;disabled:boolean;label:string;onChange:(checked:boolean)=>void}) {
-  return <label className={`admin-switch${disabled?' is-disabled':''}`} title={label}><input className="admin-switch-input" type="checkbox" checked={checked} disabled={disabled} onChange={(event)=>onChange(event.target.checked)} aria-label={label}/><span className="admin-switch-track" aria-hidden="true"><span className="admin-switch-thumb"/></span></label>;
-}
-
-function ModalMeta({label,value}:{label:string;value:string}) { return <div className="admin-modal-meta"><span>{label}</span><strong>{value || 'Chưa có'}</strong></div>; }
-
-function AdminCharts({posts}:{posts:AdminPost[]}) {
-  const monthData = [2,4,3,5,6,4,7,8];
-  const categories = useMemo(() => {
-    const map = new Map<string,number>(); posts.forEach((post)=>map.set(post.category,(map.get(post.category)||0)+1));
-    return [...map.entries()].sort((a,b)=>b[1]-a[1]).slice(0,6);
-  },[posts]);
-  const trades = useMemo(() => {
-    const map = new Map<string,number>(); posts.forEach((post)=>map.set(post.tradeType,(map.get(post.tradeType)||0)+1));
-    return [...map.entries()];
-  },[posts]);
-  const hot = useMemo(() => [...posts].sort((a,b)=>(b.favoriteCount+b.contactCount+b.commentCount)-(a.favoriteCount+a.contactCount+a.commentCount)).slice(0,5),[posts]);
-  return <section className="admin-chart-dashboard"><div className="admin-chart-heading"><div><h2>Biểu đồ dashboard</h2><p>Theo dõi xu hướng hoàn tất, danh mục, hình thức giao dịch và bài nổi bật.</p></div><span className="admin-card-note">LOCAL_UI_SAMPLE</span></div><div className="admin-chart-grid">
-    <article className="admin-chart-panel"><h3>Hoàn tất theo tháng</h3><div className="admin-chart-canvas"><LineChart values={monthData}/></div></article>
-    <article className="admin-chart-panel"><h3>Tác động theo danh mục</h3><div className="admin-chart-canvas"><BarChart items={categories}/></div></article>
-    <article className="admin-chart-panel"><h3>Cơ cấu hình thức</h3><div className="admin-chart-canvas"><DonutChart items={trades}/></div></article>
-    <article className="admin-chart-panel"><h3>Top bài nổi bật</h3><div className="admin-chart-canvas"><HotChart items={hot}/></div></article>
-  </div></section>;
-}
-
-function LineChart({values}:{values:number[]}) {
-  const max = Math.max(...values,1); const width=460, height=165, pad=14;
-  const points = values.map((value,index)=>`${pad+(index*(width-pad*2))/(values.length-1)},${height-pad-(value/max)*(height-pad*2)}`).join(' ');
-  return <div className="admin-local-line"><svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Biểu đồ hoàn tất theo tháng"><g className="admin-local-grid"><line x1="14" y1="40" x2="446" y2="40"/><line x1="14" y1="82" x2="446" y2="82"/><line x1="14" y1="124" x2="446" y2="124"/></g><polyline points={points} fill="none" stroke="currentColor" strokeWidth="4" strokeLinejoin="round" strokeLinecap="round"/>{values.map((value,index)=>{const [x,y]=points.split(' ')[index].split(',');return <circle key={index} cx={x} cy={y} r="4" fill="currentColor"><title>{value} giao dịch mẫu</title></circle>;})}</svg><div className="admin-local-months"><span>T1</span><span>T2</span><span>T3</span><span>T4</span><span>T5</span><span>T6</span><span>T7</span><span>T8</span></div></div>;
-}
-
-function BarChart({items}:{items:Array<[string,number]>}) {
-  const max=Math.max(...items.map(([,value])=>value),1);
-  return <div className="admin-local-bars">{items.map(([label,value])=><div className="admin-local-bar" key={label}><span>{label}</span><i><b style={{height:`${Math.max(12,(value/max)*100)}%`}} /></i><strong>{value}</strong></div>)}</div>;
-}
-
-function DonutChart({items}:{items:Array<[string,number]>}) {
-  const total=items.reduce((sum,[,value])=>sum+value,0)||1;
-  let cursor=0; const colors=['#ee4d2d','#f59e0b','#10b981','#2563eb'];
-  const segments=items.map(([,value],index)=>{const start=cursor; cursor+=(value/total)*360; return `${colors[index%colors.length]} ${start}deg ${cursor}deg`;}).join(',');
-  return <div className="admin-local-donut-wrap"><div className="admin-local-donut" style={{background:`conic-gradient(${segments})`}}><span><b>{total}</b><small>bài mẫu</small></span></div><div className="admin-local-legend">{items.map(([label,value],index)=><div key={label}><i style={{background:colors[index%colors.length]}}/><span>{label}</span><b>{value}</b></div>)}</div></div>;
-}
-
-function HotChart({items}:{items:AdminPost[]}) {
-  const values=items.map((post)=>post.favoriteCount+post.contactCount+post.commentCount); const max=Math.max(...values,1);
-  return <div className="admin-local-hot">{items.map((post,index)=><div key={post.id}><span title={post.title}>{post.title}</span><i><b style={{width:`${(values[index]/max)*100}%`}}/></i><strong>{values[index]}</strong></div>)}</div>;
-}
-
-function ShieldIcon(){return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.3 20 5v5.8c0 5.1-3.4 9.4-8 10.9-4.6-1.5-8-5.8-8-10.9V5l8-2.7Zm0 4.1-4.6 1.5v3c0 3.2 1.9 6.1 4.6 7.4 2.7-1.3 4.6-4.2 4.6-7.4v-3L12 6.4Z"/></svg>}
-function BellIcon(){return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9Zm-8.2 11a2.4 2.4 0 0 0 4.4 0H9.8Z"/></svg>}
-function LogoutIcon(){return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h5v-2H5V5h5V3Zm4.6 4.6L13.2 9l2 2H8v2h7.2l-2 2 1.4 1.4L19 12l-4.4-4.4Z"/></svg>}
-function RefreshIcon(){return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17.7 6.3A8 8 0 1 0 20 12h-2a6 6 0 1 1-1.8-4.3L13 11h8V3l-3.3 3.3Z"/></svg>}
-function DocumentIcon(){return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Zm1 3.5L18.5 9H15V5.5ZM8 13h8v2H8v-2Zm0 4h8v2H8v-2Z"/></svg>}
-function CheckIcon(){return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 16.2-3.5-3.5L4 14.2l5 5 11-11-1.5-1.4L9 16.2Zm0-6-1.5 1.5L9 13.2l7-7-1.5-1.4L9 10.2Z"/></svg>}
-function SearchIcon(){return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m21 19.6-5.2-5.2a7 7 0 1 0-1.4 1.4l5.2 5.2 1.4-1.4ZM5 10a5 5 0 1 1 10 0 5 5 0 0 1-10 0Z"/></svg>}
