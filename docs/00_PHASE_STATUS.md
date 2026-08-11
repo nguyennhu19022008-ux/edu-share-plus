@@ -22,8 +22,14 @@ Phase 1 baseline is frozen. Further visible UI/UX changes require explicit appro
 - Checkpoint 2A — **PASS:** frontend architecture audit; no runtime behavior change.
 - Checkpoint 2B — **PASS:** shared application shell + exhaustive lazy legacy route registry + centralized route metadata/boundaries.
 - Checkpoint 2C — **PASS:** Marketplace, My Posts, Profile and Admin modularized into feature-owned presentation components/utilities without changing UI/UX.
-- Checkpoint 2D — **CURRENT / CANDIDATE:** provider-neutral repository contracts + mock adapters + React data-access provider; pages/components no longer import mock/local stores directly.
-- Next after acceptance: **Phase 3 — database design / ERD** before any database implementation.
+- Checkpoint 2D — **PASS:** provider-neutral repository contracts + mock adapters + React data-access provider; pages/components no longer import mock/local stores directly.
+
+Phase 2 is **PASS & FROZEN**.
+
+## Phase 3 — Database Design
+
+- Checkpoint 3A — **CURRENT / CANDIDATE:** database requirements + entity audit + provisional backend permission matrix. No database or SQL created.
+- Next after acceptance: **Checkpoint 3B — Database ERD + relationship decisions**.
 
 See:
 
@@ -31,3 +37,5 @@ See:
 - `docs/18_PHASE2B_APPLICATION_SHELL.md`
 - `docs/19_PHASE2C_FEATURE_MODULARIZATION.md`
 - `docs/20_PHASE2D_DATA_ACCESS_BOUNDARY.md`
+- `docs/21_PHASE3A_DATABASE_REQUIREMENTS_ENTITY_AUDIT.md`
+- `docs/05_PERMISSION_MATRIX.md`

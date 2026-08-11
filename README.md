@@ -1,8 +1,8 @@
 # EDU SHARE+ Rebuild
 
-Current checkpoint: **2D — Data Access Boundary**.
+Current checkpoint: **3A — Database Requirements + Entity Audit**.
 
-The user-tested **Phase 1 local frontend baseline is PASS & FROZEN**. Phase 2A–2C audited and modularized the frontend. Checkpoint 2D adds provider-neutral repository contracts and a React data-access provider so pages/components no longer import controlled mock/local stores directly.
+The user-tested **Phase 1 local frontend baseline is PASS & FROZEN** and **Phase 2 Frontend Architecture is PASS & FROZEN**. Checkpoint 3A audits database requirements, legacy data classification, candidate entities and backend permission boundaries before any ERD/SQL/database implementation.
 
 ## Run local
 
@@ -35,5 +35,7 @@ npm run build
 - `docs/18_PHASE2B_APPLICATION_SHELL.md`
 - `docs/19_PHASE2C_FEATURE_MODULARIZATION.md`
 - `docs/20_PHASE2D_DATA_ACCESS_BOUNDARY.md`
+- `docs/21_PHASE3A_DATABASE_REQUIREMENTS_ENTITY_AUDIT.md`
+- `docs/05_PERMISSION_MATRIX.md`
 
-Checkpoint 2D still uses controlled local UI samples. It does **not** connect Supabase, PostgreSQL, real authentication, storage, migration or production services.
+Checkpoint 3A is documentation-only. The application still uses controlled local UI samples. It does **not** create/connect Supabase, PostgreSQL, real authentication, storage, migration or production services.
