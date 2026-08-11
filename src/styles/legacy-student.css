@@ -1,0 +1,379 @@
+/* Student header: compact, neutral and ordered like the approved reference. */
+  .student-app-header{
+    min-height:72px;
+    padding:9px max(18px,calc((100vw - 1240px)/2));
+    background:#fff;
+    border-top:1px solid #ffd8cf;
+    border-bottom:1px solid #e5e7eb;
+    box-shadow:0 2px 10px rgba(15,23,42,.06);
+  }
+  .student-app-header .brand{gap:11px;color:#111827;text-align:left}
+  .student-app-header .brand-mark{
+    width:40px;
+    height:40px;
+    border-radius:11px;
+    background:linear-gradient(135deg,#ef4444,#f97316);
+    color:#fff;
+    box-shadow:0 5px 13px rgba(238,77,45,.25);
+  }
+  .brand-title-wrap{display:grid;gap:2px;min-width:0}
+  .brand-name-line{display:flex;align-items:center;gap:8px;font-size:20px;line-height:1;font-weight:950;letter-spacing:-.035em}
+  .brand-audience-badge{display:inline-flex;padding:4px 7px;border-radius:5px;background:#fff0eb;color:#ee4d2d;font-size:10px;font-weight:950;letter-spacing:.02em}
+  .student-app-header .brand small{color:#7c8798;font-size:10.5px;font-weight:700;opacity:1}
+  .student-app-header .nav-actions{gap:4px;flex-wrap:nowrap}
+  .student-app-header .hello.student-user-summary{
+    order:0;
+    min-width:190px;
+    max-width:260px;
+    gap:9px;
+    margin-right:2px;
+    padding:3px 12px 3px 0;
+    border:0;
+    border-right:1px solid #e5e7eb;
+    background:#fff;
+    color:#111827;
+    border-radius:0;
+    box-shadow:none;
+  }
+  .student-app-header .student-user-summary:hover{background:#fff;box-shadow:none}
+  .student-app-header .student-user-summary .avatar{width:34px;height:34px;font-size:12px;background:linear-gradient(135deg,#f97316,#ee4d2d);color:#fff}
+  .header-user-copy{display:grid;gap:2px;min-width:0;text-align:left}
+  .header-user-name{max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#111827;font-size:12.5px;font-weight:900;line-height:1.15}
+  .header-user-email{max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#94a3b8;font-size:10px;font-weight:650;line-height:1.15}
+  .student-app-header .student-nav-link{
+    min-height:38px;
+    padding:9px 11px;
+    border:1px solid transparent !important;
+    border-radius:7px !important;
+    background:#fff !important;
+    color:#64748b !important;
+    box-shadow:none !important;
+    white-space:nowrap;
+  }
+  .student-app-header .student-nav-link:hover{background:#fff5f2 !important;color:#ee4d2d !important;border-color:#ffd8ce !important}
+  .student-app-header .student-nav-link.active{background:#fff1ed !important;color:#dc2f18 !important;border-color:#ffe0d7 !important}
+  .student-app-header .student-logout-btn{color:#475569 !important}
+  .student-app-header .student-notify-btn{
+    order:0;
+    flex:0 0 38px;
+    width:38px;
+    min-width:38px;
+    height:38px;
+    margin-right:2px;
+    border-radius:50%;
+    background:#fff8f5;
+    border:1px solid #ffd8ce;
+  }
+  .student-app-header .profile-nav-btn{display:inline-flex !important}
+
+  /* My Posts product-like cards. */
+  .owner-post-grid{grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:16px;align-items:stretch}
+  .owner-post-card{
+    display:flex;
+    flex-direction:column;
+    gap:0;
+    min-height:376px;
+    padding:20px;
+    border:1px solid #e5e7eb;
+    border-top-width:2px;
+    border-radius:12px;
+    background:#fff;
+    box-shadow:0 2px 10px rgba(15,23,42,.05);
+    overflow:hidden;
+  }
+  .owner-post-card:before{display:none}
+  .owner-post-card:hover{transform:translateY(-2px);border-color:#f4a18d;box-shadow:0 7px 20px rgba(15,23,42,.08)}
+  .owner-post-card.owner-status-open{border-color:#f7b733}
+  .owner-post-card.owner-status-done{border-color:#dfe3e8}
+  .owner-post-card.owner-status-pending{border-color:#93c5fd}
+  .owner-post-card.owner-status-rejected{border-color:#fda4af}
+  .owner-post-card.owner-status-withdrawn{border-color:#cbd5e1}
+  .owner-card-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:11px}
+  .owner-status-badge{display:inline-flex;align-items:center;min-height:25px;padding:5px 10px;border-radius:6px;font-size:11px;line-height:1;font-weight:950;text-transform:uppercase;letter-spacing:.02em}
+  .owner-card-price{flex:0 0 auto;color:#ee4d2d;font-size:15px;font-weight:950;white-space:nowrap}
+  .owner-card-price.free{color:#059669;font-size:12px}
+  .owner-card-context{display:grid;gap:7px;margin-bottom:10px;color:#64748b}
+  .owner-posted-at{font-size:11px;font-weight:750;color:#94a3b8}
+  .owner-post-taxonomy{font-size:12px;font-weight:800;color:#475569;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .owner-card-title{
+    min-height:44px;
+    margin:0 0 13px;
+    color:#111827;
+    font-size:17px;
+    line-height:1.35;
+    font-weight:950;
+    letter-spacing:-.018em;
+    display:-webkit-box;
+    -webkit-box-orient:vertical;
+    -webkit-line-clamp:2;
+    overflow:hidden;
+  }
+  .owner-rejection-reason{margin:0 0 12px}
+  .owner-metrics-inline{
+    display:grid;
+    grid-template-columns:repeat(4,minmax(0,1fr));
+    gap:0;
+    min-height:62px;
+    margin:0 0 12px;
+    padding:10px 4px;
+    border:1px solid #e5e7eb;
+    border-radius:10px;
+    background:#f8fafc;
+  }
+  .owner-metric-inline{position:relative;display:grid;place-items:center;align-content:center;gap:3px;min-width:0;padding:0 6px;text-align:center}
+  .owner-metric-inline:not(:last-child):after{content:'';position:absolute;top:4px;right:0;bottom:4px;width:1px;background:#dfe4ea}
+  .owner-metric-inline b{color:#111827;font-size:13px;font-weight:950}
+  .owner-metric-inline span{color:#64748b;font-size:10px;font-weight:750;line-height:1.15}
+  .owner-insight{
+    display:grid;
+    gap:5px;
+    min-height:58px;
+    margin-bottom:14px;
+    padding:11px 12px;
+    border:1px solid #e5e7eb;
+    border-radius:9px;
+    background:#f8fafc;
+  }
+  .owner-insight b{color:#334155;font-size:12px;font-weight:950}
+  .owner-insight span{color:#64748b;font-size:11px;line-height:1.45}
+  .owner-insight.good,.owner-insight.done{border-color:#86efac;background:#ecfdf5}.owner-insight.good b,.owner-insight.done b{color:#047857}
+  .owner-insight.warning,.owner-insight.needs-action{border-color:#fcd34d;background:#fffbeb}.owner-insight.warning b,.owner-insight.needs-action b{color:#b45309}
+  .owner-insight.pending{border-color:#bfdbfe;background:#eff6ff}.owner-insight.pending b{color:#1d4ed8}
+  .owner-insight.muted{border-color:#e2e8f0;background:#f8fafc}.owner-insight.muted b{color:#475569}
+  .owner-action-grid{
+    display:grid;
+    grid-template-columns:repeat(4,minmax(0,1fr));
+    gap:7px;
+    margin-top:auto;
+    padding-top:13px;
+    border-top:1px solid #edf0f3;
+  }
+  .owner-action-button{
+    min-height:36px;
+    padding:8px 7px;
+    border:1px solid #f3a28f;
+    border-radius:7px;
+    background:#fff7f4;
+    color:#c2412d;
+    font-size:10.5px;
+    line-height:1.15;
+    font-weight:900;
+    cursor:pointer;
+    transition:background .18s ease,color .18s ease,border-color .18s ease,transform .18s ease;
+  }
+  .owner-action-button:hover{background:#ee4d2d;color:#fff;border-color:#ee4d2d;transform:translateY(-1px)}
+  .owner-action-button:active{transform:translateY(0)}
+
+  @media(max-width:980px){
+    .student-app-header .hello.student-user-summary{min-width:auto}
+    .header-user-email{display:none}
+    .student-app-header .nav-actions{gap:2px}
+  }
+  @media(max-width:760px){
+    .student-app-header{align-items:center;flex-direction:row;padding:8px 10px;overflow-x:auto}
+    .student-app-header .brand small,.brand-audience-badge,.header-user-copy{display:none}
+    .student-app-header .hello.student-user-summary{padding:0 7px 0 0;border-right:1px solid #e5e7eb}
+    .student-app-header .student-nav-link{padding:8px 9px;font-size:11px}
+    .owner-post-grid{grid-template-columns:1fr}
+  }
+  @media(max-width:520px){
+    .owner-post-card{padding:16px;min-height:0}
+    .owner-metrics-inline{grid-template-columns:repeat(2,minmax(0,1fr));row-gap:10px}
+    .owner-metric-inline:nth-child(2):after{display:none}
+    .owner-metric-inline:nth-child(-n+2){padding-bottom:8px;border-bottom:1px solid #e5e7eb}
+    .owner-action-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  }
+
+
+
+
+  .owner-page{
+    width:min(1180px,100%);
+  }
+
+  /* Slim summary cards: four primary numbers only. */
+  .owner-dashboard-compact{
+    display:grid;
+    grid-template-columns:repeat(4,minmax(0,1fr));
+    gap:12px;
+    margin:0 0 14px;
+  }
+  .owner-summary-card{
+    min-height:78px;
+    padding:13px 15px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    border:1px solid #e5e7eb;
+    border-radius:12px;
+    background:#fff;
+    box-shadow:0 2px 8px rgba(15,23,42,.045);
+    transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease;
+  }
+  .owner-summary-card:hover{
+    transform:translateY(-1px);
+    box-shadow:0 5px 14px rgba(15,23,42,.07);
+  }
+  .owner-summary-copy{display:grid;gap:5px;min-width:0}
+  .owner-summary-copy span{
+    color:#64748b;
+    font-size:10.5px;
+    line-height:1.1;
+    font-weight:900;
+    text-transform:uppercase;
+    letter-spacing:.025em;
+  }
+  .owner-summary-copy b{
+    color:#111827;
+    font-size:25px;
+    line-height:1;
+    font-weight:950;
+    letter-spacing:-.04em;
+  }
+  .owner-summary-mark{
+    width:38px;
+    height:38px;
+    flex:0 0 38px;
+    display:grid;
+    place-items:center;
+    border-radius:10px;
+    font-size:18px;
+    font-weight:950;
+  }
+  .owner-summary-card.blue{border-color:#dbeafe}.owner-summary-card.blue .owner-summary-mark{background:#eff6ff;color:#2563eb}
+  .owner-summary-card.green{border-color:#bbf7d0}.owner-summary-card.green .owner-summary-mark{background:#dcfce7;color:#059669}
+  .owner-summary-card.teal{border-color:#a7f3d0}.owner-summary-card.teal .owner-summary-mark{background:#d1fae5;color:#047857}
+  .owner-summary-card.orange{border-color:#fed7aa}.owner-summary-card.orange .owner-summary-mark{background:#ffedd5;color:#ea580c}
+
+  /* Statuses and filters are grouped into one thin card. */
+  .owner-controls-card{
+    margin:0 0 16px;
+    padding:14px 16px;
+    border:1px solid #e5e7eb;
+    border-radius:12px;
+    background:#fff;
+    box-shadow:0 2px 8px rgba(15,23,42,.045);
+  }
+  .owner-controls-heading{
+    display:flex;
+    align-items:flex-end;
+    justify-content:space-between;
+    gap:14px;
+    margin-bottom:11px;
+  }
+  .owner-controls-heading > div{display:grid;gap:2px}
+  .owner-controls-eyebrow{color:#ee4d2d;font-size:10px;font-weight:950;letter-spacing:.06em}
+  .owner-controls-heading h2{margin:0;color:#111827;font-size:16px;line-height:1.2;letter-spacing:-.02em}
+  .owner-result-summary{color:#94a3b8;font-size:11px;font-weight:800;white-space:nowrap}
+  .owner-status-tabs{
+    display:flex;
+    align-items:center;
+    gap:5px;
+    min-height:40px;
+    margin:0;
+    padding:5px;
+    overflow-x:auto;
+    border:1px solid #edf0f3;
+    border-radius:9px;
+    background:#f8fafc;
+    scrollbar-width:thin;
+  }
+  .owner-status-tabs .tab-btn{
+    flex:0 0 auto;
+    min-height:30px;
+    padding:7px 11px;
+    border:1px solid transparent;
+    border-radius:7px;
+    background:transparent;
+    color:#64748b;
+    box-shadow:none;
+    font-size:11px;
+    line-height:1;
+    font-weight:900;
+    white-space:nowrap;
+  }
+  .owner-status-tabs .tab-btn:hover{
+    transform:none;
+    border-color:#ffd7cd;
+    background:#fff7f4;
+    color:#ee4d2d;
+    box-shadow:none;
+  }
+  .owner-status-tabs .tab-btn.active{
+    border-color:#ee4d2d;
+    background:#ee4d2d;
+    color:#fff;
+    box-shadow:none;
+  }
+  .owner-filter-row{
+    display:grid;
+    grid-template-columns:minmax(240px,410px) 210px 96px;
+    align-items:end;
+    gap:10px;
+    margin-top:11px;
+    padding-top:11px;
+    border-top:1px solid #edf0f3;
+  }
+  .owner-filter-field{display:grid;gap:5px;min-width:0}
+  .owner-filter-field > span{color:#64748b;font-size:10.5px;font-weight:850}
+  .owner-filter-field input,
+  .owner-filter-field select{
+    width:100%;
+    height:36px;
+    min-height:36px;
+    padding:7px 11px;
+    border:1px solid #dbe1e8;
+    border-radius:7px;
+    background:#fff;
+    color:#334155;
+    font-size:12px;
+    box-shadow:none;
+  }
+  .owner-filter-field input:focus,
+  .owner-filter-field select:focus{
+    outline:0;
+    border-color:#ee4d2d;
+    box-shadow:0 0 0 3px rgba(238,77,45,.09);
+  }
+  .owner-clear-filter{
+    height:36px;
+    padding:7px 10px;
+    border:1px solid #ffd2c7;
+    border-radius:7px;
+    background:#fff7f4;
+    color:#c2412d;
+    font-size:11px;
+    font-weight:900;
+    cursor:pointer;
+  }
+  .owner-clear-filter:hover{border-color:#ee4d2d;background:#ee4d2d;color:#fff}
+
+  /* Keep result cards visually slimmer without removing any actions or data. */
+  .owner-post-card{
+    min-height:342px;
+    padding:17px;
+    border-radius:10px;
+  }
+  .owner-card-heading{margin-bottom:9px}
+  .owner-card-context{gap:5px;margin-bottom:8px}
+  .owner-card-title{min-height:42px;margin-bottom:11px;font-size:16px}
+  .owner-metrics-inline{min-height:58px;margin-bottom:10px;padding:8px 3px;border-radius:8px}
+  .owner-insight{min-height:52px;margin-bottom:11px;padding:9px 10px;border-radius:8px}
+  .owner-action-grid{gap:6px;padding-top:10px}
+  .owner-action-button{min-height:34px;border-radius:6px}
+
+  @media(max-width:900px){
+    .owner-dashboard-compact{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .owner-filter-row{grid-template-columns:minmax(0,1fr) 190px 92px}
+  }
+  @media(max-width:620px){
+    .owner-controls-heading{align-items:flex-start;flex-direction:column}
+    .owner-dashboard-compact{gap:8px}
+    .owner-summary-card{min-height:70px;padding:11px 12px}
+    .owner-summary-copy b{font-size:22px}
+    .owner-summary-mark{width:34px;height:34px;flex-basis:34px}
+    .owner-filter-row{grid-template-columns:1fr}
+    .owner-filter-sort,.owner-clear-filter{width:100%}
+    .owner-post-card{min-height:0}
+  }

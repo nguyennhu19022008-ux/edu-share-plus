@@ -1,0 +1,72 @@
+html { scroll-behavior: smooth; }
+body { margin: 0; }
+button, input, textarea, select { font: inherit; }
+.checkpoint-reset-button { border: 0; background: transparent; color: inherit; padding: 0; }
+.checkpoint-state { display: block; margin-top: 10px; padding: 10px 12px; border: 1px solid #fed7aa; background: #fff7ed; color: #7c2d12; border-radius: 8px; font-size: 12px; line-height: 1.5; }
+.checkpoint-stub-body { min-height: 100vh; background: #f5f5f5; }
+.checkpoint-stub { width: min(720px, calc(100% - 32px)); margin: 0 auto; padding: 120px 0; color: #172033; }
+.checkpoint-stub-brand { font-size: 22px; font-weight: 900; margin-bottom: 32px; }
+.checkpoint-stub-brand span { color: #ee4d2d; }
+.checkpoint-stub h1 { margin: 0 0 12px; font-size: clamp(32px, 6vw, 56px); letter-spacing: -.05em; }
+.checkpoint-stub p { max-width: 620px; color: #667085; line-height: 1.7; margin-bottom: 24px; }
+
+/* Phase 1 local-only states. No production backend is connected yet. */
+.market-page .state { grid-column: 1 / -1; padding: 34px; text-align: center; color: #64748b; background: #fff; border: 1px solid #e5e7eb; border-radius: 14px; }
+
+/* Checkpoint 1D: only local UI behavior for the legacy Add Post page. */
+.add-post-page .local-preview-visible {
+  display: block;
+}
+.add-post-page .add-submit-state {
+  display: block;
+  margin-top: 12px;
+  padding: 12px 14px;
+}
+.add-post-page input:disabled {
+  cursor: not-allowed;
+  opacity: .68;
+  background: #f8fafc;
+}
+
+/* Checkpoint 1E — local-only owner dashboard feedback. */
+.owner-local-notice{margin:0 0 14px}
+
+/* Checkpoint 1F — local owner detail/edit behavior. */
+.edit-post-page .local-preview-visible{display:block}
+.edit-post-page .add-submit-state{display:block;margin-top:12px;padding:12px 14px}
+.edit-post-page input:disabled{cursor:not-allowed;opacity:.68;background:#f8fafc}
+
+/* Checkpoint 1G — profile fidelity helpers. Keeps legacy profile anatomy; no redesign. */
+.profile-list-copy{min-width:0;display:grid;gap:4px}
+.profile-list-copy b,.profile-list-copy span,.profile-list-copy small{min-width:0;overflow-wrap:anywhere}
+.profile-card .strong-note{font-weight:800;color:#475569}
+.profile-card .state{margin-top:0}
+.profile-upload-box input[type="file"]{max-width:100%;font:inherit;color:#334155}
+.profile-page .profile-side small{display:block}
+@media(max-width:620px){
+  .profile-page .ecom-page-title{align-items:flex-start}
+  .profile-page .saved-item{grid-template-columns:1fr}
+  .profile-page .saved-item .btn{justify-self:start}
+}
+
+/* Checkpoint 1H — local-only Teacher/Admin behavior and code-native chart visuals. */
+.admin-local-state{margin:0;}
+.admin-local-state.is-ok{border-color:#bbf7d0;background:#f0fdf4;color:#166534}
+.admin-local-tools{display:flex;justify-content:flex-end}
+.admin-local-line{height:100%;display:grid;grid-template-rows:1fr auto;color:#2563eb}
+.admin-local-line svg{width:100%;height:100%;overflow:visible}
+.admin-local-grid line{stroke:rgba(148,163,184,.2);stroke-width:1}
+.admin-local-months{display:flex;justify-content:space-between;padding:0 8px;color:#94a3b8;font-size:9px;font-weight:700}
+.admin-local-bars{height:100%;display:flex;align-items:flex-end;justify-content:space-around;gap:10px;padding:10px 2px 2px}
+.admin-local-bar{height:100%;min-width:0;flex:1;display:grid;grid-template-rows:auto 1fr auto;align-items:end;gap:6px;text-align:center}
+.admin-local-bar>span{font-size:8px;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.admin-local-bar>i{height:128px;display:flex;align-items:flex-end;justify-content:center;border-radius:7px;background:#f8fafc;overflow:hidden}
+.admin-local-bar>i>b{width:min(28px,74%);display:block;border-radius:6px 6px 2px 2px;background:#ee4d2d;min-height:12px}
+.admin-local-bar>strong{font-size:9px;color:#475569}
+.admin-local-donut-wrap{height:100%;display:grid;grid-template-columns:minmax(120px,.9fr) minmax(150px,1.1fr);align-items:center;gap:18px}
+.admin-local-donut{width:142px;aspect-ratio:1;margin:auto;border-radius:50%;display:grid;place-items:center;position:relative}
+.admin-local-donut::after{content:"";position:absolute;inset:31px;border-radius:50%;background:#fff}
+.admin-local-donut>span{position:relative;z-index:1;display:grid;text-align:center}.admin-local-donut b{font-size:25px;color:#111827}.admin-local-donut small{font-size:9px;color:#94a3b8}
+.admin-local-legend{display:grid;gap:9px}.admin-local-legend>div{display:grid;grid-template-columns:9px 1fr auto;gap:7px;align-items:center;font-size:9px;color:#64748b}.admin-local-legend i{width:8px;height:8px;border-radius:2px}.admin-local-legend b{color:#334155}
+.admin-local-hot{height:100%;display:grid;align-content:center;gap:11px}.admin-local-hot>div{display:grid;grid-template-columns:minmax(100px,1fr) minmax(110px,1.2fr) 24px;align-items:center;gap:8px}.admin-local-hot span{font-size:9px;color:#475569;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.admin-local-hot i{height:8px;border-radius:99px;background:#f1f5f9;overflow:hidden}.admin-local-hot i>b{display:block;height:100%;border-radius:inherit;background:#8b5cf6}.admin-local-hot strong{text-align:right;font-size:9px;color:#64748b}
+@media(max-width:620px){.admin-local-donut-wrap{grid-template-columns:1fr}.admin-local-donut{width:120px}.admin-local-legend{grid-template-columns:1fr 1fr}}
