@@ -1,8 +1,8 @@
 # EDU SHARE+ Rebuild
 
-Current checkpoint: **3C — PostgreSQL Schema Contract + Constraints + Index/RLS Blueprint**.
+Current checkpoint: **3D — Migration SQL Draft + RLS Policy Draft + Database Test Matrix**.
 
-The user-tested **Phase 1 Local Frontend** and **Phase 2 Frontend Architecture** are both **PASS & FROZEN**. Checkpoints 3A and 3B are PASS. Checkpoint 3C translates the accepted ERD into an implementation-grade PostgreSQL/RLS design without creating any live database.
+The user-tested **Phase 1 Local Frontend** and **Phase 2 Frontend Architecture** are both **PASS & FROZEN**. Checkpoints 3A, 3B and 3C are PASS. Checkpoint 3D converts the accepted database contract into offline SQL/RLS drafts and a database test matrix without creating or touching a live database.
 
 ## Run local
 
@@ -43,5 +43,8 @@ npm run build
 - `docs/21_PHASE3A_DATABASE_REQUIREMENTS_ENTITY_AUDIT.md`
 - `docs/22_PHASE3B_DATABASE_ERD_RELATIONSHIP_DECISIONS.md`
 - `docs/23_PHASE3C_POSTGRESQL_SCHEMA_CONTRACT.md`
+- `docs/24_PHASE3D_MIGRATION_RLS_TEST_DRAFT.md`
+- `database/drafts/README.md`
+- `database/tests/00_DATABASE_TEST_MATRIX.md`
 
-Checkpoint 3C is documentation/design-only. It does **not** create/connect Supabase, PostgreSQL, real authentication, storage, RLS, migration or production services.
+Checkpoint 3D adds **offline SQL drafts only**. It does **not** create/connect Supabase, execute PostgreSQL SQL, create Auth users, migrate legacy data, configure Storage or change the frontend runtime.
