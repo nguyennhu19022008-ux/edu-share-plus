@@ -17,25 +17,26 @@ Architecture-level audit completed from the supplied ZIP. Source ZIP remains rea
 
 Phase 1 baseline is frozen. Further visible UI/UX changes require explicit approval unless fixing a regression against the frozen baseline.
 
-## Phase 2 — Frontend Architecture
+## Phase 2 — Frontend Architecture — PASS & FROZEN
 
-- Checkpoint 2A — **PASS:** frontend architecture audit; no runtime behavior change.
-- Checkpoint 2B — **PASS:** shared application shell + exhaustive lazy legacy route registry + centralized route metadata/boundaries.
-- Checkpoint 2C — **PASS:** Marketplace, My Posts, Profile and Admin modularized into feature-owned presentation components/utilities without changing UI/UX.
-- Checkpoint 2D — **PASS:** provider-neutral repository contracts + mock adapters + React data-access provider; pages/components no longer import mock/local stores directly.
-
-Phase 2 is **PASS & FROZEN**.
+- Checkpoint 2A — PASS: frontend architecture audit; no runtime behavior change.
+- Checkpoint 2B — PASS: shared application shell + exhaustive lazy legacy route registry + centralized route metadata/boundaries.
+- Checkpoint 2C — PASS: core screens modularized into feature-owned presentation components/utilities without changing UI/UX.
+- Checkpoint 2D — PASS: provider-neutral repository contracts + mock adapters + React data-access provider; pages/components no longer import mock/local stores directly.
 
 ## Phase 3 — Database Design
 
-- Checkpoint 3A — **CURRENT / CANDIDATE:** database requirements + entity audit + provisional backend permission matrix. No database or SQL created.
-- Next after acceptance: **Checkpoint 3B — Database ERD + relationship decisions**.
+- Checkpoint 3A — **PASS:** database requirements + entity audit + provisional backend permission matrix. No database/SQL created.
+- Checkpoint 3B — **CURRENT / CANDIDATE:** target database ERD + relationship decisions + implementation-wave boundaries. No database/SQL created.
+- Next after acceptance: **Checkpoint 3C — PostgreSQL Schema Contract + Constraints + Index/RLS Blueprint**.
 
 See:
 
+- `docs/05_PERMISSION_MATRIX.md`
+- `docs/06_DATABASE_ERD.md`
 - `docs/17_FRONTEND_ARCHITECTURE_AUDIT.md`
 - `docs/18_PHASE2B_APPLICATION_SHELL.md`
 - `docs/19_PHASE2C_FEATURE_MODULARIZATION.md`
 - `docs/20_PHASE2D_DATA_ACCESS_BOUNDARY.md`
 - `docs/21_PHASE3A_DATABASE_REQUIREMENTS_ENTITY_AUDIT.md`
-- `docs/05_PERMISSION_MATRIX.md`
+- `docs/22_PHASE3B_DATABASE_ERD_RELATIONSHIP_DECISIONS.md`
