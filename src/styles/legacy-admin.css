@@ -212,7 +212,7 @@ body.admin-redesign-body.admin-modal-open{overflow:hidden}
 .admin-rank-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px}
 .admin-rank-column h3{margin:0 0 10px;color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.04em}
 .admin-rank-list{display:grid;gap:8px}
-.admin-rank-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 10px;border-radius:9px;background:#f8fafc;color:#1f2937;font-size:11px;font-weight:800}
+.admin-rank-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 10px;border-radius:99px;background:#f8fafc;color:#1f2937;font-size:11px;font-weight:800}
 .admin-rank-row span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .admin-rank-row b{color:#ee4d2d;white-space:nowrap;font-size:10px}
 .admin-rank-row.featured{border:1px solid #bbf7d0;background:#f0fdf4;color:#065f46}.admin-rank-row.featured b{color:#059669}
@@ -340,7 +340,7 @@ body.admin-redesign-body.admin-modal-open{overflow:hidden}
 }
 </style>
 
-<!-- Admin V3.1: compact row switches and actions -->
+/* Admin V3.1: compact row switches and actions */
 <style>
 .admin-review-table{min-width:1180px}
 .admin-status-cell{min-width:132px}
@@ -473,3 +473,4 @@ body.admin-redesign-body.admin-modal-open{overflow:hidden}
   .admin-review-table{min-width:1120px}
   .admin-row-actions{justify-content:flex-start}
 }
+</style>
