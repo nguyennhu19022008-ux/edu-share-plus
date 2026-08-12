@@ -338,10 +338,8 @@ body.admin-redesign-body.admin-modal-open{overflow:hidden}
   .admin-pagination{align-items:flex-start;flex-direction:column}.admin-pagination-buttons{max-width:100%;overflow-x:auto}
   .admin-modal-backdrop{padding:8px}.admin-post-modal{max-height:95vh;border-radius:13px}.admin-modal-header,.admin-modal-body,.admin-modal-footer{padding-left:15px;padding-right:15px}.admin-modal-meta-grid,.admin-modal-control-grid{grid-template-columns:1fr}
 }
-</style>
 
 /* Admin V3.1: compact row switches and actions */
-<style>
 .admin-review-table{min-width:1180px}
 .admin-status-cell{min-width:132px}
 .admin-visibility-cell{min-width:86px}
@@ -473,4 +471,3 @@ body.admin-redesign-body.admin-modal-open{overflow:hidden}
   .admin-review-table{min-width:1120px}
   .admin-row-actions{justify-content:flex-start}
 }
-</style>
