@@ -2,6 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './app/App';
 import { DataAccessProvider } from './app/providers/DataAccessProvider';
+import { AuthSessionProvider } from './features/auth/session/AuthSessionProvider';
 import { createMockRepositories } from './data/mock';
 import './styles/legacy-base.css';
 import './styles/legacy-profile-legacy.css';
@@ -19,8 +20,10 @@ if (!root) throw new Error('Không tìm thấy #root.');
 
 createRoot(root).render(
   <StrictMode>
-    <DataAccessProvider value={repositories}>
-      <App />
-    </DataAccessProvider>
+    <AuthSessionProvider>
+      <DataAccessProvider value={repositories}>
+        <App />
+      </DataAccessProvider>
+    </AuthSessionProvider>
   </StrictMode>,
 );

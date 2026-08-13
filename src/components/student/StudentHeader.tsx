@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { navigateLegacy, type LegacyPage } from '../../app/legacyRouter';
 import { useDataAccess } from '../../app/providers/DataAccessProvider';
+import { useStudentAuth } from '../../features/auth/session/AuthSessionProvider';
 
 interface HeaderNotification { id:string; title:string; message:string; date:string; read:boolean }
 
@@ -12,14 +13,35 @@ interface StudentHeaderProps {
 
 export default function StudentHeader({ activePage, user, notifications }: StudentHeaderProps) {
   const { profile } = useDataAccess();
+  const auth = useStudentAuth();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
   const fallbackBundle = profile.getBundle();
-  const resolvedUser = user || { name:fallbackBundle.profile.name, email:fallbackBundle.profile.email, avatarUrl:fallbackBundle.profile.avatarUrl };
+  const authUser = auth.session ? {
+    name: auth.profile?.fullName || 'Học sinh',
+    email: auth.session.user.email || '',
+    avatarUrl: undefined as string | undefined,
+  } : null;
+  const resolvedUser = authUser || user || { name:fallbackBundle.profile.name, email:fallbackBundle.profile.email, avatarUrl:fallbackBundle.profile.avatarUrl };
   const resolvedNotifications = notifications || fallbackBundle.notifications;
   const isHomePage = ['index', 'detail', 'add'].includes(activePage);
   const isMyPostsPage = ['myPosts', 'myDetail', 'editPost'].includes(activePage);
   const isProfilePage = activePage === 'profile';
   const unreadCount = resolvedNotifications.filter((item) => !item.read).length;
+
+  const handleLogout = async () => {
+    if (loggingOut) return;
+    setLoggingOut(true);
+
+    try {
+      await auth.signOut();
+      navigateLegacy('landing');
+    } catch (error) {
+      console.error('EDU SHARE+ sign out failed', error);
+    } finally {
+      setLoggingOut(false);
+    }
+  };
 
   return (
     <>
@@ -48,7 +70,7 @@ export default function StudentHeader({ activePage, user, notifications }: Stude
           <button className={`nav-btn student-nav-link profile-nav-btn${isProfilePage ? ' active' : ''}`} type="button" onClick={() => navigateLegacy('profile')}>Hồ sơ</button>
           <button className={`nav-btn student-nav-link${isHomePage ? ' active' : ''}`} type="button" onClick={() => navigateLegacy('index')}>Trang chủ</button>
           <button className={`nav-btn student-nav-link${isMyPostsPage ? ' active' : ''}`} type="button" onClick={() => navigateLegacy('myPosts')}>Bài của tôi</button>
-          <button className="nav-btn student-nav-link student-logout-btn" type="button" onClick={() => navigateLegacy('landing')}>Đăng xuất</button>
+          <button className="nav-btn student-nav-link student-logout-btn" type="button" disabled={loggingOut} onClick={() => void handleLogout()}>{loggingOut ? 'Đang thoát...' : 'Đăng xuất'}</button>
         </div>
       </header>
 
