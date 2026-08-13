@@ -10,3 +10,5 @@ private-output/
 migration-private/
 
 *.tsbuildinfo
+
+*.tsbuildinfo
