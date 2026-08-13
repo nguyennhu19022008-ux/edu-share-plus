@@ -128,3 +128,10 @@ button, input, textarea, select { font: inherit; }
 @media (prefers-reduced-motion: reduce) {
   .checkpoint-route-spinner { animation: none; }
 }
+
+
+/* Phase 4C — real Supabase registration integration. Keeps the frozen auth card anatomy. */
+.auth-inline-error{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:7px;color:#b91c1c;font-size:11px;line-height:1.45}
+.auth-inline-error .text-link{flex:none}
+.auth-success-state{border-color:#bbf7d0;background:#f0fdf4;color:#166534}
+.auth-market-card select:disabled,.auth-market-card input:disabled,.auth-market-card button:disabled{cursor:not-allowed;opacity:.68}
