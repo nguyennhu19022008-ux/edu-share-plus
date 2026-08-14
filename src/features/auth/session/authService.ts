@@ -7,6 +7,15 @@ export type StudentLoginInput = {
   password: string;
 };
 
+type StudentContextRpc = {
+  user_id: string;
+  full_name: string;
+  account_status: StudentSessionProfile['accountStatus'];
+  school_id: string;
+  school_name: string | null;
+  class_id: string | null;
+};
+
 function normalizeLoginError(message: string) {
   const normalized = message.toLowerCase();
 
@@ -26,6 +35,22 @@ function normalizeLoginError(message: string) {
   }
 
   return message || 'Không thể đăng nhập lúc này. Vui lòng thử lại.';
+}
+
+function normalizeStudentContextError(message: string) {
+  if (message.includes('EDU_SHARE_STUDENT_ROLE_REQUIRED')) {
+    return 'Tài khoản này không phải tài khoản học sinh. Vui lòng sử dụng cổng đăng nhập phù hợp.';
+  }
+
+  if (message.includes('EDU_SHARE_STUDENT_PROFILE_NOT_FOUND')) {
+    return 'Không tìm thấy hồ sơ học sinh tương ứng với tài khoản Auth.';
+  }
+
+  if (message.includes('EDU_SHARE_AUTH_REQUIRED')) {
+    return 'Phiên đăng nhập không hợp lệ hoặc đã hết hạn.';
+  }
+
+  return message;
 }
 
 export async function signInStudent(
@@ -52,39 +77,42 @@ export async function signInStudent(
 }
 
 export async function getStudentSessionProfile(
-  userId: string,
+  expectedUserId: string,
 ): Promise<StudentSessionProfile> {
   const supabase = getSupabaseClient();
 
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('user_id, full_name, account_status, school_id, class_id')
-    .eq('user_id', userId)
-    .single();
+  const { data, error } = await supabase.rpc('get_current_student_context');
 
-  if (error) throw error;
+  if (error) {
+    throw new Error(normalizeStudentContextError(error.message));
+  }
 
-  if (!data) {
+  if (!data || typeof data !== 'object') {
     throw new Error(
-      'Không tìm thấy hồ sơ học sinh tương ứng với tài khoản Auth.',
+      'Không nhận được ngữ cảnh học sinh hợp lệ từ hệ thống phân quyền.',
+    );
+  }
+
+  const context = data as StudentContextRpc;
+
+  if (!context.user_id || context.user_id !== expectedUserId) {
+    throw new Error(
+      'Ngữ cảnh học sinh không khớp với phiên Authentication hiện tại.',
     );
   }
 
   return {
-    userId: String(data.user_id),
-    fullName: String(data.full_name ?? ''),
-    accountStatus:
-      data.account_status as StudentSessionProfile['accountStatus'],
-    schoolId: String(data.school_id),
-    classId: data.class_id ? String(data.class_id) : null,
+    userId: context.user_id,
+    fullName: context.full_name ?? '',
+    accountStatus: context.account_status,
+    schoolId: context.school_id,
+    classId: context.class_id ?? null,
   };
 }
 
 export async function signOutStudent(): Promise<void> {
   const supabase = getSupabaseClient();
 
-  // Chỉ đăng xuất session trên thiết bị/trình duyệt hiện tại.
-  // Không vô tình đăng xuất các thiết bị khác của cùng tài khoản.
   const { error } = await supabase.auth.signOut({ scope: 'local' });
 
   if (error) throw error;
