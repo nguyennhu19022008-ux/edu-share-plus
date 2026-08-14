@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useLayoutEffect } from 'react';
+import { Suspense, useEffect, useLayoutEffect, useState } from 'react';
 import { navigateLegacy } from '../legacyRouter';
 import { getRouteDefinition, ROUTE_BODY_CLASSES } from '../router/routeRegistry';
 import { useLegacyRoute } from '../router/useLegacyRoute';
@@ -7,22 +7,34 @@ import {
   currentRelativeTarget,
   isStudentProtectedPage,
 } from '../../features/auth/session/routeAccess';
+import { inspectExistingStaffSession } from '../../features/auth/staff/staffAuthService';
 import RouteErrorBoundary from './RouteErrorBoundary';
 import RouteLoading from './RouteLoading';
+
+type StaffGateState = 'idle' | 'checking' | 'allowed' | 'denied';
 
 export default function LegacyApplicationShell() {
   const route = useLegacyRoute();
   const definition = getRouteDefinition(route.page);
   const RouteComponent = definition.component;
+
   const auth = useStudentAuth();
   const protectedStudentRoute = isStudentProtectedPage(route.page);
+
+  const protectedStaffRoute = route.page === 'admin';
+  const [staffGate, setStaffGate] = useState<StaffGateState>(
+    protectedStaffRoute ? 'checking' : 'idle',
+  );
 
   useLayoutEffect(() => {
     document.title = definition.title;
 
     // Chỉ quản lý các class thuộc page shell. Class trạng thái tạm thời như
     // `admin-modal-open` vẫn do feature sở hữu và không bị xóa ở đây.
-    ROUTE_BODY_CLASSES.forEach((className) => document.body.classList.remove(className));
+    ROUTE_BODY_CLASSES.forEach((className) =>
+      document.body.classList.remove(className),
+    );
+
     definition.bodyClass
       .split(/\s+/)
       .filter(Boolean)
@@ -37,7 +49,9 @@ export default function LegacyApplicationShell() {
   }, [definition]);
 
   useEffect(() => {
-    if (!protectedStudentRoute || !auth.authReady || auth.profileLoading) return;
+    if (!protectedStudentRoute || !auth.authReady || auth.profileLoading) {
+      return;
+    }
 
     const next = currentRelativeTarget();
 
@@ -69,9 +83,69 @@ export default function LegacyApplicationShell() {
     route.routeKey,
   ]);
 
+  useEffect(() => {
+    if (!protectedStaffRoute) {
+      setStaffGate('idle');
+      return;
+    }
+
+    let cancelled = false;
+    setStaffGate('checking');
+
+    const verifyStaffAccess = async () => {
+      const next = currentRelativeTarget();
+
+      try {
+        const state = await inspectExistingStaffSession();
+
+        if (cancelled) return;
+
+        if (state.kind === 'staff') {
+          setStaffGate('allowed');
+          return;
+        }
+
+        setStaffGate('denied');
+
+        navigateLegacy('loginGV', {
+          status: 'staff_required',
+          next,
+        });
+      } catch {
+        if (cancelled) return;
+
+        setStaffGate('denied');
+
+        navigateLegacy('loginGV', {
+          status: 'staff_session_error',
+          next,
+        });
+      }
+    };
+
+    void verifyStaffAccess();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [protectedStaffRoute, route.routeKey]);
+
   if (protectedStudentRoute) {
-    if (!auth.authReady || auth.profileLoading) return <RouteLoading />;
-    if (!auth.session || !auth.profile || auth.profile.accountStatus !== 'approved') return <RouteLoading />;
+    if (!auth.authReady || auth.profileLoading) {
+      return <RouteLoading />;
+    }
+
+    if (
+      !auth.session
+      || !auth.profile
+      || auth.profile.accountStatus !== 'approved'
+    ) {
+      return <RouteLoading />;
+    }
+  }
+
+  if (protectedStaffRoute && staffGate !== 'allowed') {
+    return <RouteLoading />;
   }
 
   return (
