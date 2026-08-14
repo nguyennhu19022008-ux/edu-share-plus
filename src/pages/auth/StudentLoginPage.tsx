@@ -4,6 +4,7 @@ import { useStudentAuth } from '../../features/auth/session/AuthSessionProvider'
 import {
   getStudentSessionProfile,
   signInStudent,
+  signOutStudent,
 } from '../../features/auth/session/authService';
 import {
   navigateToRelativeTarget,
@@ -37,7 +38,7 @@ export default function StudentLoginPage() {
   const hasExistingSession = Boolean(auth.session);
 
   useEffect(() => {
-    if (!auth.authReady || auth.profileLoading) return;
+    if (!auth.authReady || auth.profileLoading || submitting) return;
 
     const params = new URLSearchParams(window.location.search);
     const status = params.get('status') as
@@ -84,6 +85,7 @@ export default function StudentLoginPage() {
     auth.profile?.accountStatus,
     auth.profileLoading,
     auth.session,
+    submitting,
   ]);
 
   const logoutCurrentSession = async () => {
@@ -115,7 +117,6 @@ export default function StudentLoginPage() {
 
     if (submitting) return;
 
-    // Không cho một lần thử credential mới bị nhầm với session cũ đang persist.
     if (auth.session) {
       setSuccess(false);
       setMessage(
@@ -134,7 +135,26 @@ export default function StudentLoginPage() {
 
     try {
       const session = await signInStudent({ email, password });
-      const profile = await getStudentSessionProfile(session.user.id);
+
+      let profile;
+
+      try {
+        // Student authorization MUST succeed after credential authentication.
+        // A valid Teacher/Admin password is not enough to enter Student Portal.
+        profile = await getStudentSessionProfile(session.user.id);
+      } catch (authorizationError) {
+        // signInWithPassword has already created a valid Supabase Auth session.
+        // If Student authorization fails, remove that newly-created session
+        // immediately so a staff/non-student identity cannot remain active in
+        // the Student Portal and mask the real authorization error.
+        try {
+          await signOutStudent();
+        } catch {
+          // Preserve the original authorization error for the user.
+        }
+
+        throw authorizationError;
+      }
 
       auth.acceptLogin(session, profile);
 
@@ -155,6 +175,7 @@ export default function StudentLoginPage() {
 
       navigateLegacy('index', search ? { search } : {});
     } catch (submitError) {
+      setSuccess(false);
       setMessage(
         submitError instanceof Error
           ? submitError.message
