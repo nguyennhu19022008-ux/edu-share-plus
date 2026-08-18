@@ -41,7 +41,9 @@ export default function TeacherLoginPage() {
         if (state.kind === 'staff') {
           setSessionState('staff');
           setSuccess(true);
-          setMessage('Phiên giáo viên đã được xác minh. Đang mở trang quản trị...');
+          setMessage(
+            'Phiên giáo viên đã được xác minh. Đang mở trang quản trị...',
+          );
           navigateLegacy('admin');
           return;
         }
@@ -58,6 +60,15 @@ export default function TeacherLoginPage() {
         setSessionState('none');
 
         const params = new URLSearchParams(window.location.search);
+
+        if (params.get('reset') === '1') {
+          setSuccess(true);
+          setMessage(
+            'Mật khẩu đã được cập nhật. Hãy đăng nhập lại bằng mật khẩu mới.',
+          );
+          return;
+        }
+
         const fromGuard = statusMessage(params.get('status'));
 
         if (fromGuard) {
@@ -131,10 +142,7 @@ export default function TeacherLoginPage() {
     setMessage('');
 
     try {
-      const { context } = await signInStaff({
-        email,
-        password,
-      });
+      const { context } = await signInStaff({ email, password });
 
       setSessionState('staff');
       setSuccess(true);
@@ -152,8 +160,6 @@ export default function TeacherLoginPage() {
 
       navigateLegacy('admin');
     } catch (loginError) {
-      // signInStaff() already removes a newly-created session when credentials
-      // are valid but staff authorization fails.
       setSessionState('none');
       setSuccess(false);
       setMessage(
@@ -174,9 +180,7 @@ export default function TeacherLoginPage() {
         onClick={() => navigateLegacy('landing')}
       >
         <span className="brand-mark">E+</span>
-        <b>
-          Edu Share<span>+</span>
-        </b>
+        <b>Edu Share<span>+</span></b>
       </button>
 
       <main className="auth-market-wrap">
@@ -186,7 +190,8 @@ export default function TeacherLoginPage() {
           <h1>Đăng nhập giáo viên</h1>
 
           <p className="auth-desc">
-            Dùng tài khoản giáo viên để kiểm duyệt bài, xử lý báo cáo và xem thống kê hoạt động.
+            Dùng tài khoản giáo viên để kiểm duyệt bài, xử lý báo cáo và xem
+            thống kê hoạt động.
           </p>
 
           <form className="ecom-form" onSubmit={submit}>
@@ -201,7 +206,11 @@ export default function TeacherLoginPage() {
                   required
                   autoComplete="username"
                   placeholder="giaovien@school.edu.vn"
-                  disabled={submitting || sessionState === 'checking' || hasExistingSession}
+                  disabled={
+                    submitting ||
+                    sessionState === 'checking' ||
+                    hasExistingSession
+                  }
                 />
               </div>
             </div>
@@ -214,9 +223,7 @@ export default function TeacherLoginPage() {
                   type="button"
                   className="text-link"
                   onClick={() =>
-                    setMessage(
-                      'Khôi phục mật khẩu giáo viên sẽ được xử lý trong Authentication phase.',
-                    )
+                    navigateLegacy('forgotPassword', { portal: 'teacher' })
                   }
                 >
                   Quên mật khẩu?
@@ -231,19 +238,26 @@ export default function TeacherLoginPage() {
                   required
                   autoComplete="current-password"
                   placeholder="Nhập mật khẩu quản trị"
-                  disabled={submitting || sessionState === 'checking' || hasExistingSession}
+                  disabled={
+                    submitting ||
+                    sessionState === 'checking' ||
+                    hasExistingSession
+                  }
                 />
               </div>
             </div>
 
             <div className="auth-info teacher-info">
-              Khu vực này dành riêng cho giáo viên và ban quản trị. Các thao tác kiểm duyệt được ghi vào nhật ký hệ thống.
+              Khu vực này dành riêng cho giáo viên và ban quản trị. Các thao
+              tác kiểm duyệt được ghi vào nhật ký hệ thống.
             </div>
 
             <button
               className="btn primary full"
               type="submit"
-              disabled={submitting || sessionState === 'checking' || hasExistingSession}
+              disabled={
+                submitting || sessionState === 'checking' || hasExistingSession
+              }
             >
               {submitting
                 ? 'ĐANG XÁC MINH...'

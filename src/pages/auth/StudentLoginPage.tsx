@@ -16,25 +16,20 @@ function accountStatusMessage(status: StudentAccountStatus | 'profile_error') {
   if (status === 'pending_review') {
     return 'Email đã được xác minh, nhưng tài khoản vẫn đang chờ giáo viên/nhà trường đối chiếu. Bạn chưa thể vào khu vực học sinh.';
   }
-
   if (status === 'rejected') {
     return 'Yêu cầu tài khoản hiện chưa được nhà trường chấp thuận. Vui lòng liên hệ giáo viên phụ trách nếu cần kiểm tra lại.';
   }
-
   if (status === 'suspended') {
     return 'Tài khoản đang bị tạm khóa. Vui lòng liên hệ giáo viên/nhà trường để được hỗ trợ.';
   }
-
   return 'Phiên đăng nhập tồn tại nhưng hồ sơ học sinh chưa tải được. Vui lòng đăng xuất rồi thử lại hoặc liên hệ giáo viên phụ trách.';
 }
 
 export default function StudentLoginPage() {
   const auth = useStudentAuth();
-
   const [message, setMessage] = useState('');
   const [success, setSuccess] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-
   const hasExistingSession = Boolean(auth.session);
 
   useEffect(() => {
@@ -46,6 +41,13 @@ export default function StudentLoginPage() {
       | 'profile_error'
       | null;
     const confirmed = params.get('confirmed') === '1';
+    const passwordReset = params.get('reset') === '1';
+
+    if (passwordReset && !auth.session) {
+      setSuccess(true);
+      setMessage('Mật khẩu đã được cập nhật. Hãy đăng nhập lại bằng mật khẩu mới.');
+      return;
+    }
 
     if (
       status &&
@@ -90,7 +92,6 @@ export default function StudentLoginPage() {
 
   const logoutCurrentSession = async () => {
     if (submitting) return;
-
     setSubmitting(true);
     setSuccess(false);
     setMessage('');
@@ -114,7 +115,6 @@ export default function StudentLoginPage() {
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-
     if (submitting) return;
 
     if (auth.session) {
@@ -135,24 +135,16 @@ export default function StudentLoginPage() {
 
     try {
       const session = await signInStudent({ email, password });
-
       let profile;
 
       try {
-        // Student authorization MUST succeed after credential authentication.
-        // A valid Teacher/Admin password is not enough to enter Student Portal.
         profile = await getStudentSessionProfile(session.user.id);
       } catch (authorizationError) {
-        // signInWithPassword has already created a valid Supabase Auth session.
-        // If Student authorization fails, remove that newly-created session
-        // immediately so a staff/non-student identity cannot remain active in
-        // the Student Portal and mask the real authorization error.
         try {
           await signOutStudent();
         } catch {
           // Preserve the original authorization error for the user.
         }
-
         throw authorizationError;
       }
 
@@ -164,7 +156,6 @@ export default function StudentLoginPage() {
       }
 
       const returnTarget = readSafeStudentReturnTarget();
-
       if (returnTarget) {
         navigateToRelativeTarget(returnTarget);
         return;
@@ -172,7 +163,6 @@ export default function StudentLoginPage() {
 
       const search =
         new URLSearchParams(window.location.search).get('search')?.trim() || '';
-
       navigateLegacy('index', search ? { search } : {});
     } catch (submitError) {
       setSuccess(false);
@@ -194,17 +184,13 @@ export default function StudentLoginPage() {
         onClick={() => navigateLegacy('landing')}
       >
         <span className="brand-mark">E+</span>
-        <b>
-          Edu Share<span>+</span>
-        </b>
+        <b>Edu Share<span>+</span></b>
       </button>
 
       <main className="auth-market-wrap">
         <section className="auth-market-card">
           <div className="auth-kicker student">Học sinh</div>
-
           <h1>Đăng nhập học sinh</h1>
-
           <p className="auth-desc">
             Dùng email và mật khẩu tài khoản học sinh để đăng nhập hệ thống.
           </p>
@@ -212,7 +198,6 @@ export default function StudentLoginPage() {
           <form className="ecom-form" onSubmit={submit}>
             <div className="field">
               <label className="req">Email</label>
-
               <div className="input-icon">
                 <span>✉</span>
                 <input
@@ -229,20 +214,16 @@ export default function StudentLoginPage() {
             <div className="field">
               <div className="label-row">
                 <label className="req">Mật khẩu</label>
-
                 <button
                   type="button"
                   className="text-link"
                   onClick={() =>
-                    setMessage(
-                      'Khôi phục mật khẩu sẽ được nối với Supabase Auth ở checkpoint tiếp theo.',
-                    )
+                    navigateLegacy('forgotPassword', { portal: 'student' })
                   }
                 >
                   Quên mật khẩu?
                 </button>
               </div>
-
               <div className="input-icon">
                 <span>●</span>
                 <input

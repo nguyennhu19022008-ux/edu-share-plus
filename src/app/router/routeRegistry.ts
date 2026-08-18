@@ -1,4 +1,8 @@
-import { lazy, type ComponentType, type LazyExoticComponent } from 'react';
+import {
+  lazy,
+  type ComponentType,
+  type LazyExoticComponent,
+} from 'react';
 import type { LegacyPage } from '../legacyRouter';
 
 export type LegacyRouteDefinition = {
@@ -32,6 +36,18 @@ export const ROUTE_REGISTRY: Record<LegacyPage, LegacyRouteDefinition> = {
     title: 'Đăng nhập giáo viên | Edu Share+',
     bodyClass: 'auth-ecommerce-body',
     component: lazy(() => import('../../pages/auth/TeacherLoginPage')),
+  },
+  forgotPassword: {
+    page: 'forgotPassword',
+    title: 'Khôi phục mật khẩu | Edu Share+',
+    bodyClass: 'auth-ecommerce-body',
+    component: lazy(() => import('../../pages/auth/ForgotPasswordPage')),
+  },
+  updatePassword: {
+    page: 'updatePassword',
+    title: 'Tạo mật khẩu mới | Edu Share+',
+    bodyClass: 'auth-ecommerce-body',
+    component: lazy(() => import('../../pages/auth/UpdatePasswordPage')),
   },
   index: {
     page: 'index',

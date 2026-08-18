@@ -9,6 +9,10 @@ import {
 } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { getSupabaseClient } from '../../../lib/supabase/client';
+import {
+  clearPasswordRecoveryMarker,
+  markPasswordRecovery,
+} from '../password/passwordRecoveryService';
 import { getStudentSessionProfile, signOutStudent } from './authService';
 import type { StudentSessionProfile } from './types';
 
@@ -34,7 +38,17 @@ export function AuthSessionProvider({ children }: PropsWithChildren) {
 
   useEffect(() => {
     const supabase = getSupabaseClient();
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, nextSession) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        markPasswordRecovery();
+      }
+
+      if (event === 'SIGNED_OUT') {
+        clearPasswordRecoveryMarker();
+      }
+
       setSession(nextSession);
       setAuthReady(true);
     });
@@ -60,7 +74,11 @@ export function AuthSessionProvider({ children }: PropsWithChildren) {
       return nextProfile;
     } catch (error) {
       setProfile(null);
-      setProfileError(error instanceof Error ? error.message : 'Không thể tải trạng thái tài khoản học sinh.');
+      setProfileError(
+        error instanceof Error
+          ? error.message
+          : 'Không thể tải trạng thái tài khoản học sinh.',
+      );
       return null;
     } finally {
       setProfileLoading(false);
@@ -72,17 +90,20 @@ export function AuthSessionProvider({ children }: PropsWithChildren) {
     void refreshProfile();
   }, [authReady, refreshProfile]);
 
-
-  const acceptLogin = useCallback((nextSession: Session, nextProfile: StudentSessionProfile) => {
-    setSession(nextSession);
-    setProfile(nextProfile);
-    setProfileError('');
-    setProfileLoading(false);
-    setAuthReady(true);
-  }, []);
+  const acceptLogin = useCallback(
+    (nextSession: Session, nextProfile: StudentSessionProfile) => {
+      setSession(nextSession);
+      setProfile(nextProfile);
+      setProfileError('');
+      setProfileLoading(false);
+      setAuthReady(true);
+    },
+    [],
+  );
 
   const signOut = useCallback(async () => {
     await signOutStudent();
+    clearPasswordRecoveryMarker();
     setSession(null);
     setProfile(null);
     setProfileError('');
@@ -90,22 +111,42 @@ export function AuthSessionProvider({ children }: PropsWithChildren) {
     setAuthReady(true);
   }, []);
 
-  const value = useMemo<StudentAuthContextValue>(() => ({
-    session,
-    profile,
-    authReady,
-    profileLoading,
-    profileError,
-    refreshProfile,
-    acceptLogin,
-    signOut,
-  }), [acceptLogin, authReady, profile, profileError, profileLoading, refreshProfile, session, signOut]);
+  const value = useMemo<StudentAuthContextValue>(
+    () => ({
+      session,
+      profile,
+      authReady,
+      profileLoading,
+      profileError,
+      refreshProfile,
+      acceptLogin,
+      signOut,
+    }),
+    [
+      acceptLogin,
+      authReady,
+      profile,
+      profileError,
+      profileLoading,
+      refreshProfile,
+      session,
+      signOut,
+    ],
+  );
 
-  return <StudentAuthContext.Provider value={value}>{children}</StudentAuthContext.Provider>;
+  return (
+    <StudentAuthContext.Provider value={value}>
+      {children}
+    </StudentAuthContext.Provider>
+  );
 }
 
 export function useStudentAuth() {
   const value = useContext(StudentAuthContext);
-  if (!value) throw new Error('useStudentAuth phải được dùng bên trong AuthSessionProvider.');
+  if (!value) {
+    throw new Error(
+      'useStudentAuth phải được dùng bên trong AuthSessionProvider.',
+    );
+  }
   return value;
 }
