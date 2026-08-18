@@ -3,6 +3,8 @@ import { useDataAccess } from '../app/providers/DataAccessProvider';
 import type { AdminPost, AdminPostStatus, CommentStatus } from '../features/admin/types';
 import { AdminModalMeta, AdminSwitch, CheckIcon, SearchIcon, ShieldIcon, adminStatusClass, adminStatusLabel } from '../features/admin/components/AdminVisuals';
 import { AdminOverview, AdminPageHeading, AdminTopbar } from '../features/admin/components/AdminShellSections';
+import { listAccountReviewQueue, reviewStudentAccount } from '../features/admin/accountReviewService';
+import type { AccountReviewDecision, AccountReviewQueueItem } from '../features/admin/accountReviewTypes';
 
 const PAGE_SIZE = 6;
 const STATUS_OPTIONS:AdminPostStatus[] = ['Chờ duyệt','Đang mở','Từ chối'];
@@ -15,7 +17,6 @@ function money(value:number):string {
   if (!value) return '';
   return new Intl.NumberFormat('vi-VN').format(value) + 'đ';
 }
-
 function buildDrafts(items:AdminPost[]):Record<string,Draft> {
   return Object.fromEntries(items.map((post) => [post.id, {
     status:post.status,
@@ -40,6 +41,19 @@ function compactPages(totalPages:number, active:number):(number|'...')[] {
   return pages;
 }
 
+function formatReviewDate(value:string):string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value || 'Chưa có';
+  return new Intl.DateTimeFormat('vi-VN', {
+    dateStyle:'short',
+    timeStyle:'short',
+  }).format(date);
+}
+
+function reviewStatusLabel(status:AccountReviewQueueItem['reviewStatus']):string {
+  return status === 'needs_information' ? 'Cần bổ sung' : 'Chờ duyệt';
+}
+
 export default function AdminPage() {
   const { admin } = useDataAccess();
   const [posts, setPosts] = useState<AdminPost[]>(() => admin.listPosts());
@@ -54,8 +68,58 @@ export default function AdminPage() {
   const [modalHidden, setModalHidden] = useState(false);
   const [modalComments, setModalComments] = useState<CommentStatus>('Mở');
   const [modalReason, setModalReason] = useState('');
-  const [notice, setNotice] = useState<Notice>({ tone:'warn', text:'Checkpoint 1H dùng LOCAL_UI_SAMPLE để kiểm thử dashboard. Các số dưới đây không phải số liệu nghiên cứu hoặc dữ liệu production.' });
+  const [notice, setNotice] = useState<Notice>({ tone:'warn', text:'Hàng chờ xác minh tài khoản phía trên dùng Supabase thật. Phần kiểm duyệt bài đăng phía dưới vẫn dùng LOCAL_UI_SAMPLE ở giai đoạn hiện tại và không phải dữ liệu nghiên cứu/production.' });
+  const [accountReviews, setAccountReviews] = useState<AccountReviewQueueItem[]>([]);
+  const [accountReviewsLoading, setAccountReviewsLoading] = useState(true);
+  const [accountReviewsError, setAccountReviewsError] = useState('');
+  const [reviewActionUserId, setReviewActionUserId] = useState<string|null>(null);
+
+  async function loadAccountReviews() {
+    setAccountReviewsLoading(true);
+    setAccountReviewsError('');
+    try {
+      const rows = await listAccountReviewQueue();
+      setAccountReviews(rows);
+    } catch (error) {
+      setAccountReviews([]);
+      setAccountReviewsError(error instanceof Error ? error.message : 'Không tải được hàng chờ xác minh tài khoản.');
+    } finally {
+      setAccountReviewsLoading(false);
+    }
+  }
+
+  async function decideAccountReview(item:AccountReviewQueueItem, decision:AccountReviewDecision) {
+    if (reviewActionUserId) return;
+
+    let reason:string|null = null;
+
+    if (decision === 'approved') {
+      if (!window.confirm(`Phê duyệt tài khoản học sinh “${item.fullName}”?`)) return;
+    } else {
+      const label = decision === 'rejected' ? 'từ chối' : 'yêu cầu bổ sung';
+      const value = String(window.prompt(`Nhập lý do ${label} cho “${item.fullName}”:`, item.currentReason || '') || '').trim();
+      if (!value) {
+        window.alert('Vui lòng nhập lý do để học sinh biết cần xử lý hoặc bổ sung thông tin gì.');
+        return;
+      }
+      reason = value;
+    }
+
+    setReviewActionUserId(item.userId);
+    try {
+      await reviewStudentAccount(item.userId, decision, reason);
+      await loadAccountReviews();
+      const actionLabel = decision === 'approved' ? 'phê duyệt' : decision === 'rejected' ? 'từ chối' : 'yêu cầu bổ sung thông tin';
+      setNotice({ tone:'ok', text:`Đã ${actionLabel} tài khoản “${item.fullName}” bằng trusted review workflow.` });
+    } catch (error) {
+      setNotice({ tone:'warn', text:error instanceof Error ? error.message : 'Không thể cập nhật yêu cầu xác minh tài khoản.' });
+    } finally {
+      setReviewActionUserId(null);
+    }
+  }
+
   useEffect(() => { setPage(1); }, [keyword,status,className,sort]);
+  useEffect(() => { void loadAccountReviews(); }, []);
 
   useEffect(() => {
     if (!modalPost) return;
@@ -156,7 +220,8 @@ export default function AdminPage() {
   const refresh = () => {
     setPosts(admin.listPosts());
     setDrafts(buildDrafts(admin.listPosts()));
-    setNotice({ tone:'ok', text:'Đã làm mới dashboard từ local in-memory store. Chưa có request backend.' });
+    void loadAccountReviews();
+    setNotice({ tone:'ok', text:'Đã làm mới hàng chờ tài khoản từ Supabase và phần bài đăng từ local in-memory store.' });
   };
 
   const rebuildStats = () => {
@@ -194,7 +259,7 @@ export default function AdminPage() {
 
   return (
     <>
-      <AdminTopbar alertCount={summary.pending + summary.reports} onNotify={() => setNotice({tone:'ok',text:'Không có thông báo backend ở Phase 1. Badge chỉ là trạng thái UI local.'})} />
+      <AdminTopbar alertCount={summary.pending + summary.reports + accountReviews.length} onNotify={() => setNotice({tone:'ok',text:`Có ${accountReviews.length} yêu cầu tài khoản đang chờ xử lý. Badge bài đăng/báo cáo phía dưới vẫn dùng dữ liệu UI local.`})} />
 
       <main className="admin-shell">
         <AdminPageHeading onRefresh={refresh} onExportPdf={exportPdf} />
@@ -202,6 +267,64 @@ export default function AdminPage() {
         {notice ? <div className={`checkpoint-state admin-local-state ${notice.tone === 'ok' ? 'is-ok' : ''}`} role="status">{notice.text}</div> : null}
 
         <AdminOverview summary={summary} posts={posts} onRebuildStats={rebuildStats} />
+
+        <section className="admin-moderation-card">
+          <div className="admin-moderation-header">
+            <div className="admin-moderation-title-row">
+              <div>
+                <h2>Yêu cầu xác minh tài khoản học sinh</h2>
+                <p>Hàng chờ thật từ Supabase, tự động giới hạn theo phạm vi trường của giáo viên đang đăng nhập.</p>
+              </div>
+              <div className="admin-moderation-actions">
+                <button className="admin-outline-button compact" type="button" disabled={accountReviewsLoading} onClick={() => void loadAccountReviews()}>
+                  {accountReviewsLoading ? 'Đang tải...' : 'Làm mới hàng chờ'}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="admin-content">
+            {accountReviewsError ? (
+              <div className="state admin-empty-state">{accountReviewsError}</div>
+            ) : accountReviewsLoading ? (
+              <div className="state admin-empty-state">Đang tải yêu cầu xác minh tài khoản...</div>
+            ) : accountReviews.length ? (
+              <div className="admin-table-scroll">
+                <table className="admin-review-table">
+                  <thead>
+                    <tr>
+                      {['Học sinh','Trường / lớp khai báo','Liên hệ','Gửi lúc','Trạng thái','Lý do hiện tại','Thao tác'].map((item,index)=><th key={item} className={index>=4?'align-center':''}>{item}</th>)}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {accountReviews.map((item) => {
+                      const busy = reviewActionUserId === item.userId;
+                      return (
+                        <tr key={item.reviewId} className={item.reviewStatus === 'needs_information' ? 'is-pending' : ''}>
+                          <td className="admin-owner-cell"><strong>{item.fullName}</strong><span>{item.studentReferenceCode || 'Chưa có mã học sinh'}</span></td>
+                          <td><strong>{item.schoolName}</strong><br/><span className="admin-class-chip">{item.classNameClaim || 'Chưa khai lớp'}</span></td>
+                          <td className="admin-owner-cell"><strong>{item.contactEmail || 'Chưa có email'}</strong><span>{item.phone || 'Chưa có số điện thoại'}</span></td>
+                          <td className="admin-date-cell"><span>{formatReviewDate(item.submittedAt)}</span></td>
+                          <td className="align-center admin-status-cell"><span className="admin-status-pill"><i />{reviewStatusLabel(item.reviewStatus)}</span></td>
+                          <td>{item.currentReason || '—'}</td>
+                          <td className="admin-action-cell">
+                            <div className="admin-row-actions">
+                              <button type="button" className="admin-table-primary" disabled={Boolean(reviewActionUserId)} onClick={() => void decideAccountReview(item,'approved')}>{busy ? 'Đang xử lý...' : 'Duyệt'}</button>
+                              <button type="button" className="admin-table-neutral" disabled={Boolean(reviewActionUserId)} onClick={() => void decideAccountReview(item,'needs_information')}>Cần bổ sung</button>
+                              <button type="button" className="admin-table-neutral" disabled={Boolean(reviewActionUserId)} onClick={() => void decideAccountReview(item,'rejected')}>Từ chối</button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="state admin-empty-state">Không có tài khoản học sinh nào đang chờ giáo viên xử lý trong phạm vi trường hiện tại.</div>
+            )}
+          </div>
+        </section>
 
         <section className="admin-moderation-card">
           <div className="admin-moderation-header">
