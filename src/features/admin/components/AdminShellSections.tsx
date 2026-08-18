@@ -1,6 +1,18 @@
+import { useState } from 'react';
 import { navigateLegacy } from '../../../app/legacyRouter';
+import { signOutStaff } from '../../auth/staff/staffAuthService';
 import type { AdminDashboardSummary, AdminPost } from '../types';
-import { AdminCharts, AdminRankColumn, AdminRate, AdminSummaryCard, BellIcon, DocumentIcon, LogoutIcon, RefreshIcon, ShieldIcon } from './AdminVisuals';
+import {
+  AdminCharts,
+  AdminRankColumn,
+  AdminRate,
+  AdminSummaryCard,
+  BellIcon,
+  DocumentIcon,
+  LogoutIcon,
+  RefreshIcon,
+  ShieldIcon,
+} from './AdminVisuals';
 
 function money(value:number):string {
   if (!value) return '';
@@ -8,6 +20,27 @@ function money(value:number):string {
 }
 
 export function AdminTopbar({ alertCount, onNotify }:{ alertCount:number; onNotify:()=>void }) {
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  const handleLogout = async () => {
+    if (loggingOut) return;
+
+    setLoggingOut(true);
+
+    try {
+      await signOutStaff();
+      navigateLegacy('landing');
+    } catch (error) {
+      window.alert(
+        error instanceof Error
+          ? `Không thể đăng xuất: ${error.message}`
+          : 'Không thể đăng xuất phiên giáo viên lúc này.',
+      );
+    } finally {
+      setLoggingOut(false);
+    }
+  };
+
   return (
     <header className="admin-topbar">
       <div className="admin-topbar-inner">
@@ -26,7 +59,15 @@ export function AdminTopbar({ alertCount, onNotify }:{ alertCount:number; onNoti
             <span className="admin-user-avatar avatar">GV</span>
             <span className="admin-user-copy"><strong>Xin chào, Giáo viên</strong><small><i></i><span>Đang hoạt động</span></small></span>
           </div>
-          <button className="admin-logout-button" type="button" onClick={() => navigateLegacy('landing')}><LogoutIcon /><span>Thoát</span></button>
+          <button
+            className="admin-logout-button"
+            type="button"
+            disabled={loggingOut}
+            onClick={() => void handleLogout()}
+          >
+            <LogoutIcon />
+            <span>{loggingOut ? 'Đang thoát...' : 'Thoát'}</span>
+          </button>
         </div>
       </div>
     </header>

@@ -25,12 +25,11 @@ export default function LegacyApplicationShell() {
   const [staffGate, setStaffGate] = useState<StaffGateState>(
     protectedStaffRoute ? 'checking' : 'idle',
   );
+  const [lifecycleVersion, setLifecycleVersion] = useState(0);
 
   useLayoutEffect(() => {
     document.title = definition.title;
 
-    // Chỉ quản lý các class thuộc page shell. Class trạng thái tạm thời như
-    // `admin-modal-open` vẫn do feature sở hữu và không bị xóa ở đây.
     ROUTE_BODY_CLASSES.forEach((className) =>
       document.body.classList.remove(className),
     );
@@ -47,6 +46,45 @@ export default function LegacyApplicationShell() {
         .forEach((className) => document.body.classList.remove(className));
     };
   }, [definition]);
+
+  // Re-check database authorization whenever the browser returns to the app.
+  // This catches role/status changes that are not encoded in the current JWT.
+  useEffect(() => {
+    const bumpLifecycle = () => {
+      setLifecycleVersion((value) => value + 1);
+    };
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        bumpLifecycle();
+      }
+    };
+
+    window.addEventListener('focus', bumpLifecycle);
+    document.addEventListener('visibilitychange', onVisibilityChange);
+
+    return () => {
+      window.removeEventListener('focus', bumpLifecycle);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
+  }, []);
+
+  // Student role/status is database-backed, so refresh it on protected-route
+  // entry, foreground return and token lifecycle changes.
+  useEffect(() => {
+    if (!protectedStudentRoute || !auth.authReady || !auth.session) {
+      return;
+    }
+
+    void auth.refreshProfile();
+  }, [
+    auth.authReady,
+    auth.refreshProfile,
+    auth.session?.access_token,
+    lifecycleVersion,
+    protectedStudentRoute,
+    route.routeKey,
+  ]);
 
   useEffect(() => {
     if (!protectedStudentRoute || !auth.authReady || auth.profileLoading) {
@@ -128,7 +166,12 @@ export default function LegacyApplicationShell() {
     return () => {
       cancelled = true;
     };
-  }, [protectedStaffRoute, route.routeKey]);
+  }, [
+    auth.session?.access_token,
+    lifecycleVersion,
+    protectedStaffRoute,
+    route.routeKey,
+  ]);
 
   if (protectedStudentRoute) {
     if (!auth.authReady || auth.profileLoading) {
