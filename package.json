@@ -9,6 +9,8 @@
   "scripts": {
     "dev": "vite --host 0.0.0.0 --port 5173",
     "build": "tsc -b && vite build",
+    "test:unit": "esbuild tests/routeAccessCore.test.ts --bundle --platform=node --format=esm --outfile=.route-access-test.mjs && node --test .route-access-test.mjs && node -e \"require('node:fs').rmSync('.route-access-test.mjs',{force:true})\"",
+    "test:run": "npm run test:unit",
     "preview": "vite preview --host 0.0.0.0 --port 4173"
   },
   "dependencies": {
