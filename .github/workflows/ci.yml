@@ -79,6 +79,9 @@ jobs:
       - name: Phase 5E owner post write matrix
         run: node tests/ownerPostWrite.e2e.mjs
 
+      - name: Phase 5E owner post read matrix
+        run: node tests/ownerPostRead.e2e.mjs
+
       - name: Stop local Supabase
         if: always()
         run: npx supabase stop --no-backup
