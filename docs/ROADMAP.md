@@ -2,7 +2,7 @@
 
 ## Phase 5 — Operational Core
 
-- **5A Foundation Stabilization** — PASS when local/hosted Auth security settings are aligned, automated tests/build pass, the exposed RLS helper is hardened, and advisors are reviewed.
+- **5A Foundation Stabilization — PASS** — local/hosted Auth security settings are aligned for the Free-tier baseline, automated unit/build and local Auth E2E gates pass, the exposed RLS helper is hardened, and advisors are reviewed.
 - **5B Roster & Registration Trust Layer** — PASS when email-confirmed students can be verified by school roster or teacher review with auditable single-claim rules.
 - **5C Marketplace Read** — PASS when approved verified users read real Supabase marketplace data with school/network scope and server-side pagination/filtering.
 - **5D Profile Backend** — PASS when profile/private data and privacy updates are real Supabase workflows rather than local simulation.
