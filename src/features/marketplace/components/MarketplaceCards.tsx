@@ -1,5 +1,5 @@
 import { navigateLegacy } from '../../../app/legacyRouter';
-import type { MarketPost, SmartMode } from '../types';
+import type { MarketPost, MarketPostDisplay, SmartMode } from '../types';
 import { formatMarketCardDate, formatMarketMoney, marketReputationTone, marketTradeClass } from '../viewUtils';
 
 export function MarketStatIcon({ type }: { type:'list'|'gift'|'tag'|'image' }) {
@@ -45,7 +45,7 @@ export function MarketplaceSmartStrip({ posts, mode, filteredCount }: { posts:Ma
   );
 }
 
-export function MarketplacePostCard({ post, saved, onToggleSaved }: { post:MarketPost; saved:boolean; onToggleSaved:()=>void }) {
+export function MarketplacePostCard({ post, saved, onToggleSaved }: { post:MarketPostDisplay; saved:boolean; onToggleSaved:()=>void }) {
   const score = Math.max(0, Math.min(10, post.ownerReputationScore));
   return (
     <article className="post-card market-product-card">
