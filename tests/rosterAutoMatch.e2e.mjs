@@ -15,7 +15,7 @@ const supabase = createClient(supabaseUrl, anonKey, {
 });
 
 function sqlValue(query) {
-  return execFileSync('psql', [dbUrl, '-At', '-v', 'ON_ERROR_STOP=1', '-c', query], {
+  return execFileSync('psql', [dbUrl, '-qAt', '-v', 'ON_ERROR_STOP=1', '-c', query], {
     encoding: 'utf8',
   }).trim();
 }
