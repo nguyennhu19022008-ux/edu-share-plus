@@ -29,6 +29,11 @@ test('MyDetailPage reads own detail and uses only trusted owner workflows', () =
   assert.doesNotMatch(detailSource, /12A1|local-ui@/);
 });
 
+test('owner completion UI matches the backend approved-only completion contract', () => {
+  assert.match(listSource, /post\.lifecycleStatus\s*===\s*['"]active['"]\s*&&\s*post\.moderationStatus\s*===\s*['"]approved['"]/);
+  assert.match(detailSource, /post\.lifecycleStatus\s*===\s*['"]active['"]\s*&&\s*post\.moderationStatus\s*===\s*['"]approved['"]/);
+});
+
 test('owner pages are truthful about deferred media and interactions', () => {
   assert.match(listSource, /Phase 5F/);
   assert.match(detailSource, /Phase 5F/);
