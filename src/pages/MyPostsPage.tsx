@@ -32,6 +32,10 @@ function lifecycleBadge(status:OwnerLifecycleStatus):string {
   return 'badge done';
 }
 
+function canComplete(post:OwnerPostView):boolean {
+  return post.lifecycleStatus === 'active' && post.moderationStatus === 'approved';
+}
+
 export default function MyPostsPage() {
   const pageSize = 12;
   const [keyword, setKeyword] = useState('');
@@ -145,35 +149,21 @@ export default function MyPostsPage() {
           <div className="grid-2">
             <div className="field">
               <label htmlFor="owner-keyword">Tìm trong bài của tôi</label>
-              <input
-                id="owner-keyword"
-                value={keyword}
-                onChange={(event) => { setKeyword(event.target.value); setPage(1); }}
-                placeholder="Tiêu đề hoặc mô tả"
-              />
+              <input id="owner-keyword" value={keyword} onChange={(event) => { setKeyword(event.target.value); setPage(1); }} placeholder="Tiêu đề hoặc mô tả" />
             </div>
             <div className="field">
               <label htmlFor="owner-moderation">Kiểm duyệt</label>
               <select id="owner-moderation" value={moderationStatus} onChange={(event) => { setModerationStatus(event.target.value as '' | OwnerModerationStatus); setPage(1); }}>
-                <option value="">Tất cả</option>
-                <option value="pending">Chờ duyệt</option>
-                <option value="approved">Đã duyệt</option>
-                <option value="rejected">Từ chối</option>
+                <option value="">Tất cả</option><option value="pending">Chờ duyệt</option><option value="approved">Đã duyệt</option><option value="rejected">Từ chối</option>
               </select>
             </div>
             <div className="field">
               <label htmlFor="owner-lifecycle">Vòng đời</label>
               <select id="owner-lifecycle" value={lifecycleStatus} onChange={(event) => { setLifecycleStatus(event.target.value as '' | OwnerLifecycleStatus); setPage(1); }}>
-                <option value="">Tất cả</option>
-                <option value="active">Đang hoạt động</option>
-                <option value="completed">Đã hoàn tất</option>
-                <option value="withdrawn">Đã thu hồi</option>
+                <option value="">Tất cả</option><option value="active">Đang hoạt động</option><option value="completed">Đã hoàn tất</option><option value="withdrawn">Đã thu hồi</option>
               </select>
             </div>
-            <div className="field">
-              <label>&nbsp;</label>
-              <button className="btn gray" type="button" onClick={clearFilters}>Xóa bộ lọc</button>
-            </div>
+            <div className="field"><label>&nbsp;</label><button className="btn gray" type="button" onClick={clearFilters}>Xóa bộ lọc</button></div>
           </div>
         </section>
 
@@ -200,7 +190,7 @@ export default function MyPostsPage() {
                   <button className="btn gray" type="button" onClick={() => navigateLegacy('myDetail', { id:post.id })}>Chi tiết</button>
                   {post.lifecycleStatus === 'active' ? <button className="btn primary" type="button" onClick={() => navigateLegacy('editPost', { id:post.id })}>Chỉnh sửa</button> : null}
                   <button className="btn" type="button" disabled={busyId === post.id} onClick={() => void duplicatePost(post)}>Nhân bản</button>
-                  {post.lifecycleStatus === 'active' ? <button className="btn green" type="button" disabled={busyId === post.id} onClick={() => void changeLifecycle(post, 'complete')}>Đánh dấu hoàn tất</button> : null}
+                  {canComplete(post) ? <button className="btn green" type="button" disabled={busyId === post.id} onClick={() => void changeLifecycle(post, 'complete')}>Đánh dấu hoàn tất</button> : null}
                   {post.lifecycleStatus === 'active' ? <button className="btn danger" type="button" disabled={busyId === post.id} onClick={() => void changeLifecycle(post, 'withdraw')}>Thu hồi</button> : null}
                 </div>
               </article>
