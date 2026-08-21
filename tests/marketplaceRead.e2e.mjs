@@ -138,13 +138,15 @@ function insertPost({ ownerId, schoolId, classId, title, tradeType='give', saleP
     insert into public.posts (
       owner_id, school_id, class_id, category_id, title, description, trade_type,
       sale_price, moderation_status, lifecycle_status, is_hidden, comments_enabled,
-      published_at, visibility_scope
+      published_at, completed_at, withdrawn_at, visibility_scope
     ) values (
       '${ownerId}'::uuid, '${schoolId}'::uuid, '${classId}'::uuid, '${categoryId}'::uuid,
       ${sqlLiteral(title)}, ${sqlLiteral(`${title} description keyword-${title.toLowerCase().replaceAll(' ', '-')}`)},
       ${sqlLiteral(tradeType)}, ${salePrice === null ? 'null' : Number(salePrice)},
       ${sqlLiteral(moderation)}, ${sqlLiteral(lifecycle)}, ${hidden ? 'true' : 'false'}, true,
       case when ${sqlLiteral(moderation)}='approved' then now() else null end,
+      case when ${sqlLiteral(lifecycle)}='completed' then now() else null end,
+      case when ${sqlLiteral(lifecycle)}='withdrawn' then now() else null end,
       ${sqlLiteral(visibility)}
     ) returning id::text;
   `);
