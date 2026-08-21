@@ -13,5 +13,6 @@ export type AccountReviewQueueItem = {
   reviewStatus: 'pending' | 'needs_information';
   submittedAt: string;
   currentReason: string | null;
+  rosterMatchReason: string | null;
   submissionSnapshot: Record<string, unknown>;
 };
