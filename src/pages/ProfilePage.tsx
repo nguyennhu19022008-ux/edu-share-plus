@@ -1,153 +1,162 @@
-import { FormEvent, useMemo, useState } from 'react';
+import { type FormEvent, useEffect, useState } from 'react';
 import { navigateLegacy } from '../app/legacyRouter';
-import { useDataAccess } from '../app/providers/DataAccessProvider';
 import StudentHeader from '../components/student/StudentHeader';
-import { NotificationsSection, PrivacyLine, ProfileInfoCard, ProfileSidebar, ProfileUploadBox, SavedPostsSection } from '../features/profile/components/ProfileSections';
-import type { ProfilePrivacy, StudentProfileLocal } from '../features/profile/types';
+import {
+  PrivacyLine,
+  ProfileInfoCard,
+  ProfileSidebar,
+} from '../features/profile/components/ProfileSections';
+import {
+  getMyProfile,
+  updateMyProfilePrivacy,
+} from '../features/profile/profileService';
+import type {
+  ProfilePrivacy,
+  StudentProfileView,
+} from '../features/profile/types';
 
 type MessageState = { tone:'ok' | 'error'; text:string } | null;
 
-function passwordIsReasonable(value:string):boolean {
-  return value.length >= 6 && /[A-Za-zÀ-ỹ]/.test(value) && /\d/.test(value);
-}
-
 export default function ProfilePage() {
-  const { profile:profileRepository } = useDataAccess();
-  const initial = useMemo(() => profileRepository.getBundle(), [profileRepository]);
-  const [profile, setProfile] = useState<StudentProfileLocal>(initial.profile);
-  const [savedPosts] = useState(initial.savedPosts);
-  const [notifications, setNotifications] = useState(initial.notifications);
-  const [privacy, setPrivacy] = useState<ProfilePrivacy>({ ...initial.profile.privacy });
-  const [avatarDraft, setAvatarDraft] = useState(initial.profile.avatarUrl);
-  const [faceDraft, setFaceDraft] = useState(initial.profile.faceUrl);
-  const [avatarStatus, setAvatarStatus] = useState('Chưa chọn ảnh mới.');
-  const [faceStatus, setFaceStatus] = useState('Chưa chọn ảnh mới.');
+  const [profile, setProfile] = useState<StudentProfileView | null>(null);
+  const [privacy, setPrivacy] = useState<ProfilePrivacy | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
+  const [reloadKey, setReloadKey] = useState(0);
+  const [privacySaving, setPrivacySaving] = useState(false);
   const [message, setMessage] = useState<MessageState>(null);
 
-  const handlePrivacySubmit = (event:FormEvent<HTMLFormElement>) => {
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setLoadError('');
+    setMessage(null);
+
+    void getMyProfile()
+      .then((next) => {
+        if (cancelled) return;
+        setProfile(next);
+        setPrivacy({ ...next.privacy });
+      })
+      .catch((error:unknown) => {
+        if (cancelled) return;
+        setProfile(null);
+        setPrivacy(null);
+        setLoadError(
+          error instanceof Error
+            ? error.message
+            : 'Không thể tải hồ sơ lúc này. Vui lòng thử lại.',
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [reloadKey]);
+
+  const handlePrivacySubmit = async (event:FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const next = profileRepository.updatePrivacy(privacy);
-    setProfile(next);
-    setMessage({ tone:'ok', text:'Đã lưu quyền riêng tư trong phiên local.' });
-  };
+    if (!privacy || privacySaving) return;
 
-  const handleImagePick = (kind:'avatar'|'face', file?:File) => {
-    if (!file) {
-      if (kind === 'avatar') setAvatarStatus('Chưa chọn ảnh mới.');
-      else setFaceStatus('Chưa chọn ảnh mới.');
-      return;
-    }
-    if (!file.type.startsWith('image/') && !/\.(heic|heif|tif|tiff|avif|gif|bmp|svg)$/i.test(file.name)) {
-      const text = 'File đã chọn không phải định dạng ảnh được chấp nhận.';
-      if (kind === 'avatar') setAvatarStatus(text);
-      else setFaceStatus(text);
-      return;
-    }
-    const url = URL.createObjectURL(file);
-    if (kind === 'avatar') {
-      setAvatarDraft(url);
-      setAvatarStatus(`Đã chọn ${file.name}. Bấm “Lưu ảnh hồ sơ” để cập nhật local.`);
-    } else {
-      setFaceDraft(url);
-      setFaceStatus(`Đã chọn ${file.name}. Bấm “Lưu ảnh hồ sơ” để cập nhật local.`);
+    setPrivacySaving(true);
+    setMessage(null);
+    try {
+      const saved = await updateMyProfilePrivacy(privacy);
+      setPrivacy(saved);
+      setProfile((current) => current ? { ...current, privacy:saved } : current);
+      setMessage({ tone:'ok', text:'Đã lưu quyền riêng tư trên Supabase.' });
+    } catch (error) {
+      setMessage({
+        tone:'error',
+        text:error instanceof Error
+          ? error.message
+          : 'Không thể cập nhật quyền riêng tư lúc này.',
+      });
+    } finally {
+      setPrivacySaving(false);
     }
   };
 
-  const handleImageSave = (event:FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const next = profileRepository.updateImages({ avatarUrl:avatarDraft, faceUrl:faceDraft });
-    setProfile(next);
-    setMessage({ tone:'ok', text:'Đã lưu ảnh hồ sơ trong phiên local. Chưa có file nào được upload lên server/storage.' });
-  };
-
-  const handlePasswordSubmit = (event:FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const form = new FormData(event.currentTarget);
-    const currentPassword = String(form.get('currentPassword') || '');
-    const newPassword = String(form.get('newPassword') || '');
-    const confirmPassword = String(form.get('confirmPassword') || '');
-
-    if (!currentPassword) {
-      setMessage({ tone:'error', text:'Vui lòng nhập mật khẩu hiện tại trước khi đổi mật khẩu.' });
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      setMessage({ tone:'error', text:'Mật khẩu mới nhập lại chưa khớp.' });
-      return;
-    }
-    if (!passwordIsReasonable(newPassword)) {
-      setMessage({ tone:'error', text:'Mật khẩu mới cần tối thiểu 6 ký tự và gồm cả chữ lẫn số.' });
-      return;
-    }
-
-    const next = profileRepository.recordPasswordChanged();
-    setProfile(next);
-    setNotifications(profileRepository.getBundle().notifications);
-    event.currentTarget.reset();
-    setMessage({ tone:'ok', text:'Đã hoàn tất mô phỏng đổi mật khẩu local. Mật khẩu thật chưa bị thay đổi vì Auth sẽ được triển khai ở Phase 4.' });
-  };
-
-  const handleReadAll = () => {
-    setNotifications(profileRepository.markAllNotificationsRead());
-    setMessage({ tone:'ok', text:'Đã đánh dấu tất cả thông báo là đã đọc trong phiên local.' });
-  };
+  const headerUser = profile ? {
+    name:profile.name,
+    email:profile.email,
+    avatarUrl:profile.avatarUrl || undefined,
+  } : undefined;
 
   return (
     <>
-      <StudentHeader activePage="profile" user={{ name:profile.name, email:profile.email, avatarUrl:profile.avatarUrl }} notifications={notifications} />
+      <StudentHeader activePage="profile" user={headerUser} />
       <main className="container profile-page ecom-page">
         <section className="ecom-page-title">
           <div>
             <span className="eyebrow">TÀI KHOẢN CỦA TÔI</span>
             <h1>Hồ sơ cá nhân</h1>
-            <p>Quản lý thông tin, quyền riêng tư, ảnh hồ sơ, bài đã lưu, thông báo và mật khẩu.</p>
+            <p>Xem thông tin tài khoản thật và quản lý các thiết lập đã được nối với Supabase.</p>
           </div>
           <button className="btn gray" type="button" onClick={() => navigateLegacy('index')}>Về trang chủ</button>
         </section>
 
-        <section className="profile-shell card">
-          <div className="profile-grid profile-grid-v24">
-            <ProfileSidebar profile={profile} />
-            <section className="profile-main">
-              <ProfileInfoCard profile={profile} />
+        {loading ? (
+          <section className="profile-shell card">
+            <div className="state">Đang tải hồ sơ từ Supabase...</div>
+          </section>
+        ) : loadError ? (
+          <section className="profile-shell card">
+            <div className="state error">{loadError}</div>
+            <div className="btn-row">
+              <button className="btn primary" type="button" onClick={() => setReloadKey((value) => value + 1)}>Thử lại</button>
+            </div>
+          </section>
+        ) : profile && privacy ? (
+          <section className="profile-shell card">
+            <div className="profile-grid profile-grid-v24">
+              <ProfileSidebar profile={profile} />
+              <section className="profile-main">
+                <ProfileInfoCard profile={profile} />
 
-              <form className="profile-card" onSubmit={handlePrivacySubmit}>
-                <div className="profile-card-head"><h3>Cài đặt quyền riêng tư</h3><span className="tag cat">Khuyến nghị bật bảo vệ</span></div>
-                <PrivacyLine name="showName" label="Hiển thị tên trên bài đăng" checked={privacy.showName} help="Nên bật để giao dịch dễ tin cậy." onChange={(checked) => setPrivacy((value) => ({ ...value, showName:checked }))} />
-                <PrivacyLine name="showClass" label="Hiển thị lớp trên bài đăng" checked={privacy.showClass} help="Nên bật để học sinh cùng trường dễ nhận biết." onChange={(checked) => setPrivacy((value) => ({ ...value, showClass:checked }))} />
-                <PrivacyLine name="showEmail" label="Hiển thị email công khai" checked={privacy.showEmail} help="Mặc định nên tắt. Email chỉ nên hiện khi thật cần." onChange={(checked) => setPrivacy((value) => ({ ...value, showEmail:checked }))} />
-                <PrivacyLine name="showPhone" label="Hiển thị số điện thoại công khai" checked={privacy.showPhone} help="Mặc định nên tắt để bảo vệ thông tin cá nhân." onChange={(checked) => setPrivacy((value) => ({ ...value, showPhone:checked }))} />
-                <div className="btn-row"><button className="btn primary" type="submit">Lưu quyền riêng tư</button></div>
-              </form>
+                <form className="profile-card" onSubmit={handlePrivacySubmit}>
+                  <div className="profile-card-head"><h3>Cài đặt quyền riêng tư</h3><span className="tag cat">Supabase</span></div>
+                  <PrivacyLine name="showName" label="Cho phép hiển thị tên khi tính năng công khai sử dụng cờ này" checked={privacy.showName} help="Tên vẫn chỉ được hiển thị ở những luồng được backend cho phép." onChange={(checked) => setPrivacy((value) => value ? ({ ...value, showName:checked }) : value)} />
+                  <PrivacyLine name="showClass" label="Cho phép hiển thị lớp khi tính năng công khai sử dụng cờ này" checked={privacy.showClass} help="Lớp vẫn chịu ràng buộc bởi phạm vi trường và chính sách marketplace." onChange={(checked) => setPrivacy((value) => value ? ({ ...value, showClass:checked }) : value)} />
+                  <PrivacyLine name="showEmail" label="Cho phép dùng email trong luồng liên hệ" checked={privacy.showEmail} help="Email không được công khai trực tiếp ở Phase 5D; contact reveal thật thuộc Phase 5G." onChange={(checked) => setPrivacy((value) => value ? ({ ...value, showEmail:checked }) : value)} />
+                  <PrivacyLine name="showPhone" label="Cho phép dùng số điện thoại trong luồng liên hệ" checked={privacy.showPhone} help="Số điện thoại không được công khai trực tiếp ở Phase 5D; contact reveal thật thuộc Phase 5G." onChange={(checked) => setPrivacy((value) => value ? ({ ...value, showPhone:checked }) : value)} />
+                  <div className="btn-row">
+                    <button className="btn primary" type="submit" disabled={privacySaving}>{privacySaving ? 'Đang lưu...' : 'Lưu quyền riêng tư'}</button>
+                  </div>
+                </form>
 
-              <SavedPostsSection savedPosts={savedPosts} />
-
-              <form className="profile-card" onSubmit={handleImageSave}>
-                <div className="profile-card-head"><h3>Ảnh hồ sơ</h3><span className="tag cat">ĐA ĐỊNH DẠNG</span></div>
-                <div className="profile-upload-grid">
-                  <ProfileUploadBox inputId="avatarFile" title="Ảnh đại diện" help="Ảnh hiển thị trên thanh tài khoản" imageUrl={avatarDraft} status={avatarStatus} onFile={(file) => handleImagePick('avatar', file)} />
-                  <ProfileUploadBox inputId="faceFile" title="Ảnh khuôn mặt" help="Ảnh nhận diện nội bộ, không công khai" imageUrl={faceDraft} status={faceStatus} onFile={(file) => handleImagePick('face', file)} />
+                <div className="profile-card">
+                  <div className="profile-card-head"><h3>Ảnh hồ sơ</h3><span className="tag">Phase 5F</span></div>
+                  <div className="state">Upload avatar và ảnh nhận diện chưa được mở. Phase 5F sẽ nối private Storage, giới hạn định dạng/kích thước và quyền đọc an toàn; Phase 5D không mô phỏng việc lưu ảnh.</div>
                 </div>
-                <div className="btn-row"><button className="btn primary" type="submit">Lưu ảnh hồ sơ</button></div>
-                <div className="form-note">Hỗ trợ HEIC/HEIF, TIFF, AVIF, GIF, BMP, SVG và nhiều định dạng phổ biến; ảnh sẽ được chuyển về JPEG tối ưu.</div>
-              </form>
 
-              <form className="profile-card" onSubmit={handlePasswordSubmit}>
-                <div className="profile-card-head"><h3>Đổi mật khẩu</h3><span className="tag price">Bảo mật</span></div>
-                <div className="field"><label className="req">Mật khẩu hiện tại</label><input name="currentPassword" type="password" required autoComplete="current-password" placeholder="Nhập mật khẩu hiện tại" /></div>
-                <div className="grid-2">
-                  <div className="field"><label className="req">Mật khẩu mới</label><input name="newPassword" type="password" required minLength={6} maxLength={80} autoComplete="new-password" placeholder="Tối thiểu 6 ký tự, gồm chữ và số" /></div>
-                  <div className="field"><label className="req">Nhập lại mật khẩu mới</label><input name="confirmPassword" type="password" required minLength={6} maxLength={80} autoComplete="new-password" placeholder="Nhập lại mật khẩu mới" /></div>
+                <div className="profile-card">
+                  <div className="profile-card-head"><h3>Bài tôi đã lưu</h3><span className="tag">Phase 5G</span></div>
+                  <div className="state">Danh sách yêu thích chưa được hiển thị ở đây để tránh dùng dữ liệu mẫu. Phase 5G sẽ nối nguồn favorites thật từ Supabase.</div>
                 </div>
-                <div className="form-note strong-note">Không dùng số điện thoại, email hoặc mật khẩu quá dễ đoán.</div>
-                <div className="btn-row"><button className="btn green" type="submit">Đổi mật khẩu</button></div>
-              </form>
 
-              <NotificationsSection notifications={notifications} onReadAll={handleReadAll} />
-              {message ? <div className={`state ${message.tone}`}>{message.text}</div> : null}
-            </section>
-          </div>
-        </section>
+                <div className="profile-card">
+                  <div className="profile-card-head"><h3>Đổi mật khẩu</h3><span className="tag price">Phase 5D • Task 4</span></div>
+                  <div className="state">Luồng đổi mật khẩu thật bằng Supabase Auth đang được nối trong Task 4. Trang này không ghi nhận hoặc mô phỏng thay đổi mật khẩu trước khi luồng đó hoàn tất.</div>
+                </div>
+
+                <div className="profile-card">
+                  <div className="profile-card-head"><h3>Thông báo gần đây</h3><span className="tag">Phase 5H</span></div>
+                  <div className="state">Thông báo thật chưa được nối vào hồ sơ. Phase 5H sẽ dùng nguồn notifications trên Supabase; Phase 5D không hiển thị thông báo mẫu.</div>
+                </div>
+
+                {message ? <div className={`state ${message.tone}`}>{message.text}</div> : null}
+              </section>
+            </div>
+          </section>
+        ) : (
+          <section className="profile-shell card">
+            <div className="state error">Không nhận được hồ sơ hợp lệ từ hệ thống.</div>
+          </section>
+        )}
       </main>
       <footer className="page-footer">Edu Share+ • Chia sẻ đồ dùng học tập an toàn trong trường</footer>
     </>
