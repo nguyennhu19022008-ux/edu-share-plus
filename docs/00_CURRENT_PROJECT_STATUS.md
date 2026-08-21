@@ -7,68 +7,67 @@
 - **Phase 5A — Foundation Stabilization: PASS and integrated into `main`.**
 - **Phase 5B — Roster & Registration Trust Layer: PASS and integrated into `main`.**
 - **Phase 5C — Marketplace Read: PASS and integrated into `main`.**
-- **Phase 5D — Profile Backend: PASS** on `phase/5d-profile-backend`; integration into `main` remains a separate release action.
+- **Phase 5D — Profile Backend: PASS and integrated into `main`.**
+- **Phase 5E — Create/Edit/My Posts: PASS** on `phase/5e-create-edit-my-posts`; integration into `main` remains a separate release action.
 - **Cost policy: Free-tier-first.** Core functionality must work on the Supabase Free Plan and other free/open-source tooling wherever practical. Paid-only platform features are optional hardening/scale upgrades, not Core release blockers unless the project owner explicitly changes this policy.
 
 ## Runtime architecture
 
-Auth, roster-assisted registration, school membership verification, teacher roster administration, teacher account review, marketplace feed/detail reads, self profile/private-profile reads, profile privacy updates, and profile password changes use real Supabase. Owner-post writes/reads, favorites, comments, contact reveal, reports, Storage media delivery, and post-moderation writes still materially depend on later phases or the runtime mock boundary. `src/main.tsx` still constructs `createMockRepositories()`; complete removal belongs to Phase 5J.
+Auth, roster-assisted registration, school membership verification, teacher roster administration, teacher account review, marketplace feed/detail reads, self profile/private-profile reads, profile privacy updates, profile password changes, and owner post create/edit/list/detail/lifecycle workflows now use real Supabase. Favorites, comments/replies, audited contact reveal, reports, Storage media delivery, notifications, and teacher post-moderation writes remain later-phase work. `src/main.tsx` still constructs `createMockRepositories()` for remaining legacy-backed surfaces; complete removal belongs to Phase 5J.
 
 ## Live Supabase development state
 
 - PostgreSQL 17 project is operational and public application tables use RLS.
-- Student authorization requires `account_status='approved'` plus verified school membership evidence.
+- Student authorization requires a confirmed email, Student role, `account_status='approved'`, and verified school membership evidence.
 - Phase 5B private roster and trusted teacher-review workflows remain active.
-- Marketplace browsing requires confirmed email, active Student role, approved account and verified school membership.
-- `schools.marketplace_scope` is `school|network`; `posts.visibility_scope` is `inherit|school|network`. A post may narrow but never widen its school's marketplace policy.
-- `public.list_marketplace_posts(...)` and `public.get_marketplace_post(uuid)` provide the Phase 5C read surface.
-- Self profile reads use `profiles`, `profile_private`, and `school_classes` under existing RLS. Missing rows are errors; there is no mock fallback.
-- `public.update_my_profile_privacy(boolean,boolean,boolean,boolean)` is the only browser-accessible profile privacy mutation. It derives the actor from `auth.uid()`, reuses the verified Student trust gate, and can mutate only `show_name`, `show_class`, `show_email`, and `show_phone`.
-- Browser roles have no direct UPDATE grant on `profiles` or `profile_private`; authenticated UPDATE policies for those tables are absent.
-- Hosted Phase 5D migration history is aligned with the repository filename: `20260821095817_profile_privacy_backend`.
-- Profile password change explicitly verifies the current password through `signInWithPassword()` using the authenticated user's email, then performs `updateUser({ password })`. It does not depend on a hosted-only current-password enforcement toggle or service-role credentials.
-- Storage metadata tables exist, but application Storage buckets/private media delivery remain deferred to Phase 5F.
+- Marketplace browsing uses the Phase 5C school/network visibility model.
+- Self profile/privacy uses the Phase 5D RLS + narrow trusted RPC model.
+- Phase 5E hosted migration history is aligned with the repository filename: `20260821154133_owner_post_write_backend`.
+- `posts` now stores `preferred_contact_method`, `original_purchase_price`, `original_price_is_estimate`, `purchase_date`, `condition_grade`, `brand`, and `model` for structured low-price-sale inputs.
+- `public.create_my_post(...)`, `public.update_my_post(...)`, and `public.change_my_post_lifecycle(uuid,text)` are the browser-accessible owner-write boundary. They derive the actor from `auth.uid()` and reuse the verified Student trust context.
+- Browser roles have no direct INSERT/UPDATE/DELETE privilege on `public.posts`.
+- Every owner edit of an active post returns `moderation_status` to `pending`; staff-owned `is_hidden` and `comments_enabled` state is not overwritten by the student edit path.
+- Owner completion is accepted only for an `active` + `approved` listing. Owner withdrawal is allowed for an active listing. Neither action is transaction proof.
+- Owner list/detail pages read real `posts` and `post_status_history` rows under RLS with server pagination/filtering.
+- Storage metadata tables exist, but operational private media delivery remains deferred to Phase 5F.
 
-## Phase 5D verification evidence
+## Phase 5E verification evidence
 
-The Phase 5D release matrix covers:
+The Phase 5E release matrix covers:
 
-- anonymous profile/profile-private reads denied;
-- a Student reads only their own profile/private-profile rows;
-- another student's private/profile rows are not exposed;
-- verified Student privacy RPC allowed;
-- teacher and anonymous identities denied the Student self-privacy RPC;
-- privacy mutation cannot target another user because no user ID is accepted;
-- direct authenticated UPDATE on `profiles` and `profile_private` denied;
-- privacy RPC PUBLIC/anon EXECUTE denied, authenticated EXECUTE intentional;
-- privacy RPC is `SECURITY DEFINER` with a fixed `search_path`;
-- ProfilePage primary data comes from Supabase rather than `ProfileRepository`;
-- mock activity, saved-post, notification and image-persistence claims were removed from the real profile view;
-- avatar/face persistence remains explicitly deferred to Phase 5F;
-- saved/favorites remain Phase 5G and notifications remain Phase 5H;
-- wrong current password is rejected through explicit password sign-in verification;
-- correct current password permits Auth password update; old password then fails and new password succeeds;
-- password form DOM state is captured before the async Auth mutation so successful reset does not depend on an event `currentTarget` after `await`;
-- Phase 5A Auth E2E, full Phase 5B trust/roster matrix, Phase 5C marketplace matrix, source secret scan, unit tests and production build remain release gates.
+- anonymous, teacher, pending/unverified, and wrong-owner post-write attempts denied;
+- verified Student post creation derives owner/school/class and initial moderation/lifecycle state server-side;
+- school policy cannot be widened by a post visibility input;
+- preferred contact method must correspond to contact data already held in `profile_private`; arbitrary contact PII is not stored in the post;
+- low-price-sale posts require positive sale/original price, original-price estimate flag, and condition grade; non-sale posts reject estimator-only fields;
+- direct authenticated INSERT/UPDATE/DELETE on `posts` denied;
+- owner edit resets moderation to `pending`, clears `published_at`, preserves staff-only hidden/comment controls, and records state history;
+- owner cannot edit another user's post or a finalized lifecycle row;
+- `complete` requires an approved active listing; `withdraw` finalizes an active listing without hard delete;
+- owner list/detail reads are owner-scoped under RLS, including pagination/search/filter and post status history;
+- Add Post, Edit Post, My Posts, and My Detail use the real owner-post service rather than the owner mock store;
+- My Posts/My Detail do not fabricate interaction metrics or image URLs;
+- Phase 5F media and Phase 5G/5H interaction/report data are explicitly deferred in the UI;
+- regression coverage prevents the UI from offering `complete` for pending/rejected active posts;
+- unit tests, production build, Phase 5A Auth E2E, full Phase 5B trust/roster matrix, Phase 5C marketplace matrix, Phase 5D profile matrix, Phase 5E owner-write matrix, and Phase 5E owner-read matrix all pass on clean local Supabase.
 
-Clean-local CI passed before hosted migration. After hosted migration, repository migration history was renamed byte-for-byte to the hosted version and clean replay passed again. Final PR-head CI run #287 on `a127cf3d516f83a604d487df49127331bfd8b214` passed both `verify` and `local-auth-e2e` jobs.
+CI run #345 on the post-review implementation head passed both `verify` and `local-auth-e2e`, including the full 5A–5E matrix. The hosted migration was then applied, audited, and its generated migration version was mirrored byte-for-byte into the repository.
 
 ## Security / performance advisor review
 
-Post-Phase-5D hosted audit confirmed:
+Post-Phase-5E hosted audit confirmed:
 
-- `update_my_profile_privacy` exists, is `SECURITY DEFINER`, and has a fixed search path;
-- PUBLIC/anon cannot execute the privacy RPC; authenticated execution is intentional and internally guarded;
-- `authenticated` has no direct UPDATE privilege on `profiles` or `profile_private`;
-- anonymous roles have no SELECT privilege on those profile tables;
-- RLS remains enabled on both profile tables;
-- there are zero authenticated UPDATE policies on the two profile tables.
+- all seven Phase 5E post columns and all six associated constraints exist;
+- `posts` RLS remains enabled;
+- `authenticated` and `anon` have no direct post-write table privileges;
+- the three owner-write RPCs are `SECURITY DEFINER` with fixed `search_path`;
+- anon cannot execute the owner-write RPCs; authenticated execution is intentional and internally guarded;
+- the private payload validator is not executable by anon/authenticated.
 
 Security Advisor findings are classified as follows:
 
 - `public.roles` and `public.user_roles`: RLS enabled without policies is intentional because browser table privileges are revoked.
-- Trusted public RPCs intentionally trigger the authenticated `SECURITY DEFINER` warning when they must be callable by signed-in users. They validate identity/role/school or self scope internally and use safe search paths.
-- The new `update_my_profile_privacy` warning is intentional under this model.
+- Trusted public RPCs intentionally trigger the authenticated `SECURITY DEFINER` warning when they must be callable by signed-in users. The new Phase 5E owner RPC warnings are expected under this model and are covered by unauthorized-path tests plus fixed search paths and server-side identity checks.
 - Supabase Leaked Password Protection remains disabled and is accepted under the Free-tier-first policy because it is paid-plan hardening.
 
 Performance Advisor continues to report unindexed foreign-key candidates, development-time unused indexes, and multiple permissive SELECT policies. These remain query-plan-driven follow-up work; no index or policy is changed merely to silence development-time advisories.
@@ -86,11 +85,10 @@ Core V2 is one multi-school EDU SHARE+ network. Teacher authority remains school
 
 ## Current checkpoint
 
-**Phase 5D — Profile Backend: PASS**
+**Phase 5E — Create/Edit/My Posts: PASS**
 
 ## Known gaps / next-phase work
 
-- Owner post create/edit/list/detail and withdraw remain scheduled for Phase 5E.
 - No operational private Storage buckets/media-delivery flow exists yet; Phase 5F owns it.
 - Favorites, comments/replies and audited contact reveal remain Phase 5G.
 - Reports/notification workflows remain Phase 5H.
@@ -111,4 +109,4 @@ A checkpoint passes only after build/tests, relevant database/RLS verification, 
 
 ## Next checkpoint
 
-**Phase 5E — Create/Edit/My Posts**
+**Phase 5F — Storage**
