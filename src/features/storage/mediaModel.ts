@@ -1,5 +1,24 @@
 export type MediaPurpose = 'post_media' | 'avatar';
 
+export type ReservedMedia = {
+  id:string;
+  bucket:string;
+  path:string;
+  purpose:MediaPurpose;
+  mimeType:string;
+  sizeBytes:number;
+};
+
+export type SignedMedia = {
+  fileId:string;
+  bucket:string;
+  path:string;
+  altText:string | null;
+  sortOrder:number;
+  isPrimary:boolean;
+  signedUrl:string;
+};
+
 export const POST_MEDIA_MAX_BYTES = 5 * 1024 * 1024;
 export const AVATAR_MAX_BYTES = 3 * 1024 * 1024;
 export const POST_MEDIA_MAX_FILES = 5;
