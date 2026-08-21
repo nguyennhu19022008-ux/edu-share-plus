@@ -1,8 +1,14 @@
-import { FormEvent, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
 import { navigateLegacy } from '../app/legacyRouter';
 import { useDataAccess } from '../app/providers/DataAccessProvider';
 import StudentHeader from '../components/student/StudentHeader';
-import type { MarketPost } from '../features/marketplace/types';
+import {
+  loadMarketplaceDetail,
+  readRequestedMarketplacePostId,
+  type MarketplaceDetailLoadState,
+} from '../features/marketplace/marketplaceDetailPageModel';
+import { getMarketplacePost } from '../features/marketplace/marketplaceReadService';
+import type { MarketplaceReadPost } from '../features/marketplace/types';
 
 type LocalComment = {
   id: string;
@@ -22,37 +28,86 @@ function formatMoney(value: number) {
   return value > 0 ? `${new Intl.NumberFormat('vi-VN').format(value)} ₫` : 'Miễn phí / Thỏa thuận';
 }
 
-function getRequestedPost(posts:MarketPost[]): MarketPost | null {
-  const requestedId = new URLSearchParams(window.location.search).get('id') || posts[0]?.id;
-  return posts.find((post) => post.id === requestedId) || null;
+function DetailState({ state, onRetry }:{ state:MarketplaceDetailLoadState; onRetry:()=>void }) {
+  let content;
+  if (state.status === 'loading') {
+    content = <div className="state">Đang tải chi tiết bài đăng...</div>;
+  } else if (state.status === 'notFound') {
+    content = <div className="state error">Không tìm thấy bài đăng hoặc bạn không có quyền xem bài này.</div>;
+  } else {
+    content = (
+      <div className="state error">
+        <div>{state.status === 'error' ? state.message : 'Không thể tải chi tiết bài đăng.'}</div>
+        <button className="btn primary" type="button" onClick={onRetry} style={{ marginTop:10 }}>Thử lại</button>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <StudentHeader activePage="detail" />
+      <main className="container detail-market-page ecom-page">
+        <div className="breadcrumb"><button type="button" onClick={() => navigateLegacy('index')}>Trang chủ</button><span>›</span><b>Chi tiết bài đăng</b></div>
+        {content}
+      </main>
+      <footer className="page-footer">Edu Share+ • Chia sẻ đồ dùng học tập an toàn trong trường</footer>
+    </>
+  );
 }
 
-function localImageFor(post: MarketPost) {
-  // Chỉ là asset kiểm tra giao diện local. Không phải ảnh nghiên cứu và không phải dữ liệu migration.
-  if (post.id === 'UI-001') return '/assets/local-ui-books.jpg';
-  return '';
+function SimilarPosts({ posts }:{ posts:MarketplaceReadPost[] }) {
+  if (!posts.length) return <div className="state">Chưa có bài tương tự.</div>;
+  return (
+    <div className="mini-grid">
+      {posts.map((item) => (
+        <article className="mini-card" key={item.id} onClick={() => navigateLegacy('detail', { id:item.id })}>
+          <b>{item.title || 'Bài đăng'}</b>
+          <span>{item.tradeType || ''} • {item.category || ''}</span>
+          <small>{formatMoney(item.price)}</small>
+        </article>
+      ))}
+    </div>
+  );
 }
 
 export default function DetailPage() {
-  const { marketplace, profile } = useDataAccess();
-  const marketPosts=useMemo(()=>marketplace.listPosts(),[marketplace]);
-  const [post] = useState<MarketPost | null>(() => getRequestedPost(marketPosts));
-  const [saved, setSaved] = useState(() => post ? profile.isPostSaved(post.id) : false);
+  const { profile } = useDataAccess();
+  const [requestedPostId] = useState(() => readRequestedMarketplacePostId(window.location.search));
+  const [loadState, setLoadState] = useState<MarketplaceDetailLoadState>({ status:'loading' });
+  const [retryKey, setRetryKey] = useState(0);
+  const [saved, setSaved] = useState(false);
   const [contactVisible, setContactVisible] = useState(false);
   const [comments, setComments] = useState<LocalComment[]>(LOCAL_UI_COMMENTS);
   const [commentText, setCommentText] = useState('');
-  const similarPosts = useMemo(() => {
-    if (!post) return [];
-    const preferred = marketPosts.filter((item) => item.id !== post.id && (item.category === post.category || item.tradeType === post.tradeType));
-    const fallback = marketPosts.filter((item) => item.id !== post.id && !preferred.includes(item));
-    return [...preferred, ...fallback].slice(0, 4);
-  }, [marketPosts, post]);
 
-  const initiallySaved = post ? profile.wasPostInitiallySaved(post.id) : false;
-  const favoriteCount = Math.max(0, Number(post?.favoriteCount || 0) + (saved ? 1 : 0) - (initiallySaved ? 1 : 0));
+  useEffect(() => {
+    let active = true;
+    setLoadState({ status:'loading' });
+    setContactVisible(false);
+
+    void loadMarketplaceDetail(
+      requestedPostId || '',
+      (postId) => getMarketplacePost(postId),
+    ).then((state) => {
+      if (!active) return;
+      setLoadState(state);
+      if (state.status === 'ready') setSaved(profile.isPostSaved(state.detail.post.id));
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [profile, requestedPostId, retryKey]);
+
+  if (loadState.status !== 'ready') {
+    return <DetailState state={loadState} onRetry={() => setRetryKey((value) => value + 1)} />;
+  }
+
+  const { post, similarPosts, commentsEnabled } = loadState.detail;
+  const initiallySaved = profile.wasPostInitiallySaved(post.id);
+  const favoriteCount = Math.max(0, Number(post.favoriteCount || 0) + (saved ? 1 : 0) - (initiallySaved ? 1 : 0));
 
   const toggleSaved = () => {
-    if (!post) return;
     const next = !saved;
     profile.setPostSaved(post.id, next);
     setSaved(next);
@@ -60,6 +115,10 @@ export default function DetailPage() {
 
   const sendComment = (event: FormEvent) => {
     event.preventDefault();
+    if (!commentsEnabled) {
+      window.alert('Bình luận của bài đăng này đang bị tắt.');
+      return;
+    }
     const content = commentText.trim();
     if (!content) {
       window.alert('Vui lòng nhập nội dung bình luận.');
@@ -76,6 +135,10 @@ export default function DetailPage() {
   };
 
   const replyTo = (comment: LocalComment) => {
+    if (!commentsEnabled) {
+      window.alert('Bình luận của bài đăng này đang bị tắt.');
+      return;
+    }
     const content = window.prompt(`Trả lời bình luận của ${comment.name || 'người dùng'}:`);
     if (!content?.trim()) return;
     setComments((current) => [...current, {
@@ -90,29 +153,15 @@ export default function DetailPage() {
   const reportPost = () => {
     const note = window.prompt('Nhập lý do báo cáo bài đăng:');
     if (note === null) return;
-    window.alert('Bản local đã kiểm tra được luồng Báo cáo. Backend thật sẽ được nối ở phase sau.');
+    window.alert('Báo cáo hiện chỉ là mô phỏng local. Backend thật sẽ được nối ở Phase 5H.');
   };
 
   const reportComment = () => {
     const note = window.prompt('Nhập lý do báo cáo bình luận:');
     if (note === null) return;
-    window.alert('Bản local đã kiểm tra được luồng Báo cáo bình luận. Backend thật sẽ được nối ở phase sau.');
+    window.alert('Báo cáo bình luận hiện chỉ là mô phỏng local. Backend thật sẽ được nối ở Phase 5H.');
   };
 
-  if (!post) {
-    return (
-      <>
-        <StudentHeader activePage="detail" />
-        <main className="container detail-market-page ecom-page">
-          <div className="breadcrumb"><button type="button" onClick={() => navigateLegacy('index')}>Trang chủ</button><span>›</span><b>Chi tiết bài đăng</b></div>
-          <div className="state error">Không tìm thấy bài đăng hoặc bài chưa được duyệt.</div>
-        </main>
-        <footer className="page-footer">Edu Share+ • Chia sẻ đồ dùng học tập an toàn trong trường</footer>
-      </>
-    );
-  }
-
-  const imageUrl = localImageFor(post);
   const roots = comments.filter((comment) => !comment.parentId);
   const repliesFor = (parentId:string) => comments.filter((comment) => comment.parentId === parentId);
 
@@ -141,28 +190,27 @@ export default function DetailPage() {
               </div>
               <div className="desc" style={{ marginTop:14 }}>{post.description || 'Chưa có mô tả.'}</div>
               <div className="privacy-note">
-                <b>Bảo vệ thông tin học sinh</b> — thông tin liên hệ chỉ hiển thị sau khi bấm Xem liên hệ và được ghi nhận lượt xem cho chủ bài.
+                <b>Dữ liệu bài đăng đang đọc từ Supabase.</b> Favorite, bình luận, liên hệ và báo cáo bên dưới vẫn là mô phỏng local cho tới các phase 5G–5H.
               </div>
 
               {contactVisible ? (
                 <div className="contact-card">
-                  <div className="title-cell">Thông tin liên hệ người đăng</div>
-                  <div className="meta">Người đăng: {post.name || ''}{post.className ? ` - ${post.className}` : ''}</div>
-                  <div>Email: local-ui@example.invalid</div>
-                  <div>Liên hệ: Dữ liệu kiểm thử UI local</div>
+                  <div className="title-cell">Liên hệ — mô phỏng local</div>
+                  <div className="meta">Không có dữ liệu liên hệ thật được trả về ở Phase 5C.</div>
+                  <div>Workflow liên hệ được kiểm tra giao diện local và sẽ nối RPC có audit ở Phase 5G.</div>
                 </div>
               ) : null}
 
               <div className="actions split-actions" style={{ marginTop:16 }}>
                 <button className={`btn ghost save-btn${saved ? ' saved' : ''}`} type="button" onClick={toggleSaved}>{saved ? '♥ Đã lưu' : '♡ Lưu bài'} ({favoriteCount})</button>
-                <button className="btn orange" type="button" onClick={() => setContactVisible(true)}>Xem liên hệ</button>
-                <button className="btn gray" type="button" onClick={reportPost}>Báo cáo bài đăng</button>
+                <button className="btn orange" type="button" onClick={() => setContactVisible(true)}>Xem luồng liên hệ (local)</button>
+                <button className="btn gray" type="button" onClick={reportPost}>Báo cáo (local)</button>
                 <button className="btn primary" type="button" onClick={() => navigateLegacy('index')}>Quay lại trang chủ</button>
               </div>
             </section>
 
-            {imageUrl ? (
-              <img className="detail-img" src={imageUrl} alt="Ảnh bài đăng" loading="lazy" decoding="async" />
+            {post.hasImage ? (
+              <div className="state">Bài đăng có ảnh, nhưng Phase 5C không cấp public Storage URL. Ảnh private sẽ được nối ở Phase 5F.</div>
             ) : (
               <div className="state">Bài đăng chưa có ảnh.</div>
             )}
@@ -171,25 +219,18 @@ export default function DetailPage() {
 
         <section className="panel ecom-section-panel">
           <h2 style={{ margin:'0 0 12px' }}>Bài tương tự</h2>
-          {similarPosts.length ? (
-            <div className="mini-grid">
-              {similarPosts.map((item) => (
-                <article className="mini-card" key={item.id} onClick={() => navigateLegacy('detail', { id:item.id })}>
-                  <b>{item.title || 'Bài đăng'}</b>
-                  <span>{item.tradeType || ''} • {item.category || ''}</span>
-                  <small>{formatMoney(item.price)}</small>
-                </article>
-              ))}
-            </div>
-          ) : <div className="state">Chưa có bài tương tự.</div>}
+          <SimilarPosts posts={similarPosts} />
         </section>
 
         <section className="panel ecom-section-panel">
-          <h2 style={{ margin:'0 0 12px' }}>Bình luận</h2>
-          <form className="comment-box" onSubmit={sendComment}>
-            <textarea value={commentText} onChange={(event) => setCommentText(event.target.value)} placeholder="Nhập bình luận lịch sự, rõ nội dung..." maxLength={1200} />
-            <button className="btn primary" type="submit">Gửi bình luận</button>
-          </form>
+          <h2 style={{ margin:'0 0 4px' }}>Bình luận</h2>
+          <div className="meta" style={{ marginBottom:12 }}>Mô phỏng local — chưa đọc/ghi bảng comments ở Phase 5C.</div>
+          {commentsEnabled ? (
+            <form className="comment-box" onSubmit={sendComment}>
+              <textarea value={commentText} onChange={(event) => setCommentText(event.target.value)} placeholder="Nhập bình luận lịch sự, rõ nội dung..." maxLength={1200} />
+              <button className="btn primary" type="submit">Gửi bình luận local</button>
+            </form>
+          ) : <div className="state">Bình luận đã bị tắt cho bài đăng này.</div>}
 
           <div className="comment-box" style={{ marginTop:10 }}>
             {!roots.length ? <div className="state">Chưa có bình luận.</div> : roots.map((comment) => (
@@ -199,8 +240,8 @@ export default function DetailPage() {
                   <div className="meta">{comment.date || ''}</div>
                   <div className="desc">{comment.content || ''}</div>
                   <div style={{ marginTop:8 }}>
-                    <button className="linkbtn" type="button" onClick={() => replyTo(comment)}>Trả lời</button>
-                    <button className="linkbtn danger" type="button" onClick={reportComment}>Báo cáo</button>
+                    <button className="linkbtn" type="button" disabled={!commentsEnabled} onClick={() => replyTo(comment)}>Trả lời</button>
+                    <button className="linkbtn danger" type="button" onClick={reportComment}>Báo cáo local</button>
                   </div>
                 </div>
                 {repliesFor(comment.id).map((reply) => (
@@ -209,8 +250,8 @@ export default function DetailPage() {
                     <div className="meta">{reply.date || ''}</div>
                     <div className="desc">{reply.content || ''}</div>
                     <div style={{ marginTop:8 }}>
-                      <button className="linkbtn" type="button" onClick={() => replyTo(reply)}>Trả lời</button>
-                      <button className="linkbtn danger" type="button" onClick={reportComment}>Báo cáo</button>
+                      <button className="linkbtn" type="button" disabled={!commentsEnabled} onClick={() => replyTo(reply)}>Trả lời</button>
+                      <button className="linkbtn danger" type="button" onClick={reportComment}>Báo cáo local</button>
                     </div>
                   </div>
                 ))}
