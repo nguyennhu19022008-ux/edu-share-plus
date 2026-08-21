@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { RosterManagementPanelView } from '../src/features/admin/components/RosterManagementPanel';
+import { AdminOverview } from '../src/features/admin/components/AdminShellSections';
 
 test('renders school-scoped CSV preview, batch activation and active roster state', () => {
   const html = renderToStaticMarkup(
@@ -76,4 +77,29 @@ test('renders school-scoped CSV preview, batch activation and active roster stat
   assert.match(html, /Kích hoạt/);
   assert.match(html, /Lê Văn C/);
   assert.match(html, /Đã liên kết tài khoản/);
+});
+
+test('admin overview includes the trusted roster management panel', () => {
+  const html = renderToStaticMarkup(
+    <AdminOverview
+      summary={{
+        totalPosts: 0,
+        done: 0,
+        pending: 0,
+        reports: 0,
+        approvalRate: 0,
+        completionRate: 0,
+        reportRate: 0,
+        topCategories: [],
+        topClasses: [],
+        financialSaved: 0,
+        wasteReducedKg: 0,
+        updatedAt: '21/08/2026',
+      }}
+      posts={[]}
+      onRebuildStats={() => {}}
+    />,
+  );
+
+  assert.match(html, /Danh sách học sinh tin cậy/);
 });
