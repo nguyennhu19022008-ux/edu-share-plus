@@ -3,7 +3,7 @@
 ## Phase 5 — Operational Core
 
 - **5A Foundation Stabilization — PASS** — local/hosted Auth security settings are aligned for the Free-tier baseline, automated unit/build and local Auth E2E gates pass, the exposed RLS helper is hardened, and advisors are reviewed.
-- **5B Roster & Registration Trust Layer** — PASS when email-confirmed students can be verified by school roster or teacher review with auditable single-claim rules.
+- **5B Roster & Registration Trust Layer — PASS** — mandatory email confirmation, private school roster matching, atomic single-account claims, verified membership, school-scoped teacher review/roster administration, CSV teacher UI, hosted development migrations, unauthorized-path checks, and the full local release matrix are complete.
 - **5C Marketplace Read** — PASS when approved verified users read real Supabase marketplace data with school/network scope and server-side pagination/filtering.
 - **5D Profile Backend** — PASS when profile/private data and privacy updates are real Supabase workflows rather than local simulation.
 - **5E Create/Edit/My Posts** — PASS when trusted post create/edit/withdraw and owner reads use Supabase, including structured pricing inputs.
