@@ -47,3 +47,9 @@ test('ProfilePage submits password changes through the real Auth path after form
   assert.match(pageSource, /validateProfilePasswordChange\s*\(/, 'ProfilePage must validate current/new/confirmation before mutation');
   assert.doesNotMatch(pageSource, /recordPasswordChanged|mô phỏng đổi mật khẩu local/, 'ProfilePage must not simulate password changes');
 });
+
+test('ProfilePage captures the password form before awaiting the Auth mutation', () => {
+  assert.match(pageSource, /const\s+passwordForm\s*=\s*event\.currentTarget/, 'password handler must capture the form element before awaiting');
+  assert.match(pageSource, /passwordForm\.reset\s*\(\s*\)/, 'successful password change must reset the captured form');
+  assert.doesNotMatch(pageSource, /await\s+changeMyPassword[\s\S]*event\.currentTarget\.reset\s*\(/, 'password handler must not dereference event.currentTarget after await');
+});
