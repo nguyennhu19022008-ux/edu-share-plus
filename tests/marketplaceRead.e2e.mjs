@@ -133,7 +133,7 @@ const pending = await makeStudent({
 });
 const unconfirmed = await makeStudent({ suffix:'unconfirmed', schoolId:schoolA, classId:classA, confirmed:false });
 
-function insertPost({ ownerId, schoolId, classId, title, tradeType='Cho tặng', salePrice=null, visibility='inherit', moderation='approved', lifecycle='active', hidden=false }) {
+function insertPost({ ownerId, schoolId, classId, title, tradeType='give', salePrice=null, visibility='inherit', moderation='approved', lifecycle='active', hidden=false }) {
   return sqlValue(`
     insert into public.posts (
       owner_id, school_id, class_id, category_id, title, description, trade_type,
@@ -151,8 +151,8 @@ function insertPost({ ownerId, schoolId, classId, title, tradeType='Cho tặng',
 }
 
 const networkA = insertPost({ ownerId:studentA.userId, schoolId:schoolA, classId:classA, title:'Network Book A', visibility:'inherit' });
-const schoolOnlyA = insertPost({ ownerId:studentA.userId, schoolId:schoolA, classId:classA, title:'School Book A', visibility:'school', tradeType:'Bán giá rẻ', salePrice:120000 });
-const cannotWidenB = insertPost({ ownerId:studentB.userId, schoolId:schoolB, classId:classB, title:'School Policy B', visibility:'network', tradeType:'Bán giá rẻ', salePrice:80000 });
+const schoolOnlyA = insertPost({ ownerId:studentA.userId, schoolId:schoolA, classId:classA, title:'School Book A', visibility:'school', tradeType:'low_price_sale', salePrice:120000 });
+const cannotWidenB = insertPost({ ownerId:studentB.userId, schoolId:schoolB, classId:classB, title:'School Policy B', visibility:'network', tradeType:'low_price_sale', salePrice:80000 });
 insertPost({ ownerId:studentA.userId, schoolId:schoolA, classId:classA, title:'Hidden A', hidden:true });
 insertPost({ ownerId:studentA.userId, schoolId:schoolA, classId:classA, title:'Pending A', moderation:'pending' });
 insertPost({ ownerId:studentA.userId, schoolId:schoolA, classId:classA, title:'Completed A', lifecycle:'completed' });
@@ -206,7 +206,7 @@ assert.ok(!idsB.has(schoolOnlyA), 'explicit school post narrows network school')
 assert.equal(feedB.data.items.find((item) => item.id === networkA)?.favoriteCount, 1);
 assert.equal(feedB.data.items.find((item) => item.id === networkA)?.hasImage, true);
 
-const saleAsc = await studentA.client.rpc('list_marketplace_posts', { ...rpcArgs, p_trade_type:'Bán giá rẻ', p_sort:'priceAsc' });
+const saleAsc = await studentA.client.rpc('list_marketplace_posts', { ...rpcArgs, p_trade_type:'low_price_sale', p_sort:'priceAsc' });
 assert.equal(saleAsc.error, null);
 assert.deepEqual(saleAsc.data.items.map((item) => item.id), [schoolOnlyA]);
 
