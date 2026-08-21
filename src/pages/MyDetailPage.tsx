@@ -1,128 +1,168 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useState } from 'react';
 import { navigateLegacy } from '../app/legacyRouter';
-import { useDataAccess } from '../app/providers/DataAccessProvider';
 import StudentHeader from '../components/student/StudentHeader';
-import { buildOwnerEffectiveness } from '../features/my-posts/effectiveness';
-import type { OwnerContactLog, OwnerDetailBundle } from '../features/my-posts/detailTypes';
-import type { MyPost, MyPostStatus } from '../features/my-posts/types';
+import type { OwnerPostDetail, OwnerPostView } from '../features/my-posts/ownerPostModel';
+import {
+  changeMyPostLifecycle,
+  createMyPost,
+  getMyPost,
+} from '../features/my-posts/ownerPostService';
 
-function getPostId(): string {
+function getPostId():string {
   return new URLSearchParams(window.location.search).get('id')?.trim() || '';
 }
 
-function formatMoney(value:number):string {
-  return value > 0 ? `${value.toLocaleString('vi-VN')} đ` : 'Miễn phí / Thỏa thuận';
-}
-
-function statusLabel(status:MyPostStatus):string {
-  const labels:Record<MyPostStatus,string> = {
-    'Đang mở':'Đang giao dịch',
-    'Chờ duyệt':'Chờ giáo viên duyệt',
-    'Từ chối':'Từ chối',
-    'Đã xong':'Đã hoàn tất',
-    'Đã thu hồi':'Đã thu hồi',
-  };
-  return labels[status];
-}
-
-function badgeClass(status:MyPostStatus):string {
-  if (status === 'Đang mở') return 'badge open';
-  if (status === 'Chờ duyệt') return 'badge pending';
-  if (status === 'Đã xong') return 'badge done';
+function moderationBadge(status:OwnerPostView['moderationStatus']):string {
+  if (status === 'approved') return 'badge open';
+  if (status === 'pending') return 'badge pending';
   return 'badge reject';
 }
 
-function sourceLabel(post:MyPost):string {
-  if (post.source === 'Archive') return 'Lịch sử';
-  if (post.hidden) return 'Đang tạm ẩn';
-  return 'Bài đang hoạt động';
+function lifecycleBadge(status:OwnerPostView['lifecycleStatus']):string {
+  return status === 'active' ? 'badge open' : 'badge done';
 }
 
-function doneButtonText(type:MyPost['tradeType']):string {
-  const map:Record<MyPost['tradeType'],string> = {
-    'Cho mượn':'Đã cho mượn',
-    'Cho tặng':'Đã tặng',
-    'Trao đổi':'Đã trao đổi',
-    'Bán giá rẻ':'Đã bán',
-  };
-  return map[type];
+function contactLabel(method:OwnerPostView['preferredContactMethod']):string {
+  return method === 'email' ? 'Email trong hồ sơ' : 'Số điện thoại trong hồ sơ';
+}
+
+function formatHistoryTime(value:string):string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat('vi-VN', {
+    timeZone:'Asia/Ho_Chi_Minh',
+    dateStyle:'short',
+    timeStyle:'short',
+  }).format(date);
 }
 
 export default function MyDetailPage() {
-  const { ownerPosts, ownerDetail } = useDataAccess();
   const postId = getPostId();
-  const [post, setPost] = useState<MyPost | undefined>(() => ownerPosts.getById(postId));
-  const [detail, setDetail] = useState<OwnerDetailBundle>(() => post ? ownerDetail.get(post) : { favorites:[], contacts:[], comments:[], timeline:[] });
+  const [detail, setDetail] = useState<OwnerPostDetail | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
-  const effectiveness = useMemo(() => post ? buildOwnerEffectiveness(post) : null, [post]);
-  const lastContactAt = detail.contacts[0]?.date || 'Chưa có';
+  const [reloadVersion, setReloadVersion] = useState(0);
+  const [busy, setBusy] = useState(false);
 
-  if (!post) {
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError('');
+
+    if (!postId) {
+      setDetail(null);
+      setLoading(false);
+      return () => { cancelled = true; };
+    }
+
+    void getMyPost(postId)
+      .then((nextDetail) => {
+        if (!cancelled) setDetail(nextDetail);
+      })
+      .catch((reason:unknown) => {
+        if (!cancelled) setError(reason instanceof Error ? reason.message : 'Không thể tải bài đăng.');
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [postId, reloadVersion]);
+
+  const reload = (message?:string) => {
+    if (message) setNotice(message);
+    setReloadVersion((value) => value + 1);
+  };
+
+  const runLifecycle = async (action:'complete' | 'withdraw') => {
+    if (!detail || busy) return;
+    const question = action === 'complete'
+      ? 'Xác nhận bài đã hoàn tất giao dịch/chia sẻ?'
+      : 'Thu hồi bài đăng này khỏi trạng thái hoạt động?';
+    if (!window.confirm(question)) return;
+
+    setBusy(true);
+    setError('');
+    try {
+      await changeMyPostLifecycle(detail.post.id, action);
+      reload(action === 'complete' ? 'Đã đánh dấu bài hoàn tất.' : 'Đã thu hồi bài đăng.');
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Không thể cập nhật vòng đời bài đăng.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const duplicatePost = async () => {
+    if (!detail || busy) return;
+    const post = detail.post;
+    if (!window.confirm('Nhân bản nội dung này thành một bài mới ở trạng thái chờ duyệt?')) return;
+
+    setBusy(true);
+    setError('');
+    try {
+      const created = await createMyPost({
+        categoryId:post.categoryId,
+        title:`${post.title} - bản sao`.slice(0, 160),
+        description:post.description,
+        tradeType:post.tradeType,
+        salePrice:post.salePrice,
+        visibilityScope:post.visibilityScope,
+        preferredContactMethod:post.preferredContactMethod,
+        originalPurchasePrice:post.originalPurchasePrice,
+        originalPriceIsEstimate:post.originalPriceIsEstimate,
+        purchaseDate:post.purchaseDate,
+        conditionGrade:post.conditionGrade,
+        brand:post.brand,
+        model:post.model,
+      });
+      navigateLegacy('editPost', { id:created.id });
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Không thể nhân bản bài đăng.');
+      setBusy(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <>
+        <StudentHeader activePage="myDetail" />
+        <main className="container ecom-page owner-detail-page"><div className="state">Đang tải chi tiết bài đăng…</div></main>
+      </>
+    );
+  }
+
+  if (error && !detail) {
     return (
       <>
         <StudentHeader activePage="myDetail" />
         <main className="container ecom-page owner-detail-page">
-          <section className="ecom-page-title"><div><span className="eyebrow">CHI TIẾT TIN ĐĂNG</span><h1>Chi tiết bài đăng của tôi</h1></div></section>
-          <div className="state error">Không tìm thấy bài đăng local với mã <b>{postId || '(trống)'}</b>.</div>
-          <div className="btn-row"><button className="btn gray" type="button" onClick={() => navigateLegacy('myPosts')}>← Bài của tôi</button></div>
+          <div className="state error">{error}</div>
+          <div className="btn-row"><button className="btn gray" type="button" onClick={() => reload()}>Thử lại</button><button className="btn gray" type="button" onClick={() => navigateLegacy('myPosts')}>← Bài của tôi</button></div>
         </main>
       </>
     );
   }
 
-  const isArchive = post.source === 'Archive';
-  const canEdit = !isArchive && ['Chờ duyệt','Từ chối','Đang mở'].includes(post.status);
-  const canWithdraw = !isArchive;
-  const canComplete = !isArchive && post.status === 'Đang mở';
-  const canToggleHidden = !isArchive && post.status === 'Đang mở';
-  const hasImage = Boolean(post.imageUrl);
+  if (!detail) {
+    return (
+      <>
+        <StudentHeader activePage="myDetail" />
+        <main className="container ecom-page owner-detail-page">
+          <section className="ecom-page-title"><div><span className="eyebrow">CHI TIẾT TIN ĐĂNG</span><h1>Chi tiết bài đăng của tôi</h1></div></section>
+          <div className="state error">Không tìm thấy bài đăng thuộc tài khoản hiện tại.</div>
+          <button className="btn gray" type="button" onClick={() => navigateLegacy('myPosts')}>← Bài của tôi</button>
+        </main>
+      </>
+    );
+  }
 
-  const toggleHidden = () => {
-    const nextHidden = !post.hidden;
-    if (!window.confirm(nextHidden ? 'Tạm ẩn bài khỏi trang chủ?' : 'Hiển thị lại bài trên trang chủ?')) return;
-    const updated = ownerPosts.update(post.id, (current) => ({ ...current, hidden:nextHidden }));
-    if (!updated) return;
-    setPost(updated);
-    setNotice(nextHidden ? 'Đã tạm ẩn bài trong phiên local.' : 'Đã hiển thị lại bài trong phiên local.');
-    const nextDetail = ownerDetail.prependTimeline(updated, { type:'post', title:nextHidden ? 'Bài được tạm ẩn' : 'Bài được hiển thị lại', description:nextHidden ? 'Chủ bài tạm ẩn bài khỏi Marketplace.' : 'Chủ bài hiển thị lại bài trên Marketplace.', date:'Vừa xong • phiên local' });
-    setDetail(nextDetail);
-  };
-
-  const completePost = () => {
-    if (!window.confirm(`Xác nhận ${doneButtonText(post.tradeType).toLowerCase()} và chuyển bài sang lịch sử?`)) return;
-    ownerPosts.update(post.id, (current) => ({ ...current, status:'Đã xong', source:'Archive', hidden:false, doneTs:Date.now() }));
-    window.alert('Đã đánh dấu hoàn tất trong phiên local.');
-    navigateLegacy('myPosts');
-  };
-
-  const withdrawPost = () => {
-    if (!window.confirm('Thu hồi bài đăng này? Bài sẽ không còn hiển thị công khai.')) return;
-    ownerPosts.update(post.id, (current) => ({ ...current, status:'Đã thu hồi', source:'Archive', hidden:false, doneTs:Date.now() }));
-    window.alert('Đã thu hồi bài trong phiên local.');
-    navigateLegacy('myPosts');
-  };
-
-  const duplicatePost = () => {
-    if (!window.confirm('Nhân bản bài này thành bài mới ở trạng thái chờ duyệt?')) return;
-    const duplicate = ownerPosts.duplicate(post);
-    window.alert('Đã nhân bản bài trong phiên local.');
-    navigateLegacy('editPost', { id:duplicate.id });
-  };
-
-  const markHandled = (contact:OwnerContactLog) => {
-    const note = window.prompt('Ghi chú ngắn sau khi đã liên hệ lại:', 'Đã liên hệ lại');
-    if (note === null) return;
-    const now = 'Vừa xong • phiên local';
-    const nextDetail = ownerDetail.update(post, (current) => ({
-      ...current,
-      contacts:current.contacts.map((item) => item.id === contact.id ? { ...item, contacted:true, contactedAt:now, note:note.trim() || 'Đã liên hệ lại' } : item),
-      timeline:[{ id:`TL-${Date.now()}`, type:'handled', title:'Đã phản hồi người quan tâm', description:`Đánh dấu đã liên hệ lại với ${contact.requesterName}.`, date:now }, ...current.timeline],
-    }));
-    setDetail(nextDetail);
-    const updated = ownerPosts.update(post.id, (current) => ({ ...current, contactedCount:Math.min(current.contactViewCount, current.contactedCount + 1) }));
-    if (updated) setPost(updated);
-    setNotice('Đã đánh dấu đã liên hệ lại trong phiên local.');
-  };
+  const post = detail.post;
+  const canEdit = post.lifecycleStatus === 'active';
+  const isSale = post.tradeType === 'low_price_sale';
 
   return (
     <>
@@ -132,7 +172,7 @@ export default function MyDetailPage() {
           <div>
             <span className="eyebrow">CHI TIẾT TIN ĐĂNG</span>
             <h1>Chi tiết bài đăng của tôi</h1>
-            <p>Học sinh - 12A1 • local-ui@edushare.test</p>
+            <p>Trạng thái và lịch sử bên dưới đến trực tiếp từ dữ liệu owner-scoped trong Supabase.</p>
           </div>
           <div className="btn-row">
             <button className="btn gray" type="button" onClick={() => navigateLegacy('myPosts')}>← Bài của tôi</button>
@@ -140,123 +180,82 @@ export default function MyDetailPage() {
           </div>
         </section>
 
-        {notice ? <div className="state ok owner-local-notice" role="status">{notice}</div> : null}
+        {notice ? <div className="state ok" role="status">{notice}</div> : null}
+        {error ? <div className="state error" role="alert">{error}</div> : null}
 
         <section className="owner-detail-layout">
           <article className="card owner-detail-main">
             <div className="tags">
-              <span className={badgeClass(post.status)}>{statusLabel(post.status)}</span>
-              <span className="tag">{sourceLabel(post)}</span>
-              <span className="tag price">{formatMoney(post.price)}</span>
+              <span className={moderationBadge(post.moderationStatus)}>{post.moderationLabel}</span>
+              <span className={lifecycleBadge(post.lifecycleStatus)}>{post.lifecycleLabel}</span>
+              {post.isHidden ? <span className="badge reject">Đang bị ẩn bởi kiểm duyệt</span> : null}
+              <span className="tag price">{post.salePriceLabel}</span>
             </div>
             <h2 className="owner-detail-title">{post.title}</h2>
-            <div className="meta">{post.tradeType} • {post.category} • Ngày đăng: {post.date}</div>
-            {post.doneTs ? <div className="meta">Bài đã được lưu trong lịch sử của phiên local.</div> : null}
-            {post.rejectionReason ? <div className="reason-box"><b>Lý do từ chối: </b>{post.rejectionReason}</div> : null}
-            <div className="desc owner-desc">{post.description || 'Chưa có mô tả.'}</div>
-            <div className="owner-contact-self"><b>Thông tin liên hệ bạn đã cung cấp</b><span>{post.contactInfo || 'Chưa có'}</span></div>
+            <div className="meta">{post.tradeLabel} • {post.categoryName} • {post.className}</div>
+            <div className="meta">Tạo: {post.createdAtLabel} • Cập nhật: {post.updatedAtLabel}</div>
+            <div className="desc owner-desc">{post.description}</div>
+
+            {detail.rejectionReason ? <div className="reason-box"><b>Lý do từ chối gần nhất: </b>{detail.rejectionReason}</div> : null}
+
+            <section className="card">
+              <h3>Chính sách và liên hệ</h3>
+              <p><b>Phạm vi:</b> {post.visibilityScope}</p>
+              <p><b>Kênh liên hệ đã chọn:</b> {contactLabel(post.preferredContactMethod)}</p>
+              <p><b>Bình luận theo moderation:</b> {post.commentsEnabled ? 'Được bật' : 'Đang tắt'}</p>
+              <p className="form-note">Thông tin liên hệ riêng tư không được sao chép vào bản ghi bài đăng.</p>
+            </section>
+
+            {isSale ? (
+              <section className="card">
+                <h3>Dữ liệu bán giá rẻ</h3>
+                <div className="grid-2">
+                  <p><b>Giá bán:</b> {post.salePriceLabel}</p>
+                  <p><b>Giá mua ban đầu:</b> {post.originalPurchasePrice?.toLocaleString('vi-VN')} đ</p>
+                  <p><b>Giá mua là ước tính:</b> {post.originalPriceIsEstimate ? 'Có' : 'Không'}</p>
+                  <p><b>Tình trạng:</b> {post.conditionLabel}</p>
+                  <p><b>Ngày mua:</b> {post.purchaseDate ?? 'Không cung cấp'}</p>
+                  <p><b>Thương hiệu / model:</b> {[post.brand, post.model].filter(Boolean).join(' • ') || 'Không cung cấp'}</p>
+                </div>
+                <p className="form-note">Đây là dữ liệu đầu vào có cấu trúc; Core V2 chưa tự ước tính giá.</p>
+              </section>
+            ) : null}
 
             <div className="owner-action-panel">
               <h3>Thao tác với bài đăng</h3>
               <div className="actions owner-actions">
-                <button className="btn gray" type="button" onClick={() => navigateLegacy('myPosts')}>Quay lại danh sách</button>
-                {canEdit ? <button className="btn primary" type="button" onClick={() => navigateLegacy('editPost', { id:post.id })}>{post.status === 'Đang mở' ? 'Sửa & gửi duyệt lại' : 'Chỉnh sửa bài'}</button> : null}
-                <button className="btn" type="button" onClick={duplicatePost}>Nhân bản bài</button>
-                {canToggleHidden ? <button className="btn orange" type="button" onClick={toggleHidden}>{post.hidden ? 'Hiển thị lại' : 'Tạm ẩn bài'}</button> : null}
-                {canComplete ? <button className="btn green" type="button" onClick={completePost}>{doneButtonText(post.tradeType)}</button> : null}
-                {canWithdraw ? <button className="btn danger" type="button" onClick={withdrawPost}>Thu hồi bài</button> : null}
+                {canEdit ? <button className="btn primary" type="button" onClick={() => navigateLegacy('editPost', { id:post.id })}>Chỉnh sửa & gửi duyệt lại</button> : null}
+                <button className="btn" type="button" disabled={busy} onClick={() => void duplicatePost()}>Nhân bản bài</button>
+                {canEdit ? <button className="btn green" type="button" disabled={busy} onClick={() => void runLifecycle('complete')}>Đánh dấu hoàn tất</button> : null}
+                {canEdit ? <button className="btn danger" type="button" disabled={busy} onClick={() => void runLifecycle('withdraw')}>Thu hồi bài</button> : null}
               </div>
             </div>
           </article>
 
           <aside className="owner-detail-side">
-            {hasImage ? <img className="owner-detail-img" src={post.imageUrl} alt="Ảnh bài đăng" loading="lazy" decoding="async" /> : <div className="state">Bài đăng chưa có ảnh minh họa.</div>}
-            {effectiveness ? (
-              <div className={`effect-panel ${effectiveness.level}`}>
-                <div className="effect-kicker">Hiệu quả bài đăng</div>
-                <h3>{effectiveness.label}</h3>
-                <p>{effectiveness.message}</p>
-                {effectiveness.tips?.length ? <ul>{effectiveness.tips.map((tip) => <li key={tip}>{tip}</li>)}</ul> : null}
-              </div>
-            ) : null}
+            <div className="state">Ảnh/media thật sẽ được nối ở Phase 5F (Storage). Phase 5E không hiển thị ảnh giả.</div>
+            <div className="state">Lượt lưu, yêu cầu liên hệ, bình luận và báo cáo sẽ được nối ở Phase 5G/5H. Chưa có số liệu giả trong trang này.</div>
           </aside>
         </section>
 
-        <section className="stats-grid compact owner-detail-stats">
-          <MetricCard label="Người lưu bài" value={post.favoriteCount} />
-          <MetricCard label="Lượt xem liên hệ" value={post.contactViewCount} />
-          <MetricCard label="Đã phản hồi" value={post.contactedCount} />
-          <MetricCard label="Bình luận" value={post.commentCount} />
-          <MetricCard label="Báo cáo" value={post.reportCount} />
-          <MetricCard label="Liên hệ gần nhất" value={lastContactAt} />
-        </section>
-
-        <OwnerSection title="Người đã lưu bài" subtitle="Danh sách học sinh bấm “Lưu bài/Quan tâm”." count={`${detail.favorites.length} người`}>
-          <div className="contact-log-list">
-            {detail.favorites.length ? detail.favorites.map((item) => (
-              <article className="contact-log-item" key={item.id}>
-                <div><b>{item.name}</b><div className="meta">{[item.className, item.emailMasked, item.date].filter(Boolean).join(' • ')}</div></div>
-                <span className="badge done">Đã lưu</span>
-              </article>
-            )) : <div className="state">Chưa có ai lưu bài này.</div>}
-          </div>
-        </OwnerSection>
-
-        <OwnerSection title="Người đã xem liên hệ" subtitle="Theo dõi học sinh quan tâm và đánh dấu người bạn đã phản hồi." count={`${detail.contacts.length} lượt`}>
-          <div className="contact-log-list">
-            {detail.contacts.length ? detail.contacts.map((contact) => (
-              <article className={`contact-log-item${contact.contacted ? ' handled' : ''}`} key={contact.id}>
-                <div>
-                  <b>{contact.requesterName}</b>
-                  <div className="meta">{[contact.requesterClass, contact.requesterEmailMasked, contact.date].filter(Boolean).join(' • ')}</div>
-                  {contact.contacted ? <div className="handled-note">Đã liên hệ lại{contact.contactedAt ? ` lúc ${contact.contactedAt}` : ''}{contact.note ? ` • ${contact.note}` : ''}</div> : null}
-                </div>
-                {contact.contacted ? <span className="badge done">Đã phản hồi</span> : <button className="btn small primary" type="button" onClick={() => markHandled(contact)}>Đánh dấu đã liên hệ</button>}
-              </article>
-            )) : <div className="state">Chưa có ai xem thông tin liên hệ của bài này.</div>}
-          </div>
-        </OwnerSection>
-
-        <OwnerSection title="Bình luận trong bài" subtitle="Các trao đổi công khai của học sinh khác trong bài đăng.">
-          <div className="comment-box">
-            {detail.comments.length ? detail.comments.map((comment) => (
-              <article className="comment-item owner-comment" key={comment.id}>
-                <div className="title-cell">{comment.name}{comment.className ? ` - ${comment.className}` : ''}</div>
-                <div className="meta">{[comment.emailMasked, comment.date].filter(Boolean).join(' • ')}</div>
-                <div className="desc">{comment.content}</div>
-              </article>
-            )) : <div className="state">Chưa có bình luận nào.</div>}
-          </div>
-        </OwnerSection>
-
-        <OwnerSection title="Timeline hoạt động" subtitle="Dòng thời gian giúp theo dõi vòng đời và tương tác của bài.">
+        <section className="card ecom-form-card">
+          <h2>Lịch sử trạng thái</h2>
+          <p className="form-note">Chỉ hiển thị các bản ghi `post_status_history` mà owner được phép đọc.</p>
           <div className="timeline">
-            {detail.timeline.length ? detail.timeline.map((item) => (
-              <div className={`timeline-item ${item.type}`} key={item.id}>
+            {detail.history.length ? detail.history.map((item) => (
+              <div className="timeline-item" key={item.id}>
                 <div className="timeline-dot" />
-                <div className="timeline-body"><b>{item.title}</b><span>{item.description}</span><small>{item.date}</small></div>
+                <div className="timeline-body">
+                  <b>{item.dimension}: {item.oldValue ?? '∅'} → {item.newValue}</b>
+                  {item.reason ? <span>{item.reason}</span> : null}
+                  <small>{formatHistoryTime(item.createdAt)}</small>
+                </div>
               </div>
-            )) : <div className="state">Chưa có lịch sử hoạt động.</div>}
+            )) : <div className="state">Chưa có lịch sử trạng thái cho bài này.</div>}
           </div>
-        </OwnerSection>
+        </section>
       </main>
       <footer className="page-footer">Edu Share+ • Chia sẻ đồ dùng học tập an toàn trong trường</footer>
     </>
-  );
-}
-
-function MetricCard({ label, value }:{ label:string; value:string|number }) {
-  return <div className="metric-card"><b>{String(value)}</b><span>{label}</span></div>;
-}
-
-function OwnerSection({ title, subtitle, count, children }:{ title:string; subtitle:string; count?:string; children:ReactNode }) {
-  return (
-    <section className="panel owner-section">
-      <div className="section-head">
-        <div><h2>{title}</h2><p>{subtitle}</p></div>
-        {count ? <span className="pill">{count}</span> : null}
-      </div>
-      {children}
-    </section>
   );
 }
