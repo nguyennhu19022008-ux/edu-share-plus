@@ -89,6 +89,6 @@ test('filters active roster by accent-insensitive name, class, phone and claim s
 
   assert.deepEqual(filterActiveRoster(rows, { keyword: 'anh' }).map((row) => row.id), ['1']);
   assert.deepEqual(filterActiveRoster(rows, { keyword: '11a2' }).map((row) => row.id), ['2']);
-  assert.deepEqual(filterActiveRoster(rows, { keyword: '000001' }).map((row) => row.id), ['1']);
+  assert.deepEqual(filterActiveRoster(rows, { keyword: '100001' }).map((row) => row.id), ['1']);
   assert.deepEqual(filterActiveRoster(rows, { claimStatus: 'unclaimed' }).map((row) => row.id), ['2']);
 });
