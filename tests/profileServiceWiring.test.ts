@@ -19,3 +19,11 @@ test('profile privacy mutation uses only the trusted RPC and parses its response
   assert.doesNotMatch(source, /from\(['"]profiles['"]\)[\s\S]*\.update\s*\(/, 'profile service must not directly update profiles');
   assert.doesNotMatch(source, /from\(['"]profile_private['"]\)[\s\S]*\.update\s*\(/, 'profile service must not directly update profile_private');
 });
+
+test('profile password change uses Supabase Auth current-password verification', () => {
+  assert.match(source, /export\s+async\s+function\s+changeMyPassword/, 'profile service must expose changeMyPassword()');
+  assert.match(source, /auth\.updateUser\s*\(/, 'password mutation must use Supabase Auth updateUser()');
+  assert.match(source, /password\s*:\s*input\.newPassword/, 'new password must be passed to Supabase Auth');
+  assert.match(source, /current_password\s*:\s*input\.currentPassword/, 'current password must use the supported current_password field');
+  assert.doesNotMatch(source, /service_role|auth\.admin/, 'browser profile service must not use admin/service-role Auth APIs');
+});
