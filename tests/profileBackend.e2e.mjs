@@ -39,6 +39,14 @@ function sqlExec(query) {
   );
 }
 
+function assertAnonymousCannotRead(result, label) {
+  if (result.error) {
+    assert.equal(result.error.code, '42501', `${label} denial must be a privilege error when SELECT is not granted`);
+    return;
+  }
+  assert.equal(result.data?.length ?? 0, 0, `${label} must expose zero rows when SELECT is RLS-filtered`);
+}
+
 const privacyRpcCount = sqlValue(`
   select count(*)::text
   from pg_proc p
@@ -173,11 +181,9 @@ const teacherA = await createIdentity({
 });
 
 const anonProfiles = await anonymous.from('profiles').select('user_id');
-assert.equal(anonProfiles.error, null);
-assert.equal(anonProfiles.data.length, 0, 'anonymous profiles SELECT must expose zero rows');
+assertAnonymousCannotRead(anonProfiles, 'anonymous profiles SELECT');
 const anonPrivate = await anonymous.from('profile_private').select('user_id');
-assert.equal(anonPrivate.error, null);
-assert.equal(anonPrivate.data.length, 0, 'anonymous profile_private SELECT must expose zero rows');
+assertAnonymousCannotRead(anonPrivate, 'anonymous profile_private SELECT');
 
 const ownProfile = await studentA.client.from('profiles').select('user_id,full_name,show_name,show_class').eq('user_id', studentA.userId);
 assert.equal(ownProfile.error, null);
