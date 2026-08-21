@@ -76,68 +76,6 @@ begin
       p.visibility_scope,
       p.published_at,
       p.created_at,
-      c.code as category_code,
-      c.name as category_name,
-      sc.label as class_label,
-      case
-        when owner_profile.show_name then owner_profile.full_name
-        else 'Học sinh EDU SHARE+'
-      end as owner_display_name,
-      case
-        when owner_profile.show_class then sc.label
-        else null
-      end as owner_class_label,
-      owner_profile.reputation_score_cache,
-      owner_profile.reputation_label_cache,
-      exists (
-        select 1
-        from public.post_media pm
-        where pm.post_id = p.id
-      ) as has_image,
-      (
-        select count(*)::integer
-        from public.favorites f
-        where f.post_id = p.id
-      ) as favorite_count
-    from public.posts p
-    join public.categories c
-      on c.id = p.category_id
-     and c.is_active = true
-    join public.profiles owner_profile
-      on owner_profile.user_id = p.owner_id
-    left join public.school_classes sc
-      on sc.id = p.class_id
-     and sc.school_id = p.school_id
-    where p.moderation_status = 'approved'
-      and p.lifecycle_status = 'active'
-      and p.is_hidden = false
-      and (select private.can_read_marketplace_post(p.school_id, p.visibility_scope))
-  ),
-  filtered as materialized (
-    select v.*
-    from visible v
-    where (v_keyword is null or v.searchable @@ plainto_tsquery('simple'::regconfig, v_keyword))
-  )
-  select null::jsonb
-  into v_result;
-
-  -- The first CTE above intentionally documents the curated projection. The
-  -- actual query below includes search_tsv in the private working set so keyword
-  -- filtering stays index-compatible while never returning search_tsv to clients.
-  with visible as materialized (
-    select
-      p.id,
-      p.owner_id,
-      p.school_id,
-      p.class_id,
-      p.category_id,
-      p.title,
-      p.description,
-      p.trade_type,
-      p.sale_price,
-      p.visibility_scope,
-      p.published_at,
-      p.created_at,
       p.search_tsv,
       c.code as category_code,
       c.name as category_name,
