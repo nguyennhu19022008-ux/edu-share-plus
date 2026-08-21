@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useState } from 'react';
+import { ChangeEvent, FormEvent, useEffect, useState } from 'react';
 import { navigateLegacy } from '../app/legacyRouter';
 import StudentHeader from '../components/student/StudentHeader';
 import type {
@@ -14,6 +14,12 @@ import {
   updateMyPost,
   type OwnerPostReferenceOptions,
 } from '../features/my-posts/ownerPostService';
+import { validatePostMediaFiles, type SignedMedia } from '../features/storage/mediaModel';
+import {
+  listPostMedia,
+  removeMyPostMedia,
+  uploadPostMedia,
+} from '../features/storage/mediaService';
 
 const TRADE_OPTIONS:Array<{ value:OwnerTradeType; label:string }> = [
   { value:'lend', label:'Cho mượn' },
@@ -55,6 +61,10 @@ export default function EditPostPage() {
   const postId = getPostId();
   const [detail, setDetail] = useState<OwnerPostDetail | null>(null);
   const [options, setOptions] = useState<OwnerPostReferenceOptions | null>(null);
+  const [media, setMedia] = useState<SignedMedia[]>([]);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [mediaError, setMediaError] = useState('');
+  const [removingFileId, setRemovingFileId] = useState('');
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   const [loadVersion, setLoadVersion] = useState(0);
@@ -70,19 +80,27 @@ export default function EditPostPage() {
     let cancelled = false;
     setLoading(true);
     setLoadError('');
+    setMediaError('');
 
     if (!postId) {
       setDetail(null);
       setOptions(null);
+      setMedia([]);
       setLoading(false);
       return () => { cancelled = true; };
     }
 
-    void Promise.all([getMyPost(postId), loadOwnerPostReferenceOptions()])
-      .then(([nextDetail, nextOptions]) => {
+    void Promise.all([
+      getMyPost(postId),
+      loadOwnerPostReferenceOptions(),
+      listPostMedia(postId),
+    ])
+      .then(([nextDetail, nextOptions, nextMedia]) => {
         if (cancelled) return;
         setDetail(nextDetail);
         setOptions(nextOptions);
+        setMedia(nextMedia);
+        setSelectedFiles([]);
         if (!nextDetail) return;
 
         const post = nextDetail.post;
@@ -104,6 +122,7 @@ export default function EditPostPage() {
         if (cancelled) return;
         setDetail(null);
         setOptions(null);
+        setMedia([]);
         setLoadError(error instanceof Error ? error.message : 'Không thể tải bài đăng.');
       })
       .finally(() => {
@@ -119,7 +138,7 @@ export default function EditPostPage() {
     return (
       <>
         <StudentHeader activePage="editPost" />
-        <main className="container narrow ecom-page"><div className="state">Đang tải bài đăng…</div></main>
+        <main className="container narrow ecom-page"><div className="state">Đang tải bài đăng và ảnh private…</div></main>
       </>
     );
   }
@@ -156,9 +175,50 @@ export default function EditPostPage() {
   const canEdit = post.lifecycleStatus === 'active';
   const isSale = tradeType === 'low_price_sale';
 
+  const onMediaChange = (event:ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.currentTarget.files ?? []);
+    const validationError = validatePostMediaFiles(files, media.length);
+    if (validationError) {
+      setSelectedFiles([]);
+      setMediaError(validationError);
+      event.currentTarget.value = '';
+      return;
+    }
+    setSelectedFiles(files);
+    setMediaError('');
+  };
+
+  const onRemoveMedia = async (item:SignedMedia) => {
+    if (!canEdit || removingFileId || submitting) return;
+    if (!window.confirm('Gỡ ảnh này khỏi bài đăng? Tệp private sẽ được dọn sau khi unbind thành công.')) return;
+
+    setRemovingFileId(item.fileId);
+    setMediaError('');
+    try {
+      await removeMyPostMedia(post.id, item);
+      const refreshedMedia = await listPostMedia(post.id);
+      setMedia(refreshedMedia);
+      const selectionError = validatePostMediaFiles(selectedFiles, refreshedMedia.length);
+      if (selectionError) {
+        setSelectedFiles([]);
+        setMediaError(selectionError);
+      }
+    } catch (error) {
+      setMediaError(error instanceof Error ? error.message : 'Không thể gỡ ảnh lúc này.');
+    } finally {
+      setRemovingFileId('');
+    }
+  };
+
   const onSubmit = async (event:FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!canEdit || submitting) return;
+
+    const mediaValidationError = validatePostMediaFiles(selectedFiles, media.length);
+    if (mediaValidationError) {
+      setMediaError(mediaValidationError);
+      return;
+    }
 
     const data = new FormData(event.currentTarget);
     const categoryId = String(data.get('categoryId') ?? '').trim();
@@ -181,9 +241,11 @@ export default function EditPostPage() {
 
     setSubmitting(true);
     setMessage({ tone:'idle', text:'' });
+    setMediaError('');
 
+    let result;
     try {
-      const result = await updateMyPost(post.id, {
+      result = await updateMyPost(post.id, {
         categoryId,
         title,
         description,
@@ -198,12 +260,25 @@ export default function EditPostPage() {
         brand,
         model,
       });
-      setMessage({ tone:'ok', text:'Đã lưu. Bài đã chuyển về trạng thái chờ giáo viên duyệt lại.' });
-      navigateLegacy('myDetail', { id:result.id });
     } catch (error) {
       setMessage({ tone:'error', text:error instanceof Error ? error.message : 'Không thể cập nhật bài đăng.' });
       setSubmitting(false);
+      return;
     }
+
+    if (selectedFiles.length) {
+      try {
+        const mediaResult = await uploadPostMedia(post.id, selectedFiles);
+        if (mediaResult.failed.length) {
+          window.alert(`Nội dung bài đã được lưu, nhưng ${mediaResult.failed.length} ảnh mới chưa gắn được. Bạn có thể thử lại.`);
+        }
+      } catch {
+        window.alert('Nội dung bài đã được lưu, nhưng ảnh mới chưa thể tải lên. Bạn có thể thử lại sau.');
+      }
+    }
+
+    setMessage({ tone:'ok', text:'Đã lưu. Bài đã chuyển về trạng thái chờ giáo viên duyệt lại.' });
+    navigateLegacy('myDetail', { id:result.id });
   };
 
   return (
@@ -220,9 +295,7 @@ export default function EditPostPage() {
         </section>
 
         {post.moderationStatus === 'approved' ? (
-          <div className="state">
-            Bài đang ở trạng thái approved. Sau khi lưu, bài tạm rời Marketplace và chuyển về chờ giáo viên duyệt lại.
-          </div>
+          <div className="state">Bài đang ở trạng thái approved. Sau khi lưu, bài tạm rời Marketplace và chuyển về chờ giáo viên duyệt lại.</div>
         ) : null}
         {detail.rejectionReason ? <div className="reason-box"><b>Lý do từ chối gần nhất: </b>{detail.rejectionReason}</div> : null}
 
@@ -234,10 +307,7 @@ export default function EditPostPage() {
         ) : (
           <form className="card ecom-form-card" onSubmit={onSubmit}>
             <div className="grid-2">
-              <div className="field">
-                <label className="req" htmlFor="edit-title">Tiêu đề</label>
-                <input id="edit-title" name="title" required minLength={5} maxLength={160} defaultValue={post.title} />
-              </div>
+              <div className="field"><label className="req" htmlFor="edit-title">Tiêu đề</label><input id="edit-title" name="title" required minLength={5} maxLength={160} defaultValue={post.title} /></div>
               <div className="field">
                 <label className="req" htmlFor="edit-trade">Loại bài đăng</label>
                 <select id="edit-trade" name="tradeType" value={tradeType} onChange={(event) => setTradeType(event.target.value as OwnerTradeType)}>
@@ -258,16 +328,10 @@ export default function EditPostPage() {
               </div>
             </div>
 
-            <div className="field">
-              <label className="req" htmlFor="edit-description">Mô tả tình trạng món đồ</label>
-              <textarea id="edit-description" name="description" required minLength={10} maxLength={5000} defaultValue={post.description} />
-            </div>
+            <div className="field"><label className="req" htmlFor="edit-description">Mô tả tình trạng món đồ</label><textarea id="edit-description" name="description" required minLength={10} maxLength={5000} defaultValue={post.description} /></div>
 
             <div className="grid-2">
-              <div className="field">
-                <label htmlFor="edit-class">Lớp hiện tại</label>
-                <input id="edit-class" readOnly value={options.currentClassName ?? 'Toàn trường / chưa có lớp hiện tại'} />
-              </div>
+              <div className="field"><label htmlFor="edit-class">Lớp hiện tại</label><input id="edit-class" readOnly value={options.currentClassName ?? 'Toàn trường / chưa có lớp hiện tại'} /></div>
               <div className="field">
                 <label className="req" htmlFor="edit-contact-method">Kênh liên hệ</label>
                 {options.contactMethods.length ? (
@@ -303,12 +367,37 @@ export default function EditPostPage() {
             ) : null}
 
             <div className="field upload-zone">
-              <b>Ảnh minh họa</b>
-              <div className="form-note">Chỉnh sửa media được giữ cho Phase 5F (Storage). Phase 5E không tạo object URL hoặc giả vờ ảnh đã được lưu.</div>
+              <label htmlFor="edit-media"><b>Ảnh minh họa private</b></label>
+              {media.length ? (
+                <div className="owner-post-grid">
+                  {media.map((item) => (
+                    <article className="card" key={item.fileId}>
+                      <img className="upload-preview" src={item.signedUrl} alt={item.altText ?? 'Ảnh bài đăng'} loading="lazy" decoding="async" />
+                      <button className="btn danger small" type="button" disabled={removingFileId === item.fileId || submitting} onClick={() => void onRemoveMedia(item)}>
+                        {removingFileId === item.fileId ? 'Đang gỡ…' : 'Gỡ ảnh'}
+                      </button>
+                    </article>
+                  ))}
+                </div>
+              ) : <div className="form-note">Bài hiện chưa có ảnh.</div>}
+
+              <input
+                id="edit-media"
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                multiple
+                disabled={media.length >= 5 || submitting}
+                onChange={onMediaChange}
+              />
+              <div className="form-note">Đang có {media.length}/5 ảnh. Ảnh mới chỉ được upload sau khi nội dung bài lưu thành công.</div>
+              {selectedFiles.length ? (
+                <ul>{selectedFiles.map((file) => <li key={`${file.name}-${file.size}`}>{file.name} • {(file.size / 1024 / 1024).toFixed(2)} MiB</li>)}</ul>
+              ) : null}
+              {mediaError ? <div className="state error" role="alert">{mediaError}</div> : null}
             </div>
 
             <div className="btn-row">
-              <button type="submit" className="btn primary" disabled={submitting || !options.contactMethods.length}>{submitting ? 'Đang lưu…' : 'Lưu và gửi duyệt lại'}</button>
+              <button type="submit" className="btn primary" disabled={submitting || !options.contactMethods.length}>{submitting ? 'Đang lưu nội dung và ảnh…' : 'Lưu và gửi duyệt lại'}</button>
               <button type="button" className="btn gray" onClick={() => navigateLegacy('myDetail', { id:post.id })}>Hủy</button>
             </div>
             {message.tone !== 'idle' ? <div className={`state ${message.tone === 'ok' ? 'ok' : 'error'} add-submit-state`} role="status">{message.text}</div> : null}
