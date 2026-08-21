@@ -17,6 +17,7 @@ type ReviewQueueRpcRow = {
   review_status: 'pending' | 'needs_information';
   submitted_at: string;
   current_reason: string | null;
+  roster_match_reason: string | null;
   submission_snapshot: Record<string, unknown> | null;
 };
 
@@ -64,6 +65,7 @@ export async function listAccountReviewQueue():Promise<AccountReviewQueueItem[]>
     reviewStatus: row.review_status,
     submittedAt: String(row.submitted_at),
     currentReason: row.current_reason ? String(row.current_reason) : null,
+    rosterMatchReason: row.roster_match_reason ? String(row.roster_match_reason) : null,
     submissionSnapshot:
       row.submission_snapshot && typeof row.submission_snapshot === 'object'
         ? row.submission_snapshot
