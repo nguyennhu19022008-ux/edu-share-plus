@@ -1,4 +1,4 @@
-import type { MarketPost, MarketSort, TradeType } from './types';
+import type { MarketplaceReadPost, MarketSort, TradeType } from './types';
 
 export type MarketplaceQuery = {
   keyword:string;
@@ -15,7 +15,7 @@ export type MarketplaceFacetCategory = { id:string; code:string; name:string };
 export type MarketplaceStats = { totalOpen:number; free:number; sale:number; hasImage:number };
 
 export type MarketplaceReadResponse = {
-  items:MarketPost[];
+  items:MarketplaceReadPost[];
   totalCount:number;
   page:number;
   pageSize:number;
@@ -26,8 +26,8 @@ export type MarketplaceReadResponse = {
 };
 
 export type MarketplaceDetailResponse = {
-  post:MarketPost;
-  similarPosts:MarketPost[];
+  post:MarketplaceReadPost;
+  similarPosts:MarketplaceReadPost[];
   commentsEnabled:boolean;
 };
 
@@ -94,7 +94,7 @@ function formatVietnamDateTime(iso:string):{ label:string; timestamp:number } {
   return { label:`${day}/${month}/${year} ${hour}:${minute}`, timestamp };
 }
 
-function mapPost(raw:unknown):MarketPost {
+function mapPost(raw:unknown):MarketplaceReadPost {
   if (!isRecord(raw)) invalid();
   const tradeType = DB_TO_UI_TRADE[stringValue(raw.tradeType)];
   if (!tradeType) invalid();
