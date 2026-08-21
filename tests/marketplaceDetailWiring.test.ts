@@ -9,6 +9,10 @@ test('DetailPage reads the requested post through the trusted Supabase detail se
   assert.doesNotMatch(source, /marketplace\.listPosts\s*\(/, 'DetailPage must not derive detail from the mock marketplace list');
 });
 
-test('DetailPage keeps Phase 5F media boundary explicit', () => {
-  assert.doesNotMatch(source, /getPublicUrl\s*\(/, 'DetailPage must not expose a public Storage URL in Phase 5C');
+test('DetailPage delivers marketplace media only through private signed URLs', () => {
+  assert.match(source, /listPostMedia\s*\(/, 'DetailPage must load private post media through the media service');
+  assert.match(source, /media\.map\s*\(/, 'DetailPage must render the returned private media collection');
+  assert.match(source, /item\.signedUrl/, 'DetailPage must render service-produced signed URLs');
+  assert.doesNotMatch(source, /getPublicUrl|URL\.createObjectURL|\.storage\.from\s*\(/, 'DetailPage must not bypass the private media service');
+  assert.doesNotMatch(source, /Ảnh private sẽ được nối ở Phase 5F/, 'Phase 5F media must no longer be a placeholder');
 });
