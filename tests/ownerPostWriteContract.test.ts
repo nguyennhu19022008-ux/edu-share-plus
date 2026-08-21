@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
 import test from 'node:test';
 
-const migrationPath = 'supabase/migrations/20260821104000_owner_post_write_backend.sql';
+const migrationPath = 'supabase/migrations/20260821154133_owner_post_write_backend.sql';
 
 test('Phase 5E migration defines structured pricing and narrow trusted owner post RPCs', () => {
   assert.ok(existsSync(migrationPath), 'Phase 5E owner post migration must exist');
