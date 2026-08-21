@@ -1,28 +1,4 @@
-export type ProfilePrivacyView = {
-  showName: boolean;
-  showClass: boolean;
-  showEmail: boolean;
-  showPhone: boolean;
-};
-
-export type StudentProfileView = {
-  email: string;
-  name: string;
-  className: string;
-  phone: string;
-  phoneMasked: string;
-  avatarUrl: string;
-  faceUrl: string;
-  createdAt: string;
-  lastLogin: string;
-  updatedAt: string;
-  passwordStatus: string;
-  privacy: ProfilePrivacyView;
-  reputation: {
-    score: number;
-    label: string;
-  };
-};
+import type { ProfilePrivacy, StudentProfileView } from './types';
 
 type AuthUserInput = {
   email?: unknown;
@@ -112,7 +88,7 @@ function maskPhone(phone: string): string {
   return `${digits.slice(0, 2)}•• ••• ${digits.slice(-3)}`;
 }
 
-export function parseProfilePrivacyResponse(value: unknown): ProfilePrivacyView {
+export function parseProfilePrivacyResponse(value: unknown): ProfilePrivacy {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     invalidProfileResponse();
   }
