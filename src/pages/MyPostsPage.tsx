@@ -1,93 +1,126 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { navigateLegacy } from '../app/legacyRouter';
-import { useDataAccess } from '../app/providers/DataAccessProvider';
 import StudentHeader from '../components/student/StudentHeader';
-import MyPostsFilters from '../features/my-posts/components/MyPostsFilters';
-import MyPostsSummary from '../features/my-posts/components/MyPostsSummary';
-import OwnerPostCard from '../features/my-posts/components/OwnerPostCard';
-import type { MyPost, MyPostSort, MyPostStatus } from '../features/my-posts/types';
-import { doneButtonText, myPostStatusLabel, normalizeMyPostText } from '../features/my-posts/viewUtils';
+import type {
+  OwnerLifecycleStatus,
+  OwnerModerationStatus,
+  OwnerPostListResult,
+  OwnerPostView,
+} from '../features/my-posts/ownerPostModel';
+import {
+  changeMyPostLifecycle,
+  createMyPost,
+  listMyPosts,
+} from '../features/my-posts/ownerPostService';
+
+const EMPTY_RESULT:OwnerPostListResult = {
+  items:[],
+  totalCount:0,
+  page:1,
+  pageSize:12,
+  totalPages:0,
+};
+
+function moderationBadge(status:OwnerModerationStatus):string {
+  if (status === 'approved') return 'badge open';
+  if (status === 'pending') return 'badge pending';
+  return 'badge reject';
+}
+
+function lifecycleBadge(status:OwnerLifecycleStatus):string {
+  if (status === 'active') return 'badge open';
+  return 'badge done';
+}
 
 export default function MyPostsPage() {
-  const { ownerPosts, ownerDetail } = useDataAccess();
-  const [items, setItems] = useState<MyPost[]>(() => ownerPosts.list());
-  const [status, setStatus] = useState<'' | MyPostStatus>('');
+  const pageSize = 12;
   const [keyword, setKeyword] = useState('');
-  const [sort, setSort] = useState<MyPostSort>('new');
+  const [moderationStatus, setModerationStatus] = useState<'' | OwnerModerationStatus>('');
+  const [lifecycleStatus, setLifecycleStatus] = useState<'' | OwnerLifecycleStatus>('');
+  const [page, setPage] = useState(1);
+  const [result, setResult] = useState<OwnerPostListResult>(EMPTY_RESULT);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+  const [reloadVersion, setReloadVersion] = useState(0);
+  const [busyId, setBusyId] = useState('');
 
-  const dashboard = useMemo(() => {
-    const result = { total:items.length, open:0, done:0, needAction:0 };
-    items.forEach((post) => {
-      if (post.status === 'Đang mở') result.open += 1;
-      if (post.status === 'Đã xong') result.done += 1;
-      if (post.status === 'Từ chối' || post.contactViewCount > post.contactedCount) result.needAction += 1;
-    });
-    return result;
-  }, [items]);
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError('');
 
-  const filteredItems = useMemo(() => {
-    const kw = normalizeMyPostText(keyword);
-    const list = items.filter((post) => {
-      if (status && post.status !== status) return false;
-      if (!kw) return true;
-      const haystack = normalizeMyPostText([
-        post.title,
-        post.description,
-        post.tradeType,
-        post.category,
-        myPostStatusLabel(post.status),
-        post.rejectionReason || '',
-      ].join(' '));
-      return haystack.includes(kw);
-    });
+    void listMyPosts({ keyword, moderationStatus, lifecycleStatus, page, pageSize })
+      .then((nextResult) => {
+        if (!cancelled) setResult(nextResult);
+      })
+      .catch((reason:unknown) => {
+        if (!cancelled) setError(reason instanceof Error ? reason.message : 'Không thể tải bài đăng.');
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
 
-    return [...list].sort((a,b) => {
-      if (sort === 'contacts') return b.contactViewCount - a.contactViewCount || b.dateTs - a.dateTs;
-      if (sort === 'comments') return b.commentCount - a.commentCount || b.dateTs - a.dateTs;
-      if (sort === 'needAction') {
-        const score = (post:MyPost) => (post.status === 'Từ chối' ? 1000 : 0) + Math.max(0, post.contactViewCount - post.contactedCount);
-        return score(b) - score(a) || b.dateTs - a.dateTs;
-      }
-      return (b.doneTs || b.dateTs) - (a.doneTs || a.dateTs);
-    });
-  }, [items, keyword, sort, status]);
+    return () => {
+      cancelled = true;
+    };
+  }, [keyword, lifecycleStatus, moderationStatus, page, reloadVersion]);
 
-  const countStatus = (target:'' | MyPostStatus) => items.filter((post) => !target || post.status === target).length;
-  const clearFilters = () => { setStatus(''); setKeyword(''); setSort('new'); };
-
-  const updatePost = (id:string, updater:(post:MyPost)=>MyPost, message:string):MyPost | undefined => {
-    const updated = ownerPosts.update(id, updater);
-    if (updated) setItems(ownerPosts.list());
-    setNotice(message);
-    return updated;
+  const reload = (message?:string) => {
+    if (message) setNotice(message);
+    setReloadVersion((value) => value + 1);
   };
 
-  const toggleHidden = (post:MyPost) => {
-    const nextHidden = !post.hidden;
-    if (!window.confirm(nextHidden ? 'Tạm ẩn bài khỏi trang chủ?' : 'Hiển thị lại bài trên trang chủ?')) return;
-    const updated = updatePost(post.id, (current) => ({ ...current, hidden:nextHidden }), nextHidden ? 'Đã tạm ẩn bài trong phiên local.' : 'Đã hiển thị lại bài trong phiên local.');
-    if (updated) ownerDetail.prependTimeline(updated, { type:'post', title:nextHidden ? 'Bài được tạm ẩn' : 'Bài được hiển thị lại', description:nextHidden ? 'Chủ bài tạm ẩn bài khỏi Marketplace.' : 'Chủ bài hiển thị lại bài trên Marketplace.', date:'Vừa xong • phiên local' });
+  const changeLifecycle = async (post:OwnerPostView, action:'complete' | 'withdraw') => {
+    const prompt = action === 'complete'
+      ? 'Xác nhận giao dịch/chia sẻ đã hoàn tất? Bài sẽ chuyển sang lịch sử.'
+      : 'Thu hồi bài đăng này? Bài sẽ không còn hoạt động trên Marketplace.';
+    if (!window.confirm(prompt)) return;
+
+    setBusyId(post.id);
+    setNotice('');
+    try {
+      await changeMyPostLifecycle(post.id, action);
+      reload(action === 'complete' ? 'Đã đánh dấu bài hoàn tất.' : 'Đã thu hồi bài đăng.');
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Không thể cập nhật vòng đời bài đăng.');
+    } finally {
+      setBusyId('');
+    }
   };
 
-  const completePost = (post:MyPost) => {
-    if (!window.confirm(`Xác nhận ${doneButtonText(post.tradeType).toLowerCase()} và chuyển bài sang lịch sử?`)) return;
-    const updated = updatePost(post.id, (current) => ({ ...current, status:'Đã xong', source:'Archive', hidden:false, doneTs:Date.now() }), 'Đã đánh dấu hoàn tất trong phiên local.');
-    if (updated) ownerDetail.prependTimeline(updated, { type:'post', title:'Bài đã hoàn tất', description:`Chủ bài xác nhận ${doneButtonText(post.tradeType).toLowerCase()} và chuyển bài vào lịch sử.`, date:'Vừa xong • phiên local' });
+  const duplicatePost = async (post:OwnerPostView) => {
+    if (!window.confirm('Nhân bản nội dung bài này thành một bài mới ở trạng thái chờ duyệt?')) return;
+    setBusyId(post.id);
+    setNotice('');
+    try {
+      const created = await createMyPost({
+        categoryId:post.categoryId,
+        title:`${post.title} - bản sao`.slice(0, 160),
+        description:post.description,
+        tradeType:post.tradeType,
+        salePrice:post.salePrice,
+        visibilityScope:post.visibilityScope,
+        preferredContactMethod:post.preferredContactMethod,
+        originalPurchasePrice:post.originalPurchasePrice,
+        originalPriceIsEstimate:post.originalPriceIsEstimate,
+        purchaseDate:post.purchaseDate,
+        conditionGrade:post.conditionGrade,
+        brand:post.brand,
+        model:post.model,
+      });
+      navigateLegacy('editPost', { id:created.id });
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Không thể nhân bản bài đăng.');
+      setBusyId('');
+    }
   };
 
-  const withdrawPost = (post:MyPost) => {
-    if (!window.confirm('Thu hồi bài đăng này? Bài sẽ không còn hiển thị công khai và được lưu vào lịch sử.')) return;
-    const updated = updatePost(post.id, (current) => ({ ...current, status:'Đã thu hồi', source:'Archive', hidden:false, doneTs:Date.now() }), 'Đã thu hồi bài trong phiên local.');
-    if (updated) ownerDetail.prependTimeline(updated, { type:'post', title:'Bài đã được thu hồi', description:'Chủ bài thu hồi bài khỏi Marketplace và chuyển vào lịch sử.', date:'Vừa xong • phiên local' });
-  };
-
-  const duplicatePost = (post:MyPost) => {
-    if (!window.confirm('Nhân bản bài này thành bài mới ở trạng thái chờ duyệt?')) return;
-    const duplicate = ownerPosts.duplicate(post);
-    setItems(ownerPosts.list());
-    setNotice('Đã tạo bản sao local ở trạng thái chờ duyệt.');
-    window.setTimeout(() => navigateLegacy('editPost', { id:duplicate.id }), 450);
+  const clearFilters = () => {
+    setKeyword('');
+    setModerationStatus('');
+    setLifecycleStatus('');
+    setPage(1);
   };
 
   return (
@@ -98,21 +131,90 @@ export default function MyPostsPage() {
           <div>
             <span className="eyebrow">QUẢN LÝ TIN ĐĂNG</span>
             <h1>Bài đăng của tôi</h1>
-            <p>Học sinh - 12A1 • local-ui@edushare.test</p>
+            <p>Dữ liệu được tải trực tiếp từ Supabase theo tài khoản đang đăng nhập.</p>
           </div>
           <button className="btn primary" type="button" onClick={() => navigateLegacy('add')}>+ Đăng bài mới</button>
         </section>
 
-        <MyPostsSummary dashboard={dashboard} />
-        <MyPostsFilters status={status} keyword={keyword} sort={sort} resultCount={filteredItems.length} countStatus={countStatus} onStatus={setStatus} onKeyword={setKeyword} onSort={setSort} onClear={clearFilters} />
-
-        {notice ? <div className="state ok owner-local-notice" role="status">{notice}</div> : null}
-
-        <section className="owner-post-grid">
-          {filteredItems.length ? filteredItems.map((post) => (
-            <OwnerPostCard key={post.id} post={post} onToggleHidden={() => toggleHidden(post)} onComplete={() => completePost(post)} onWithdraw={() => withdrawPost(post)} onDuplicate={() => duplicatePost(post)} />
-          )) : <div className="state">Bạn chưa có bài đăng phù hợp.</div>}
+        <section className="stats-grid compact">
+          <div className="card stat-card"><span>Kết quả theo bộ lọc</span><strong>{result.totalCount}</strong></div>
+          <div className="card stat-card"><span>Trang hiện tại</span><strong>{result.totalPages ? `${result.page}/${result.totalPages}` : '0/0'}</strong></div>
         </section>
+
+        <section className="card ecom-form-card">
+          <div className="grid-2">
+            <div className="field">
+              <label htmlFor="owner-keyword">Tìm trong bài của tôi</label>
+              <input
+                id="owner-keyword"
+                value={keyword}
+                onChange={(event) => { setKeyword(event.target.value); setPage(1); }}
+                placeholder="Tiêu đề hoặc mô tả"
+              />
+            </div>
+            <div className="field">
+              <label htmlFor="owner-moderation">Kiểm duyệt</label>
+              <select id="owner-moderation" value={moderationStatus} onChange={(event) => { setModerationStatus(event.target.value as '' | OwnerModerationStatus); setPage(1); }}>
+                <option value="">Tất cả</option>
+                <option value="pending">Chờ duyệt</option>
+                <option value="approved">Đã duyệt</option>
+                <option value="rejected">Từ chối</option>
+              </select>
+            </div>
+            <div className="field">
+              <label htmlFor="owner-lifecycle">Vòng đời</label>
+              <select id="owner-lifecycle" value={lifecycleStatus} onChange={(event) => { setLifecycleStatus(event.target.value as '' | OwnerLifecycleStatus); setPage(1); }}>
+                <option value="">Tất cả</option>
+                <option value="active">Đang hoạt động</option>
+                <option value="completed">Đã hoàn tất</option>
+                <option value="withdrawn">Đã thu hồi</option>
+              </select>
+            </div>
+            <div className="field">
+              <label>&nbsp;</label>
+              <button className="btn gray" type="button" onClick={clearFilters}>Xóa bộ lọc</button>
+            </div>
+          </div>
+        </section>
+
+        <div className="state">Media/ảnh bài đăng sẽ được nối thật ở Phase 5F; danh sách này không tạo URL ảnh giả.</div>
+        {notice ? <div className="state ok" role="status">{notice}</div> : null}
+        {error ? <div className="state error" role="alert">{error}<div className="btn-row"><button className="btn gray" type="button" onClick={() => reload()}>Thử lại</button></div></div> : null}
+        {loading ? <div className="state">Đang tải bài đăng…</div> : null}
+
+        {!loading && !error ? (
+          <section className="owner-post-grid">
+            {result.items.length ? result.items.map((post) => (
+              <article className="card owner-post-card" key={post.id}>
+                <div className="tags">
+                  <span className={moderationBadge(post.moderationStatus)}>{post.moderationLabel}</span>
+                  <span className={lifecycleBadge(post.lifecycleStatus)}>{post.lifecycleLabel}</span>
+                  {post.isHidden ? <span className="badge reject">Đang bị ẩn bởi kiểm duyệt</span> : null}
+                </div>
+                <h2>{post.title}</h2>
+                <div className="meta">{post.tradeLabel} • {post.categoryName} • {post.className}</div>
+                <div className="meta">Tạo: {post.createdAtLabel} • Cập nhật: {post.updatedAtLabel}</div>
+                <div className="tags"><span className="tag price">{post.salePriceLabel}</span><span className="tag">{post.visibilityScope}</span></div>
+                <p className="desc">{post.description}</p>
+                <div className="actions owner-actions">
+                  <button className="btn gray" type="button" onClick={() => navigateLegacy('myDetail', { id:post.id })}>Chi tiết</button>
+                  {post.lifecycleStatus === 'active' ? <button className="btn primary" type="button" onClick={() => navigateLegacy('editPost', { id:post.id })}>Chỉnh sửa</button> : null}
+                  <button className="btn" type="button" disabled={busyId === post.id} onClick={() => void duplicatePost(post)}>Nhân bản</button>
+                  {post.lifecycleStatus === 'active' ? <button className="btn green" type="button" disabled={busyId === post.id} onClick={() => void changeLifecycle(post, 'complete')}>Đánh dấu hoàn tất</button> : null}
+                  {post.lifecycleStatus === 'active' ? <button className="btn danger" type="button" disabled={busyId === post.id} onClick={() => void changeLifecycle(post, 'withdraw')}>Thu hồi</button> : null}
+                </div>
+              </article>
+            )) : <div className="state">Bạn chưa có bài đăng phù hợp với bộ lọc này.</div>}
+          </section>
+        ) : null}
+
+        {result.totalPages > 1 ? (
+          <nav className="pager" aria-label="Phân trang bài của tôi">
+            <button className="btn gray" type="button" disabled={page <= 1 || loading} onClick={() => setPage((value) => Math.max(1, value - 1))}>← Trang trước</button>
+            <span>Trang {result.page} / {result.totalPages}</span>
+            <button className="btn gray" type="button" disabled={page >= result.totalPages || loading} onClick={() => setPage((value) => value + 1)}>Trang sau →</button>
+          </nav>
+        ) : null}
       </main>
       <footer className="page-footer">Edu Share+ • Chia sẻ đồ dùng học tập an toàn trong trường</footer>
     </>
