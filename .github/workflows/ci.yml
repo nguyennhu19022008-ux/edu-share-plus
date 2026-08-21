@@ -73,6 +73,9 @@ jobs:
       - name: Phase 5B roster management E2E
         run: node tests/rosterManagement.e2e.mjs
 
+      - name: Phase 5B membership-aware review E2E
+        run: node tests/membershipReview.e2e.mjs
+
       - name: Stop local Supabase
         if: always()
         run: npx supabase stop --no-backup
