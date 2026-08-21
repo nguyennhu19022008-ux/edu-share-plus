@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.SUPABASE_URL || 'http://127.0.0.1:54321';
 const anonKey = process.env.SUPABASE_ANON_KEY;
@@ -6,7 +7,13 @@ const mailpitUrl = 'http://127.0.0.1:54324';
 
 assert.ok(anonKey, 'SUPABASE_ANON_KEY is required');
 
-const anonHeaders = { apikey: anonKey };
+const supabase = createClient(supabaseUrl, anonKey, {
+  auth: {
+    persistSession: false,
+    autoRefreshToken: false,
+    detectSessionInUrl: false,
+  },
+});
 
 async function jsonRequest(url, options = {}) {
   const response = await fetch(url, options);
@@ -34,13 +41,16 @@ async function waitFor(predicate, { timeoutMs = 15_000, intervalMs = 250 } = {})
 }
 
 async function getSchoolId() {
-  const { response, body } = await jsonRequest(
-    `${supabaseUrl}/rest/v1/schools?code=eq.THPT_NGUYEN_DU&select=id&limit=1`,
-    { headers: anonHeaders },
-  );
-  assert.equal(response.status, 200, `school lookup failed: ${JSON.stringify(body)}`);
-  assert.equal(body.length, 1, 'expected THPT_NGUYEN_DU seed school');
-  return body[0].id;
+  const { data, error } = await supabase
+    .from('schools')
+    .select('id')
+    .eq('code', 'THPT_NGUYEN_DU')
+    .limit(1)
+    .single();
+
+  assert.equal(error, null, `school lookup failed: ${error?.message ?? 'unknown error'}`);
+  assert.ok(data?.id, 'expected THPT_NGUYEN_DU seed school');
+  return data.id;
 }
 
 async function findConfirmationUrl(email) {
@@ -62,47 +72,33 @@ async function findConfirmationUrl(email) {
   });
 }
 
-async function passwordLogin(email, password) {
-  return jsonRequest(`${supabaseUrl}/auth/v1/token?grant_type=password`, {
-    method: 'POST',
-    headers: {
-      apikey: anonKey,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ email, password }),
-  });
-}
-
 const schoolId = await getSchoolId();
 const unique = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 const email = `phase5a-${unique}@example.test`;
 const password = 'EduShare5A!StrongPass';
 
-const signup = await jsonRequest(`${supabaseUrl}/auth/v1/signup`, {
-  method: 'POST',
-  headers: {
-    apikey: anonKey,
-    'Content-Type': 'application/json',
-  },
-  body: JSON.stringify({
-    email,
-    password,
+const signup = await supabase.auth.signUp({
+  email,
+  password,
+  options: {
     data: {
       full_name: 'Phase 5A Test Student',
       school_id: schoolId,
       class_name: '12A1',
       phone: '0900000000',
     },
-  }),
+    emailRedirectTo: 'http://localhost:5173/?page=loginStudent&confirmed=1',
+  },
 });
 
-assert.ok(signup.response.ok, `signup failed: ${JSON.stringify(signup.body)}`);
-assert.ok(signup.body?.user?.id, 'signup did not return a user id');
-assert.equal(signup.body.session, null, 'email-confirmation flow must not create a session before confirmation');
-const userId = signup.body.user.id;
+assert.equal(signup.error, null, `signup failed: ${signup.error?.message ?? 'unknown error'}`);
+assert.ok(signup.data.user?.id, 'signup did not return a user id');
+assert.equal(signup.data.session, null, 'email-confirmation flow must not create a session before confirmation');
+const userId = signup.data.user.id;
 
-const loginBeforeConfirmation = await passwordLogin(email, password);
-assert.equal(loginBeforeConfirmation.response.ok, false, 'unconfirmed email must not be able to sign in');
+const loginBeforeConfirmation = await supabase.auth.signInWithPassword({ email, password });
+assert.ok(loginBeforeConfirmation.error, 'unconfirmed email must not be able to sign in');
+assert.equal(loginBeforeConfirmation.data.session, null);
 
 const confirmationUrl = await findConfirmationUrl(email);
 const confirmation = await fetch(confirmationUrl, { redirect: 'manual' });
@@ -112,12 +108,12 @@ assert.ok(
 );
 
 const login = await waitFor(async () => {
-  const result = await passwordLogin(email, password);
-  return result.response.ok && result.body?.access_token ? result : null;
+  const result = await supabase.auth.signInWithPassword({ email, password });
+  return !result.error && result.data.session?.access_token ? result : null;
 });
-const accessToken = login.body.access_token;
-assert.equal(login.body?.user?.id, userId);
-assert.ok(login.body?.user?.email_confirmed_at, 'confirmed login user must contain email_confirmed_at');
+const accessToken = login.data.session.access_token;
+assert.equal(login.data.user?.id, userId);
+assert.ok(login.data.user?.email_confirmed_at, 'confirmed login user must contain email_confirmed_at');
 
 const authHeaders = {
   apikey: anonKey,
