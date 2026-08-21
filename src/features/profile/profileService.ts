@@ -47,6 +47,46 @@ function privacyUpdateError(message: string): Error {
   return new Error('Không thể cập nhật quyền riêng tư lúc này. Vui lòng thử lại.');
 }
 
+function passwordChangeError(message: string): Error {
+  const normalized = message.toLowerCase();
+
+  if (
+    normalized.includes('current password')
+    && (
+      normalized.includes('invalid')
+      || normalized.includes('incorrect')
+      || normalized.includes('wrong')
+    )
+  ) {
+    return new Error('Mật khẩu hiện tại không đúng.');
+  }
+
+  if (
+    normalized.includes('same password')
+    || normalized.includes('different from the old password')
+  ) {
+    return new Error('Mật khẩu mới phải khác mật khẩu hiện tại.');
+  }
+
+  if (normalized.includes('password') && normalized.includes('weak')) {
+    return new Error('Mật khẩu mới chưa đáp ứng yêu cầu bảo mật.');
+  }
+
+  if (
+    normalized.includes('jwt')
+    || normalized.includes('session')
+    || normalized.includes('auth session missing')
+  ) {
+    return new Error('Phiên đăng nhập không còn hợp lệ. Vui lòng đăng nhập lại.');
+  }
+
+  if (normalized.includes('rate limit') || normalized.includes('too many requests')) {
+    return new Error('Bạn thao tác quá nhanh. Vui lòng đợi một lúc rồi thử lại.');
+  }
+
+  return new Error('Không thể đổi mật khẩu lúc này. Vui lòng thử lại.');
+}
+
 export async function getMyProfile(): Promise<StudentProfileView> {
   const supabase = getSupabaseClient();
   const {
@@ -129,4 +169,17 @@ export async function updateMyProfilePrivacy(next: ProfilePrivacy): Promise<Prof
     }
     throw parseError;
   }
+}
+
+export async function changeMyPassword(input: {
+  currentPassword: string;
+  newPassword: string;
+}): Promise<void> {
+  const supabase = getSupabaseClient();
+  const { error } = await supabase.auth.updateUser({
+    password:input.newPassword,
+    current_password:input.currentPassword,
+  });
+
+  if (error) throw passwordChangeError(error.message);
 }
