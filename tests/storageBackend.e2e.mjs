@@ -236,8 +236,15 @@ const crossOwnerBind = await sameSchoolReader.client.rpc('bind_my_post_media', {
 });
 assert.ok(crossOwnerBind.error, 'another Student must not bind owner media');
 
-const boundDelete = await owner.client.storage.from(first.reservation.bucket).remove([first.reservation.path]);
-assert.ok(boundDelete.error, 'bound post object must not be physically deleted');
+// Storage remove can be a silent no-op when RLS filters the target row. Verify the
+// security invariant itself instead of assuming the client must receive an error.
+await owner.client.storage.from(first.reservation.bucket).remove([first.reservation.path]);
+const boundObjectStillReadable = await owner.client.storage.from(first.reservation.bucket).download(first.reservation.path);
+assert.equal(
+  boundObjectStillReadable.error,
+  null,
+  'bound post object must remain physically present when Storage DELETE RLS blocks removal',
+);
 
 const boundRows = [{ reservation:first.reservation }];
 for (let index = 1; index < 5; index += 1) {
