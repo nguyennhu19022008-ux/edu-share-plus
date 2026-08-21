@@ -1,51 +1,47 @@
 import { navigateLegacy } from '../../../app/legacyRouter';
-import type { NotificationLocal, SavedPostLocal, StudentProfileLocal } from '../types';
+import type {
+  NotificationLocal,
+  SavedPostLocal,
+  StudentProfileView,
+} from '../types';
 
 const IMAGE_ACCEPT = 'image/*,.heic,.heif,.tif,.tiff,.avif,.gif,.bmp,.svg';
 
-function initials(profile:StudentProfileLocal):string {
+function initials(profile:StudentProfileView):string {
   const value = (profile.name || profile.email || 'H').trim();
   return value.charAt(0).toUpperCase() || 'H';
 }
 
-export function ProfileSidebar({ profile }:{ profile:StudentProfileLocal }) {
+export function ProfileSidebar({ profile }:{ profile:StudentProfileView }) {
   return (
     <aside className="profile-side">
       <div className={`profile-avatar${profile.avatarUrl ? ' has-photo' : ''}`} style={profile.avatarUrl ? { backgroundImage:`url("${profile.avatarUrl}")` } : undefined} aria-label="Ảnh đại diện">
         {profile.avatarUrl ? null : <span>{initials(profile)}</span>}
       </div>
       <h2>{profile.name || 'Học sinh'}</h2>
-      <div className="profile-sub">{profile.className || 'Chưa có lớp'} • {profile.email}</div>
+      <div className="profile-sub">{profile.className || 'Chưa cập nhật'} • {profile.email}</div>
       <div className="profile-note reputation-box">
-        <b>Điểm uy tín: {profile.reputation.score}/10</b>
+        <b>Điểm uy tín lưu trữ: {profile.reputation.score}/10</b>
         <span>{profile.reputation.label}</span>
-        <small>Hoàn tất: {profile.reputation.detail.done} • Báo cáo: {profile.reputation.detail.reports} • Lượt lưu: {profile.reputation.detail.saves}</small>
-      </div>
-      <div className="mini-stat-grid">
-        <MiniStat label="Bài đã đăng" value={profile.activity.posts} />
-        <MiniStat label="Đang mở" value={profile.activity.open} />
-        <MiniStat label="Đã lưu" value={profile.activity.savedPosts} />
-        <MiniStat label="Bình luận" value={profile.activity.comments} />
-        <MiniStat label="Xem liên hệ" value={profile.activity.contactViews} />
-        <MiniStat label="Hoàn tất" value={profile.activity.done} />
+        <small>Phase 5D chỉ hiển thị cache đã lưu. Thuật toán và diễn giải chi tiết thuộc Phase 6.</small>
       </div>
     </aside>
   );
 }
 
-export function ProfileInfoCard({ profile }:{ profile:StudentProfileLocal }) {
+export function ProfileInfoCard({ profile }:{ profile:StudentProfileView }) {
   return (
     <div className="profile-card">
-      <div className="profile-card-head"><h3>Thông tin tài khoản</h3><span className="tag">{profile.passwordStatus || 'Đã thiết lập'}</span></div>
+      <div className="profile-card-head"><h3>Thông tin tài khoản</h3><span className="tag">{profile.passwordStatus}</span></div>
       <div className="profile-info-grid">
         <InfoItem label="Họ và tên" value={profile.name} />
         <InfoItem label="Lớp" value={profile.className} />
         <InfoItem label="Email" value={profile.email} />
         <InfoItem label="Số điện thoại" value={profile.phoneMasked || profile.phone} />
         <InfoItem label="Mật khẩu" value="••••••••" />
-        <InfoItem label="Lần đăng nhập gần nhất" value={profile.lastLogin || 'Chưa có dữ liệu'} />
+        <InfoItem label="Lần đăng nhập gần nhất" value={profile.lastLogin} />
       </div>
-      <div className="form-note">Thông tin liên hệ được che mặc định ở trang công khai; người khác phải bấm Xem liên hệ thì hệ thống mới ghi nhận lượt xem.</div>
+      <div className="form-note">Thông tin liên hệ vẫn là dữ liệu riêng tư. Các cờ hiển thị chỉ là chính sách quyền riêng tư; việc Xem liên hệ thật được triển khai ở Phase 5G.</div>
     </div>
   );
 }
@@ -59,6 +55,7 @@ export function PrivacyLine({ name, label, checked, help, onChange }:{ name:stri
   );
 }
 
+/** Legacy component retained for deferred/local screens only. ProfilePage does not use it in Phase 5D. */
 export function ProfileUploadBox({ inputId, title, help, imageUrl, status, onFile }:{ inputId:string; title:string; help:string; imageUrl:string; status:string; onFile:(file?:File)=>void }) {
   return (
     <div className="profile-upload-box">
@@ -75,6 +72,7 @@ export function ProfileUploadBox({ inputId, title, help, imageUrl, status, onFil
   );
 }
 
+/** Legacy component retained for callers scheduled to move to the Phase 5G source. */
 export function SavedPostsSection({ savedPosts }:{ savedPosts:SavedPostLocal[] }) {
   return (
     <div className="profile-card">
@@ -88,11 +86,12 @@ export function SavedPostsSection({ savedPosts }:{ savedPosts:SavedPostLocal[] }
             </div>
           ))}
         </div>
-      ) : <div className="state">Bạn chưa lưu bài nào. Hãy bấm ♡ Lưu bài ở trang chủ hoặc trang chi tiết.</div>}
+      ) : <div className="state">Bạn chưa lưu bài nào.</div>}
     </div>
   );
 }
 
+/** Legacy component retained for callers scheduled to move to the Phase 5H source. */
 export function NotificationsSection({ notifications, onReadAll }:{ notifications:NotificationLocal[]; onReadAll:()=>void }) {
   return (
     <div className="profile-card">
@@ -108,10 +107,6 @@ export function NotificationsSection({ notifications, onReadAll }:{ notification
       ) : <div className="state">Chưa có thông báo.</div>}
     </div>
   );
-}
-
-function MiniStat({ label, value }:{ label:string; value:number }) {
-  return <div className="mini-stat"><b>{value}</b><span>{label}</span></div>;
 }
 
 function InfoItem({ label, value }:{ label:string; value:string }) {
