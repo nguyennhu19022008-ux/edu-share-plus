@@ -263,20 +263,29 @@ const directPrivateUpdate = await studentA.client
 assert.ok(directPrivateUpdate.error, 'student must not directly UPDATE profile_private');
 
 const changedPassword = 'EduShare5D!Profile2';
-const rejectedPasswordChange = await studentB.client.auth.updateUser({
-  password:changedPassword,
-  current_password:'DefinitelyWrong5D!',
+const rejectedPasswordVerification = await studentB.client.auth.signInWithPassword({
+  email:studentB.email,
+  password:'DefinitelyWrong5D!',
 });
-assert.ok(rejectedPasswordChange.error, 'wrong current password must be rejected');
+assert.ok(rejectedPasswordVerification.error, 'wrong current password verification must be rejected');
+
+const acceptedPasswordVerification = await studentB.client.auth.signInWithPassword({
+  email:studentB.email,
+  password,
+});
+assert.equal(
+  acceptedPasswordVerification.error,
+  null,
+  `correct current password verification must succeed: ${acceptedPasswordVerification.error?.message ?? ''}`,
+);
 
 const acceptedPasswordChange = await studentB.client.auth.updateUser({
   password:changedPassword,
-  current_password:password,
 });
 assert.equal(
   acceptedPasswordChange.error,
   null,
-  `correct current password must allow password change: ${acceptedPasswordChange.error?.message ?? ''}`,
+  `verified current password must allow password change: ${acceptedPasswordChange.error?.message ?? ''}`,
 );
 
 await studentB.client.auth.signOut({ scope:'local' });
@@ -294,4 +303,4 @@ const newPasswordLogin = await passwordProbe.auth.signInWithPassword({
 });
 assert.equal(newPasswordLogin.error, null, 'new password must authenticate after a successful change');
 
-console.log('Phase 5D profile backend authorization + Auth password matrix PASS');
+console.log('Phase 5D profile backend authorization + explicit current-password Auth matrix PASS');
