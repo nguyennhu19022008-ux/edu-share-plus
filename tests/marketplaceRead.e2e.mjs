@@ -134,11 +134,14 @@ const pending = await makeStudent({
 const unconfirmed = await makeStudent({ suffix:'unconfirmed', schoolId:schoolA, classId:classA, confirmed:false });
 
 function insertPost({ ownerId, schoolId, classId, title, tradeType='give', salePrice=null, visibility='inherit', moderation='approved', lifecycle='active', hidden=false }) {
+  const isSale = tradeType === 'low_price_sale';
+  const originalPrice = isSale ? Math.max(Number(salePrice || 1) * 2, 1) : null;
   return sqlValue(`
     insert into public.posts (
       owner_id, school_id, class_id, category_id, title, description, trade_type,
       sale_price, moderation_status, lifecycle_status, is_hidden, comments_enabled,
-      published_at, completed_at, withdrawn_at, visibility_scope
+      published_at, completed_at, withdrawn_at, visibility_scope,
+      original_purchase_price, original_price_is_estimate, condition_grade
     ) values (
       '${ownerId}'::uuid, '${schoolId}'::uuid, '${classId}'::uuid, '${categoryId}'::uuid,
       ${sqlLiteral(title)}, ${sqlLiteral(`${title} description keyword-${title.toLowerCase().replaceAll(' ', '-')}`)},
@@ -147,7 +150,10 @@ function insertPost({ ownerId, schoolId, classId, title, tradeType='give', saleP
       case when ${sqlLiteral(moderation)}='approved' then now() else null end,
       case when ${sqlLiteral(lifecycle)}='completed' then now() else null end,
       case when ${sqlLiteral(lifecycle)}='withdrawn' then now() else null end,
-      ${sqlLiteral(visibility)}
+      ${sqlLiteral(visibility)},
+      ${originalPrice === null ? 'null' : originalPrice},
+      ${isSale ? 'false' : 'null'},
+      ${isSale ? "'good'" : 'null'}
     ) returning id::text;
   `);
 }
