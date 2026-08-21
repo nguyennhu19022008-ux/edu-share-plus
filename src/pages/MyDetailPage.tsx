@@ -162,6 +162,7 @@ export default function MyDetailPage() {
 
   const post = detail.post;
   const canEdit = post.lifecycleStatus === 'active';
+  const canComplete = post.lifecycleStatus === 'active' && post.moderationStatus === 'approved';
   const isSale = post.tradeType === 'low_price_sale';
 
   return (
@@ -226,7 +227,7 @@ export default function MyDetailPage() {
               <div className="actions owner-actions">
                 {canEdit ? <button className="btn primary" type="button" onClick={() => navigateLegacy('editPost', { id:post.id })}>Chỉnh sửa & gửi duyệt lại</button> : null}
                 <button className="btn" type="button" disabled={busy} onClick={() => void duplicatePost()}>Nhân bản bài</button>
-                {canEdit ? <button className="btn green" type="button" disabled={busy} onClick={() => void runLifecycle('complete')}>Đánh dấu hoàn tất</button> : null}
+                {canComplete ? <button className="btn green" type="button" disabled={busy} onClick={() => void runLifecycle('complete')}>Đánh dấu hoàn tất</button> : null}
                 {canEdit ? <button className="btn danger" type="button" disabled={busy} onClick={() => void runLifecycle('withdraw')}>Thu hồi bài</button> : null}
               </div>
             </div>
