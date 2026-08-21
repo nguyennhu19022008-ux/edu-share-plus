@@ -60,8 +60,7 @@ jobs:
           source /tmp/supabase.env
           set +a
           echo "SUPABASE_URL=${API_URL:-http://127.0.0.1:54321}" >> "$GITHUB_ENV"
-          echo "SUPABASE_ANON_KEY=${ANON_KEY}" >> "$GITHUB_ENV"
-          echo "SUPABASE_SERVICE_ROLE_KEY=${SERVICE_ROLE_KEY}" >> "$GITHUB_ENV"
+          echo "SUPABASE_ANON_KEY=${PUBLISHABLE_KEY:-$ANON_KEY}" >> "$GITHUB_ENV"
 
       - name: Local email-confirmation E2E
         run: node tests/localAuthConfirmation.e2e.mjs

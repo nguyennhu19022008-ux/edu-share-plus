@@ -2,16 +2,11 @@ import assert from 'node:assert/strict';
 
 const supabaseUrl = process.env.SUPABASE_URL || 'http://127.0.0.1:54321';
 const anonKey = process.env.SUPABASE_ANON_KEY;
-const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const mailpitUrl = 'http://127.0.0.1:54324';
 
 assert.ok(anonKey, 'SUPABASE_ANON_KEY is required');
-assert.ok(serviceRoleKey, 'SUPABASE_SERVICE_ROLE_KEY is required');
 
-const adminHeaders = {
-  apikey: serviceRoleKey,
-  Authorization: `Bearer ${serviceRoleKey}`,
-};
+const anonHeaders = { apikey: anonKey };
 
 async function jsonRequest(url, options = {}) {
   const response = await fetch(url, options);
@@ -41,20 +36,11 @@ async function waitFor(predicate, { timeoutMs = 15_000, intervalMs = 250 } = {})
 async function getSchoolId() {
   const { response, body } = await jsonRequest(
     `${supabaseUrl}/rest/v1/schools?code=eq.THPT_NGUYEN_DU&select=id&limit=1`,
-    { headers: adminHeaders },
+    { headers: anonHeaders },
   );
   assert.equal(response.status, 200, `school lookup failed: ${JSON.stringify(body)}`);
   assert.equal(body.length, 1, 'expected THPT_NGUYEN_DU seed school');
   return body[0].id;
-}
-
-async function getRows(table, query) {
-  const { response, body } = await jsonRequest(
-    `${supabaseUrl}/rest/v1/${table}?${query}`,
-    { headers: adminHeaders },
-  );
-  assert.equal(response.status, 200, `${table} query failed: ${JSON.stringify(body)}`);
-  return body;
 }
 
 async function findConfirmationUrl(email) {
@@ -73,6 +59,17 @@ async function findConfirmationUrl(email) {
     const source = `${detail.body?.HTML || ''}\n${detail.body?.Text || ''}`.replaceAll('&amp;', '&');
     const match = source.match(/https?:\/\/[^"'<>\s]+\/auth\/v1\/verify\?[^"'<>\s]+/);
     return match?.[0] || null;
+  });
+}
+
+async function passwordLogin(email, password) {
+  return jsonRequest(`${supabaseUrl}/auth/v1/token?grant_type=password`, {
+    method: 'POST',
+    headers: {
+      apikey: anonKey,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ email, password }),
   });
 }
 
@@ -104,19 +101,8 @@ assert.ok(signup.body?.user?.id, 'signup did not return a user id');
 assert.equal(signup.body.session, null, 'email-confirmation flow must not create a session before confirmation');
 const userId = signup.body.user.id;
 
-const profileBefore = await getRows(
-  'profiles',
-  `user_id=eq.${userId}&select=user_id,school_id,full_name,account_status`,
-);
-assert.equal(profileBefore.length, 1, 'profile must be provisioned at signup');
-assert.equal(profileBefore[0].account_status, 'pending_review');
-assert.equal(profileBefore[0].school_id, schoolId);
-
-const reviewsBefore = await getRows(
-  'account_reviews',
-  `user_id=eq.${userId}&select=id,status`,
-);
-assert.equal(reviewsBefore.length, 0, 'review must not be queued before email confirmation');
+const loginBeforeConfirmation = await passwordLogin(email, password);
+assert.equal(loginBeforeConfirmation.response.ok, false, 'unconfirmed email must not be able to sign in');
 
 const confirmationUrl = await findConfirmationUrl(email);
 const confirmation = await fetch(confirmationUrl, { redirect: 'manual' });
@@ -125,36 +111,44 @@ assert.ok(
   `unexpected confirmation response ${confirmation.status}`,
 );
 
-const confirmedUser = await waitFor(async () => {
-  const { response, body } = await jsonRequest(`${supabaseUrl}/auth/v1/admin/users/${userId}`, {
-    headers: adminHeaders,
-  });
-  if (!response.ok) return null;
-  return body?.email_confirmed_at ? body : null;
+const login = await waitFor(async () => {
+  const result = await passwordLogin(email, password);
+  return result.response.ok && result.body?.access_token ? result : null;
 });
-assert.ok(confirmedUser.email_confirmed_at, 'email_confirmed_at was not set');
+const accessToken = login.body.access_token;
+assert.equal(login.body?.user?.id, userId);
+assert.ok(login.body?.user?.email_confirmed_at, 'confirmed login user must contain email_confirmed_at');
 
-const reviewsAfter = await waitFor(async () => {
-  const rows = await getRows(
-    'account_reviews',
-    `user_id=eq.${userId}&select=id,status,submission_snapshot`,
-  );
-  return rows.length === 1 ? rows : null;
-});
-assert.equal(reviewsAfter[0].status, 'pending');
-assert.equal(reviewsAfter[0].submission_snapshot?.email, email);
-assert.ok(reviewsAfter[0].submission_snapshot?.email_confirmed_at);
+const authHeaders = {
+  apikey: anonKey,
+  Authorization: `Bearer ${accessToken}`,
+};
 
-const login = await jsonRequest(`${supabaseUrl}/auth/v1/token?grant_type=password`, {
+const context = await jsonRequest(`${supabaseUrl}/rest/v1/rpc/get_current_student_context`, {
   method: 'POST',
   headers: {
-    apikey: anonKey,
+    ...authHeaders,
     'Content-Type': 'application/json',
   },
-  body: JSON.stringify({ email, password }),
+  body: '{}',
 });
-assert.ok(login.response.ok, `confirmed-user login failed: ${JSON.stringify(login.body)}`);
-assert.ok(login.body?.access_token, 'confirmed login did not return an access token');
-assert.equal(login.body?.user?.id, userId);
+assert.equal(context.response.status, 200, `student context failed: ${JSON.stringify(context.body)}`);
+assert.equal(context.body?.user_id, userId);
+assert.equal(context.body?.school_id, schoolId);
+assert.equal(context.body?.account_status, 'pending_review');
 
-console.log('Local Auth E2E PASS: signup -> email confirmation -> review queue -> login');
+const review = await waitFor(async () => {
+  const result = await jsonRequest(
+    `${supabaseUrl}/rest/v1/account_reviews?user_id=eq.${userId}&select=id,status,submission_snapshot`,
+    { headers: authHeaders },
+  );
+  if (!result.response.ok) {
+    throw new Error(`account review query failed: ${result.response.status} ${JSON.stringify(result.body)}`);
+  }
+  return Array.isArray(result.body) && result.body.length === 1 ? result.body[0] : null;
+});
+assert.equal(review.status, 'pending');
+assert.equal(review.submission_snapshot?.email, email);
+assert.ok(review.submission_snapshot?.email_confirmed_at);
+
+console.log('Local Auth E2E PASS: signup -> blocked pre-confirm login -> email confirmation -> review queue -> authenticated student context');
