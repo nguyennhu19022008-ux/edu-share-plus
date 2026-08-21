@@ -34,9 +34,11 @@ test('owner completion UI matches the backend approved-only completion contract'
   assert.match(detailSource, /post\.lifecycleStatus\s*===\s*['"]active['"]\s*&&\s*post\.moderationStatus\s*===\s*['"]approved['"]/);
 });
 
-test('owner pages are truthful about deferred media and interactions', () => {
-  assert.match(listSource, /Phase 5F/);
-  assert.match(detailSource, /Phase 5F/);
+test('MyDetailPage renders only private signed post media and keeps interactions deferred', () => {
+  assert.match(detailSource, /listPostMedia\s*\(/);
+  assert.match(detailSource, /media\.map\s*\(/);
+  assert.match(detailSource, /item\.signedUrl/);
   assert.match(detailSource, /Phase 5G\/5H/);
-  assert.doesNotMatch(detailSource, /imageUrl|URL\.createObjectURL/);
+  assert.doesNotMatch(detailSource, /getPublicUrl|URL\.createObjectURL|\.storage\.from\s*\(/);
+  assert.doesNotMatch(detailSource, /Ảnh\/media thật sẽ được nối ở Phase 5F/);
 });
