@@ -4,7 +4,7 @@
 
 **Goal:** Replace ProfilePage account/profile/privacy/password simulation with truthful Supabase-backed self-profile reads, a narrow trusted privacy write, and real Auth password change while keeping Storage, favorites and notifications deferred to their scheduled phases.
 
-**Architecture:** Safe self-profile reads use direct Supabase SELECTs protected by existing RLS. Privacy mutation uses one authenticated SECURITY DEFINER RPC that derives the actor from `auth.uid()`, reuses `get_current_student_context()` as the verified-student trust gate, and updates only the four privacy flags. Password change uses Supabase Auth `updateUser({ password, currentPassword })`. ProfilePage no longer reads `ProfileRepository`; Storage-dependent image UI and interaction-dependent saved/notification UI are explicitly deferred rather than showing fabricated data.
+**Architecture:** Safe self-profile reads use direct Supabase SELECTs protected by existing RLS. Privacy mutation uses one authenticated SECURITY DEFINER RPC that derives the actor from `auth.uid()`, reuses `get_current_student_context()` as the verified-student trust gate, and updates only the four privacy flags. Password change explicitly verifies the authenticated user's current password with `signInWithPassword()` and only then calls `updateUser({ password })`; it does not depend on a hosted-only current-password toggle. ProfilePage no longer reads `ProfileRepository`; Storage-dependent image UI and interaction-dependent saved/notification UI are explicitly deferred rather than showing fabricated data.
 
 **Tech Stack:** React 19, TypeScript 5.8, Vite 7, Node >=20.19, Supabase JS 2.112.x, Supabase CLI 2.113.x, PostgreSQL 17, GitHub Actions.
 
@@ -73,13 +73,13 @@ Returned JSON:
 }
 ```
 
-- [ ] **Step 1: Write RED integration assertions in `tests/profileBackend.e2e.mjs`.** Seed two verified students in different schools plus one teacher. Assert the RPC does not exist yet. The final matrix must also prove: anonymous cannot call it; a verified student can update only their own four privacy flags; the other student's flags do not change; teacher identity is denied by the Student trust gate; direct authenticated UPDATE on `profiles`/`profile_private` is unavailable.
-- [ ] **Step 2: Add migration `profile_privacy_backend`.** Drop `profiles_update_privacy_self` and `profile_private_update_privacy_self`; explicitly revoke table UPDATE from PUBLIC/anon/authenticated; create `update_my_profile_privacy` as `SECURITY DEFINER SET search_path=''`.
-- [ ] **Step 3: Inside the RPC, derive `v_actor_id := auth.uid()`.** Reject null actor with `EDU_SHARE_AUTH_REQUIRED`. Execute `perform public.get_current_student_context()` so only approved + verified active Student identities pass. Reject any null boolean parameter with `EDU_SHARE_PROFILE_PRIVACY_INVALID`.
-- [ ] **Step 4: Update exact columns only.** `profiles`: `show_name`, `show_class`, `updated_at=now()`. `profile_private`: `show_email`, `show_phone`, `updated_at=now()`. Never accept user ID, school ID, name, phone, email, status, role, file ID, or timestamps from client input.
-- [ ] **Step 5: Harden EXECUTE.** `revoke all ... from public, anon; grant execute ... to authenticated;` and add a function comment describing the verified-student self-only contract.
-- [ ] **Step 6: Run the clean local E2E matrix and previous 5A/5B/5C regression suites.** Expected: profile privacy authorization tests PASS and all previous trust/marketplace tests remain PASS.
-- [ ] **Step 7: Commit:** `security: add trusted profile privacy update`.
+- [x] **Step 1: Write RED integration assertions in `tests/profileBackend.e2e.mjs`.** Seed two verified students in different schools plus one teacher. The final matrix proves: anonymous cannot call the RPC; a verified student can update only their own four privacy flags; the other student's flags do not change; teacher identity is denied by the Student trust gate; direct authenticated UPDATE on `profiles`/`profile_private` is unavailable.
+- [x] **Step 2: Add migration `profile_privacy_backend`.** Drop `profiles_update_privacy_self` and `profile_private_update_privacy_self`; explicitly revoke table UPDATE from PUBLIC/anon/authenticated; create `update_my_profile_privacy` as `SECURITY DEFINER SET search_path=''`.
+- [x] **Step 3: Inside the RPC, derive `v_actor_id := auth.uid()`.** Reject null actor with `EDU_SHARE_AUTH_REQUIRED`. Execute `perform public.get_current_student_context()` so only approved + verified active Student identities pass. Reject any null boolean parameter with `EDU_SHARE_PROFILE_PRIVACY_INVALID`.
+- [x] **Step 4: Update exact columns only.** `profiles`: `show_name`, `show_class`, `updated_at=now()`. `profile_private`: `show_email`, `show_phone`, `updated_at=now()`. Never accept user ID, school ID, name, phone, email, status, role, file ID, or timestamps from client input.
+- [x] **Step 5: Harden EXECUTE.** `revoke all ... from public, anon; grant execute ... to authenticated;` and add a function comment describing the verified-student self-only contract.
+- [x] **Step 6: Run the clean local E2E matrix and previous 5A/5B/5C regression suites.** Profile privacy authorization tests and previous trust/marketplace tests PASS.
+- [x] **Step 7: Commit:** trusted profile privacy update landed on the Phase 5D branch.
 
 ### Task 2: Real self-profile read model and service
 
@@ -106,26 +106,26 @@ export async function getMyProfile():Promise<StudentProfileView>;
 export async function updateMyProfilePrivacy(next:ProfilePrivacy):Promise<ProfilePrivacy>;
 ```
 
-- [ ] **Step 1: Write RED unit tests in `tests/profileReadModel.test.ts`.** Cover Vietnamese datetime formatting, phone masking, private email/phone mapping, class-label fallback, exact privacy flags, persisted reputation cache, and malformed server data rejection. Assert no activity/reputation-detail values are invented.
-- [ ] **Step 2: Add `StudentProfileView` to `src/features/profile/types.ts`.** Keep legacy/local types for still-deferred repository consumers, but ProfilePage/components move to the truthful remote view type.
-- [ ] **Step 3: Implement pure mapping in `profileReadModel.ts`.** Input is the Auth user plus the current user's `profiles`, `profile_private`, and optional class row. `avatarUrl` and `faceUrl` remain empty strings until Phase 5F because file IDs are not public URLs.
-- [ ] **Step 4: Implement `getMyProfile()` in `profileService.ts`.** Call `supabase.auth.getUser()`, then direct self SELECTs from `profiles` and `profile_private`; if `class_id` is non-null, load the matching `school_classes.label`. RLS is the authorization boundary. Treat missing self rows as errors rather than falling back to mock data.
-- [ ] **Step 5: Implement `updateMyProfilePrivacy()`.** Call `update_my_profile_privacy` with the four flags and strictly parse the returned JSON.
-- [ ] **Step 6: Normalize service errors into Vietnamese user-facing messages without leaking SQL internals.** Preserve explicit EDU_SHARE codes where needed for debugging only through generic mapped messages.
-- [ ] **Step 7: Add the unit test command to `package.json`; run unit suite and production build.** Expected: PASS.
-- [ ] **Step 8: Commit:** `feat: add Supabase profile service`.
+- [x] **Step 1: Write RED unit tests in `tests/profileReadModel.test.ts`.** Cover Vietnamese datetime formatting, phone masking, private email/phone mapping, class-label fallback, exact privacy flags, persisted reputation cache, and malformed server data rejection. Assert no activity/reputation-detail values are invented.
+- [x] **Step 2: Add `StudentProfileView` to `src/features/profile/types.ts`.** Keep legacy/local types for still-deferred repository consumers, but ProfilePage/components move to the truthful remote view type.
+- [x] **Step 3: Implement pure mapping in `profileReadModel.ts`.** Input is the Auth user plus the current user's `profiles`, `profile_private`, and optional class row. `avatarUrl` and `faceUrl` remain empty strings until Phase 5F because file IDs are not public URLs.
+- [x] **Step 4: Implement `getMyProfile()` in `profileService.ts`.** Call `supabase.auth.getUser()`, then direct self SELECTs from `profiles` and `profile_private`; if `class_id` is non-null, load the matching `school_classes.label`. RLS is the authorization boundary. Missing self rows are errors rather than mock fallbacks.
+- [x] **Step 5: Implement `updateMyProfilePrivacy()`.** Call `update_my_profile_privacy` with the four flags and strictly parse the returned JSON.
+- [x] **Step 6: Normalize service errors into Vietnamese user-facing messages without leaking SQL internals.**
+- [x] **Step 7: Add unit tests to the package test gate; unit suite and production build PASS.**
+- [x] **Step 8: Commit:** Supabase profile service landed on the Phase 5D branch.
 
 ### Task 3: Replace ProfilePage mock profile path and remove fake header fallback
 
-- [ ] **Step 1: Write RED wiring assertions in `tests/profilePageWiring.test.ts`.** Require `ProfilePage` to call `getMyProfile` and `updateMyProfilePrivacy`; forbid `useDataAccess`, `profileRepository`, `getBundle`, `updateImages`, `recordPasswordChanged`, and mock-derived activity rendering.
-- [ ] **Step 2: Refactor `ProfileSections.tsx` to accept `StudentProfileView`.** Sidebar shows name/class/email and persisted reputation cache only. Remove the six mock activity counters and reputation-detail calculations from the real profile view.
-- [ ] **Step 3: Replace `ProfilePage` initialization with async Supabase loading.** States: loading, loaded, retryable error. Ignore stale/cancelled responses on unmount. No local fallback is permitted for primary profile data.
-- [ ] **Step 4: Make privacy save async and server-authoritative.** Disable the submit button while saving; update UI state only from the RPC response; show success/error state.
-- [ ] **Step 5: Replace avatar/face upload form with a truthful Phase-5F deferred card.** Do not create object URLs and do not imply any image was uploaded or persisted.
-- [ ] **Step 6: Replace saved-post and notification mock sections with explicit deferred cards for Phase 5G and 5H.** Do not render fake saved posts or fake notifications.
-- [ ] **Step 7: Refactor `StudentHeader` to stop importing `useDataAccess`.** Resolve identity from Auth/session (or explicit `user` prop) and default notifications to an empty array until the real Phase-5H source exists. This removes fake notification badges globally.
-- [ ] **Step 8: Run wiring test, unit suite and production build.** Expected: PASS.
-- [ ] **Step 9: Commit:** `refactor: load profile from Supabase`.
+- [x] **Step 1: Write RED wiring assertions in `tests/profilePageWiring.test.ts`.** Require `ProfilePage` to call `getMyProfile` and `updateMyProfilePrivacy`; forbid `useDataAccess`, `profileRepository`, `getBundle`, `updateImages`, `recordPasswordChanged`, and mock-derived activity rendering.
+- [x] **Step 2: Refactor `ProfileSections.tsx` to accept `StudentProfileView`.** Sidebar shows name/class/email and persisted reputation cache only. Remove mock activity counters and reputation-detail calculations from the real profile view.
+- [x] **Step 3: Replace `ProfilePage` initialization with async Supabase loading.** States: loading, loaded, retryable error. Ignore stale/cancelled responses on unmount. No local fallback is permitted for primary profile data.
+- [x] **Step 4: Make privacy save async and server-authoritative.** Disable submit while saving; update UI state only from the RPC response; show success/error state.
+- [x] **Step 5: Replace avatar/face upload form with a truthful Phase-5F deferred card.** No object URLs or fake persistence.
+- [x] **Step 6: Replace saved-post and notification mock sections with explicit deferred cards for Phase 5G and 5H.**
+- [x] **Step 7: Refactor `StudentHeader` to stop importing `useDataAccess`.** Identity comes from Auth/session or explicit prop; notifications default empty until Phase 5H.
+- [x] **Step 8: Wiring tests, unit suite and production build PASS.**
+- [x] **Step 9: Commit:** ProfilePage now loads primary profile state from Supabase.
 
 ### Task 4: Real current-password change from ProfilePage
 
@@ -138,13 +138,13 @@ export async function changeMyPassword(input:{
 }):Promise<void>;
 ```
 
-- [ ] **Step 1: Reuse `validateNewPassword()` from the existing password recovery service.** The profile form must enforce the same minimum: at least 8 characters, one lowercase letter, one uppercase letter, and one digit.
-- [ ] **Step 2: Add unit/wiring assertions that ProfilePage no longer performs a local password simulation and calls `changeMyPassword`.** Ensure mismatched confirmation is rejected before network mutation.
-- [ ] **Step 3: Implement `changeMyPassword()` in `profileService.ts` with `supabase.auth.updateUser({ password:newPassword, currentPassword })`.** This uses current Supabase JS support for current-password verification and requires no service role/SMTP.
-- [ ] **Step 4: Normalize incorrect-current-password, weak-password, expired-session and rate-limit errors to safe Vietnamese copy.** Do not expose tokens or Auth internals.
-- [ ] **Step 5: On success, clear form fields and show a real success message.** Do not create a fake notification; Phase 5H owns notification persistence.
-- [ ] **Step 6: Unit suite and production build PASS.**
-- [ ] **Step 7: Commit:** `feat: change profile password through Supabase Auth`.
+- [x] **Step 1: Reuse `validateNewPassword()` from the existing password recovery service.** The profile form enforces at least 8 characters, one lowercase letter, one uppercase letter, and one digit.
+- [x] **Step 2: Add unit/wiring assertions that ProfilePage no longer performs a local password simulation and calls `changeMyPassword`.** Mismatched confirmation is rejected before network mutation.
+- [x] **Step 3: Implement explicit current-password verification.** `changeMyPassword()` resolves the authenticated user with `auth.getUser()`, verifies `input.currentPassword` by calling `auth.signInWithPassword({ email:user.email, password:input.currentPassword })`, and only after successful verification calls `auth.updateUser({ password:input.newPassword })`. This works on the Free-tier baseline without service role, SMTP, or a hosted-only enforcement toggle.
+- [x] **Step 4: Normalize incorrect-current-password, weak-password, expired-session and rate-limit errors to safe Vietnamese copy.**
+- [x] **Step 5: On success, clear form fields and show a real success message.** No fake notification is created; Phase 5H owns notification persistence.
+- [x] **Step 6: Unit suite and production build PASS.**
+- [x] **Step 7: Integration matrix proves wrong password verification fails, correct verification succeeds, the old password stops authenticating after change, and the new password authenticates.**
 
 ### Task 5: Full Phase 5D release gate
 
@@ -166,7 +166,7 @@ ProfilePage shows no fabricated activity/reputation-detail values
 profile image persistence remains unavailable until 5F
 saved/favorite profile data remains unavailable until 5G
 notifications remain unavailable until 5H
-password change uses Supabase Auth currentPassword path
+password change explicitly verifies current password with signInWithPassword before updateUser
 Phase 5A Auth E2E still pass
 Phase 5B trust/roster E2E still pass
 Phase 5C marketplace E2E still pass
@@ -175,19 +175,20 @@ unit tests pass
 production build pass
 ```
 
-- [ ] **Step 1: Wire `tests/profileBackend.e2e.mjs` into the local Supabase CI job after the Phase 5C matrix.** Increase timeout only if the measured clean replay requires it.
-- [ ] **Step 2: Run final clean-local CI.** Do not apply hosted DDL until every 5A–5D local gate is green.
-- [ ] **Step 3: Apply the profile migration to hosted development with `Supabase.apply_migration`.** If hosted records a different generated version than the repo filename, rename the repo migration byte-for-byte to the hosted version and rerun clean-local CI to prove replay is unchanged.
-- [ ] **Step 4: Hosted audit.** Verify policies/grants, `prosecdef`, `proconfig`, PUBLIC/anon/authenticated EXECUTE, and an anon RLS query returning zero profile/private rows. Verify authenticated direct UPDATE remains unavailable.
-- [ ] **Step 5: Run Security Advisor and Performance Advisor.** Record authenticated SECURITY DEFINER notice for the trusted privacy RPC as intentional. Leaked Password Protection remains an accepted Free-Plan limitation. Do not delete indexes from development-time `unused_index` notices alone.
-- [ ] **Step 6: Update `docs/00_CURRENT_PROJECT_STATUS.md` and `docs/ROADMAP.md`.** Mark Phase 5C integrated into `main`, Phase 5D PASS only after all gates, and set next checkpoint to Phase 5E — Create/Edit/My Posts.
-- [ ] **Step 7: Open a draft PR to `main`, self-review the full diff, then mark ready only after final PR-head CI succeeds.** Merge remains a separate release action.
-- [ ] **Step 8: Final commit when all evidence is green:** `docs: mark Phase 5D profile backend pass`.
+- [x] **Step 1: Wire `tests/profileBackend.e2e.mjs` into the local Supabase CI job after the Phase 5C matrix.**
+- [x] **Step 2: Run final clean-local CI before hosted DDL.** Every 5A–5D local gate passed.
+- [x] **Step 3: Apply the profile migration to hosted development with `Supabase.apply_migration`.** Hosted recorded `20260821095817_profile_privacy_backend`; the repo filename was aligned byte-for-byte and clean replay passed again.
+- [x] **Step 4: Hosted audit.** Policies/grants, `prosecdef`, `proconfig`, PUBLIC/anon/authenticated EXECUTE, RLS and direct UPDATE privileges were verified.
+- [x] **Step 5: Run Security Advisor and Performance Advisor.** Authenticated SECURITY DEFINER notice for the trusted privacy RPC is intentional. Leaked Password Protection remains an accepted Free-Plan limitation. Development-time index/policy advisories remain evidence for later query-plan work.
+- [x] **Step 6: Update `docs/00_CURRENT_PROJECT_STATUS.md` and `docs/ROADMAP.md`.** Phase 5C is integrated into `main`, Phase 5D is PASS, and the next checkpoint is Phase 5E — Create/Edit/My Posts.
+- [x] **Step 7: Draft PR #4 is self-reviewed and becomes ready only after final PR-head CI succeeds.** Merge remains a separate release action.
+- [x] **Step 8: Final release documentation commit is on the Phase 5D branch.**
 
 ## Self-review
 
 - **Spec coverage:** own profile/private read, privacy flags, no public contact data, trusted write boundary, no Storage leakage, no service-role browser code, Free-tier operation, clean replay, unauthorized checks and advisor review are covered.
 - **Scope boundary:** images stay 5F; saved/favorites/contact stay 5G; notifications stay 5H; post writes stay 5E; reputation algorithm stays Phase 6.
 - **Truthfulness:** ProfilePage no longer displays mock activity, saved items, notifications, image persistence or password mutation as though they were real backend state.
+- **Password safety:** current-password verification is explicit and portable across the local/free-tier baseline rather than relying on a project-level enforcement toggle unavailable in the local CLI contract.
 - **Type consistency:** `StudentProfileView`, `getMyProfile`, `updateMyProfilePrivacy`, and `changeMyPassword` are defined once and reused by the page/tests.
 - **Placeholder scan:** implementation behavior, authorization rules, interfaces and release gates are explicit; no task depends on undefined permission behavior.
