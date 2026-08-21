@@ -48,9 +48,10 @@ The Phase 5D release matrix covers:
 - saved/favorites remain Phase 5G and notifications remain Phase 5H;
 - wrong current password is rejected through explicit password sign-in verification;
 - correct current password permits Auth password update; old password then fails and new password succeeds;
+- password form DOM state is captured before the async Auth mutation so successful reset does not depend on an event `currentTarget` after `await`;
 - Phase 5A Auth E2E, full Phase 5B trust/roster matrix, Phase 5C marketplace matrix, source secret scan, unit tests and production build remain release gates.
 
-Clean-local CI passed before hosted migration. After hosted migration, repository migration history was renamed byte-for-byte to the hosted version and clean replay passed again.
+Clean-local CI passed before hosted migration. After hosted migration, repository migration history was renamed byte-for-byte to the hosted version and clean replay passed again. Final PR-head CI run #287 on `a127cf3d516f83a604d487df49127331bfd8b214` passed both `verify` and `local-auth-e2e` jobs.
 
 ## Security / performance advisor review
 
