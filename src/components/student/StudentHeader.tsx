@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { navigateLegacy, type LegacyPage } from '../../app/legacyRouter';
-import { useDataAccess } from '../../app/providers/DataAccessProvider';
 import { useStudentAuth } from '../../features/auth/session/AuthSessionProvider';
 
 interface HeaderNotification { id:string; title:string; message:string; date:string; read:boolean }
@@ -12,18 +11,16 @@ interface StudentHeaderProps {
 }
 
 export default function StudentHeader({ activePage, user, notifications }: StudentHeaderProps) {
-  const { profile } = useDataAccess();
   const auth = useStudentAuth();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
-  const fallbackBundle = profile.getBundle();
   const authUser = auth.session ? {
     name: auth.profile?.fullName || 'Học sinh',
     email: auth.session.user.email || '',
     avatarUrl: undefined as string | undefined,
   } : null;
-  const resolvedUser = authUser || user || { name:fallbackBundle.profile.name, email:fallbackBundle.profile.email, avatarUrl:fallbackBundle.profile.avatarUrl };
-  const resolvedNotifications = notifications || fallbackBundle.notifications;
+  const resolvedUser = user ?? authUser ?? { name:'Học sinh', email:'', avatarUrl:undefined };
+  const resolvedNotifications = notifications ?? [];
   const isHomePage = ['index', 'detail', 'add'].includes(activePage);
   const isMyPostsPage = ['myPosts', 'myDetail', 'editPost'].includes(activePage);
   const isProfilePage = activePage === 'profile';
@@ -56,10 +53,10 @@ export default function StudentHeader({ activePage, user, notifications }: Stude
 
         <div className="nav-actions">
           <button className="hello student-user-summary profile-trigger" type="button" title="Mở hồ sơ cá nhân" onClick={() => navigateLegacy('profile')}>
-            <span className={`avatar${resolvedUser?.avatarUrl ? ' has-photo' : ''}`} style={resolvedUser?.avatarUrl ? { backgroundImage:`url("${resolvedUser.avatarUrl}")` } : undefined}>{resolvedUser?.avatarUrl ? '' : '?'}</span>
+            <span className={`avatar${resolvedUser.avatarUrl ? ' has-photo' : ''}`} style={resolvedUser.avatarUrl ? { backgroundImage:`url("${resolvedUser.avatarUrl}")` } : undefined}>{resolvedUser.avatarUrl ? '' : '?'}</span>
             <span className="header-user-copy">
-              <strong className="header-user-name">{resolvedUser?.name || 'Học sinh'}</strong>
-              <small className="header-user-email">{resolvedUser?.email || ''}</small>
+              <strong className="header-user-name">{resolvedUser.name || 'Học sinh'}</strong>
+              <small className="header-user-email">{resolvedUser.email || ''}</small>
             </span>
           </button>
 
@@ -86,7 +83,7 @@ export default function StudentHeader({ activePage, user, notifications }: Stude
               <div className="notify-msg">{item.message}</div>
               <div className="notify-date">{item.date}</div>
             </div>
-          )) : <div className="notify-empty">Chưa có thông báo.</div>}
+          )) : <div className="notify-empty">Chưa có thông báo thật. Phase 5H sẽ nối nguồn thông báo Supabase.</div>}
         </div>
       </aside>
     </>
