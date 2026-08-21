@@ -25,6 +25,7 @@ export async function signUpStudent(input: StudentRegistrationInput) {
     options: {
       emailRedirectTo: redirectUrl.toString(),
       data: {
+        registration_intent: 'student_v2',
         full_name: input.fullName,
         school_id: input.schoolId,
         class_name: input.className,
