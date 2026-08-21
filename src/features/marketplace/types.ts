@@ -17,11 +17,12 @@ export interface MarketPost {
   favoriteCount: number;
   ownerReputationScore: number;
   ownerReputationLabel: string;
-  /** Phase 6 only. Mock fixtures may still carry these until runtime mocks are removed. */
-  rankScore?: number;
-  aiScore?: number;
-  recommendationReason?: string;
+  rankScore: number;
+  aiScore: number;
+  recommendationReason: string;
 }
+
+export type MarketplaceReadPost = Omit<MarketPost, 'rankScore' | 'aiScore' | 'recommendationReason'>;
 
 export interface MarketFilters {
   kw: string;
