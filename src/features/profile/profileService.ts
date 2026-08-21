@@ -51,11 +51,14 @@ function passwordChangeError(message: string): Error {
   const normalized = message.toLowerCase();
 
   if (
-    normalized.includes('current password')
-    && (
-      normalized.includes('invalid')
-      || normalized.includes('incorrect')
-      || normalized.includes('wrong')
+    normalized.includes('invalid login credentials')
+    || (
+      normalized.includes('current password')
+      && (
+        normalized.includes('invalid')
+        || normalized.includes('incorrect')
+        || normalized.includes('wrong')
+      )
     )
   ) {
     return new Error('Mật khẩu hiện tại không đúng.');
@@ -176,10 +179,24 @@ export async function changeMyPassword(input: {
   newPassword: string;
 }): Promise<void> {
   const supabase = getSupabaseClient();
-  const { error } = await supabase.auth.updateUser({
-    password:input.newPassword,
-    current_password:input.currentPassword,
-  });
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
 
-  if (error) throw passwordChangeError(error.message);
+  if (userError) throw passwordChangeError(userError.message);
+  if (!user?.email) {
+    throw new Error('Phiên đăng nhập không còn hợp lệ. Vui lòng đăng nhập lại.');
+  }
+
+  const { error: verificationError } = await supabase.auth.signInWithPassword({
+    email:user.email,
+    password:input.currentPassword,
+  });
+  if (verificationError) throw passwordChangeError(verificationError.message);
+
+  const { error: updateError } = await supabase.auth.updateUser({
+    password:input.newPassword,
+  });
+  if (updateError) throw passwordChangeError(updateError.message);
 }
