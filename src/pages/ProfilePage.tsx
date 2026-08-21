@@ -87,7 +87,8 @@ export default function ProfilePage() {
     event.preventDefault();
     if (passwordSaving) return;
 
-    const form = new FormData(event.currentTarget);
+    const passwordForm = event.currentTarget;
+    const form = new FormData(passwordForm);
     const currentPassword = String(form.get('currentPassword') || '');
     const newPassword = String(form.get('newPassword') || '');
     const confirmPassword = String(form.get('confirmPassword') || '');
@@ -106,7 +107,7 @@ export default function ProfilePage() {
     setMessage(null);
     try {
       await changeMyPassword({ currentPassword, newPassword });
-      event.currentTarget.reset();
+      passwordForm.reset();
       setMessage({ tone:'ok', text:'Đã đổi mật khẩu tài khoản bằng Supabase Auth.' });
     } catch (error) {
       setMessage({
