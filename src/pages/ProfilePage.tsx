@@ -6,7 +6,9 @@ import {
   ProfileInfoCard,
   ProfileSidebar,
 } from '../features/profile/components/ProfileSections';
+import { validateProfilePasswordChange } from '../features/profile/profilePasswordModel';
 import {
+  changeMyPassword,
   getMyProfile,
   updateMyProfilePrivacy,
 } from '../features/profile/profileService';
@@ -24,6 +26,7 @@ export default function ProfilePage() {
   const [loadError, setLoadError] = useState('');
   const [reloadKey, setReloadKey] = useState(0);
   const [privacySaving, setPrivacySaving] = useState(false);
+  const [passwordSaving, setPasswordSaving] = useState(false);
   const [message, setMessage] = useState<MessageState>(null);
 
   useEffect(() => {
@@ -77,6 +80,43 @@ export default function ProfilePage() {
       });
     } finally {
       setPrivacySaving(false);
+    }
+  };
+
+  const handlePasswordSubmit = async (event:FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (passwordSaving) return;
+
+    const form = new FormData(event.currentTarget);
+    const currentPassword = String(form.get('currentPassword') || '');
+    const newPassword = String(form.get('newPassword') || '');
+    const confirmPassword = String(form.get('confirmPassword') || '');
+    const validationError = validateProfilePasswordChange(
+      currentPassword,
+      newPassword,
+      confirmPassword,
+    );
+
+    if (validationError) {
+      setMessage({ tone:'error', text:validationError });
+      return;
+    }
+
+    setPasswordSaving(true);
+    setMessage(null);
+    try {
+      await changeMyPassword({ currentPassword, newPassword });
+      event.currentTarget.reset();
+      setMessage({ tone:'ok', text:'Đã đổi mật khẩu tài khoản bằng Supabase Auth.' });
+    } catch (error) {
+      setMessage({
+        tone:'error',
+        text:error instanceof Error
+          ? error.message
+          : 'Không thể đổi mật khẩu lúc này. Vui lòng thử lại.',
+      });
+    } finally {
+      setPasswordSaving(false);
     }
   };
 
@@ -138,10 +178,16 @@ export default function ProfilePage() {
                   <div className="state">Danh sách yêu thích chưa được hiển thị ở đây để tránh dùng dữ liệu mẫu. Phase 5G sẽ nối nguồn favorites thật từ Supabase.</div>
                 </div>
 
-                <div className="profile-card">
-                  <div className="profile-card-head"><h3>Đổi mật khẩu</h3><span className="tag price">Phase 5D • Task 4</span></div>
-                  <div className="state">Luồng đổi mật khẩu thật bằng Supabase Auth đang được nối trong Task 4. Trang này không ghi nhận hoặc mô phỏng thay đổi mật khẩu trước khi luồng đó hoàn tất.</div>
-                </div>
+                <form className="profile-card" onSubmit={handlePasswordSubmit}>
+                  <div className="profile-card-head"><h3>Đổi mật khẩu</h3><span className="tag price">Supabase Auth</span></div>
+                  <div className="field"><label className="req">Mật khẩu hiện tại</label><input name="currentPassword" type="password" required autoComplete="current-password" placeholder="Nhập mật khẩu hiện tại" /></div>
+                  <div className="grid-2">
+                    <div className="field"><label className="req">Mật khẩu mới</label><input name="newPassword" type="password" required minLength={8} maxLength={80} autoComplete="new-password" placeholder="Ít nhất 8 ký tự, có chữ hoa, chữ thường và số" /></div>
+                    <div className="field"><label className="req">Nhập lại mật khẩu mới</label><input name="confirmPassword" type="password" required minLength={8} maxLength={80} autoComplete="new-password" placeholder="Nhập lại mật khẩu mới" /></div>
+                  </div>
+                  <div className="form-note strong-note">Supabase Auth sẽ kiểm tra mật khẩu hiện tại trước khi chấp nhận mật khẩu mới.</div>
+                  <div className="btn-row"><button className="btn green" type="submit" disabled={passwordSaving}>{passwordSaving ? 'Đang đổi...' : 'Đổi mật khẩu'}</button></div>
+                </form>
 
                 <div className="profile-card">
                   <div className="profile-card-head"><h3>Thông báo gần đây</h3><span className="tag">Phase 5H</span></div>
