@@ -5,7 +5,7 @@
 - Current implementation generation: React + Vite + TypeScript + Supabase.
 - The Google Apps Script / Google Sheets generation is frozen as historical and research reference; operational legacy data is not migrated into V2.
 - Phase 4G Auth lifecycle hardening is the latest completed product milestone before Core V2 Phase 5.
-- Phase 5A — Foundation Stabilization is in progress on `phase/5a-foundation-stabilization`.
+- **Phase 5A — Foundation Stabilization is PASS** on `phase/5a-foundation-stabilization`; integration into `main` remains a separate release action.
 - **Cost policy: Free-tier-first.** Core functionality must work on the Supabase Free Plan and other free/open-source tooling wherever practical. Paid-only platform features are optional hardening/scale upgrades, not Core release blockers unless the project owner explicitly changes this policy.
 
 ## Runtime architecture
@@ -19,7 +19,25 @@ Auth and teacher account-review flows use real Supabase. Marketplace, owner-post
 - Trusted student/staff/account-review RPCs are live.
 - Storage metadata tables exist, but application Storage buckets are not yet provisioned.
 - `public.rls_auto_enable()` browser-role EXECUTE access was revoked in migration `20260820235606_harden_rls_auto_enable_execute`.
+- Hosted verification confirms `anon` and `authenticated` cannot execute `public.rls_auto_enable()` while its database event trigger remains intact.
 - Supabase Security Advisor reports leaked-password protection disabled. Supabase documents this feature as **Pro Plan and above**, so the warning is accepted on the Free Plan and does not block Core V2 release.
+
+## Phase 5A verification evidence
+
+GitHub Actions CI run `32433067195` verified the final implementation tree before the PASS status update:
+
+- `npm ci`: PASS
+- route-access unit tests: PASS (4/4)
+- `tsc -b && vite build`: PASS
+- clean local Supabase migration replay/start: PASS
+- local Auth end-to-end flow: PASS
+  - signup returns no session before email confirmation
+  - password login is blocked before confirmation
+  - confirmation email is captured and verified through local Mailpit
+  - login succeeds after confirmation
+  - trusted student context resolves the expected pending-review account
+  - the student's own pending account-review record is visible under existing RLS
+- hosted Supabase Security Advisor was rerun after the DDL change; the former exposed `rls_auto_enable()` warning is absent.
 
 ## Approved Core V2 decisions
 
@@ -27,14 +45,14 @@ Core V2 is one multi-school EDU SHARE+ network. Teacher authority remains school
 
 ## Current checkpoint
 
-**Phase 5A — Foundation Stabilization: IN PROGRESS**
+**Phase 5A — Foundation Stabilization: PASS**
 
-## Known gaps
+## Known gaps / next-phase work
 
-- Local Auth confirmation configuration still needs one end-to-end local runtime validation.
 - Marketplace/profile/posts remain partially mock-backed.
 - No operational Storage buckets exist yet.
 - No roster subsystem exists yet.
+- Performance Advisor findings are recorded for later query-driven optimization; development-time unused-index notices are not treated as evidence that indexes should be removed.
 
 ## Accepted Free-Plan limitations
 
