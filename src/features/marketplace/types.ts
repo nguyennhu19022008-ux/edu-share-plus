@@ -17,9 +17,10 @@ export interface MarketPost {
   favoriteCount: number;
   ownerReputationScore: number;
   ownerReputationLabel: string;
-  rankScore: number;
-  aiScore: number;
-  recommendationReason: string;
+  /** Phase 6 only. Mock fixtures may still carry these until runtime mocks are removed. */
+  rankScore?: number;
+  aiScore?: number;
+  recommendationReason?: string;
 }
 
 export interface MarketFilters {
