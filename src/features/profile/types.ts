@@ -5,6 +5,25 @@ export interface ProfilePrivacy {
   showPhone: boolean;
 }
 
+export interface StudentProfileView {
+  email: string;
+  name: string;
+  className: string;
+  phone: string;
+  phoneMasked: string;
+  avatarUrl: string;
+  faceUrl: string;
+  createdAt: string;
+  lastLogin: string;
+  updatedAt: string;
+  passwordStatus: string;
+  privacy: ProfilePrivacy;
+  reputation: {
+    score: number;
+    label: string;
+  };
+}
+
 export interface ReputationDetail {
   posts: number;
   done: number;
