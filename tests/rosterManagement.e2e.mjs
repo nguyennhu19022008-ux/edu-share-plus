@@ -1,22 +1,46 @@
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.SUPABASE_URL || 'http://127.0.0.1:54321';
 const anonKey = process.env.SUPABASE_ANON_KEY;
 const secretKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const dbUrl = process.env.SUPABASE_DB_URL;
 
 assert.ok(anonKey, 'SUPABASE_ANON_KEY is required');
 assert.ok(secretKey, 'SUPABASE_SERVICE_ROLE_KEY is required');
+assert.ok(dbUrl, 'SUPABASE_DB_URL is required');
 
 const anonymous = createClient(supabaseUrl, anonKey, {
   auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
 });
-const adminClient = createClient(supabaseUrl, secretKey, {
+const authAdmin = createClient(supabaseUrl, secretKey, {
   auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
 });
 
+function sqlLiteral(value) {
+  if (value === null || value === undefined) return 'null';
+  return `'${String(value).replaceAll("'", "''")}'`;
+}
+
+function sqlValue(query) {
+  return execFileSync(
+    'psql',
+    [dbUrl, '-qAt', '-v', 'ON_ERROR_STOP=1', '-c', query],
+    { encoding: 'utf8' },
+  ).trim();
+}
+
+function sqlExec(query) {
+  execFileSync(
+    'psql',
+    [dbUrl, '-q', '-v', 'ON_ERROR_STOP=1', '-c', query],
+    { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] },
+  );
+}
+
 async function makeUser({ email, fullName, schoolId, roleCode }) {
-  const { data, error } = await adminClient.auth.admin.createUser({
+  const { data, error } = await authAdmin.auth.admin.createUser({
     email,
     password: 'EduShare5B!RosterAdmin',
     email_confirm: true,
@@ -24,30 +48,34 @@ async function makeUser({ email, fullName, schoolId, roleCode }) {
   assert.equal(error, null, `create user ${email}: ${error?.message ?? ''}`);
   const userId = data.user.id;
 
-  const { error: profileError } = await adminClient.from('profiles').insert({
-    user_id: userId,
-    school_id: schoolId,
-    full_name: fullName,
-    account_status: 'approved',
-    school_membership_status: roleCode === 'student' ? 'verified' : 'needs_revalidation',
-    membership_verification_method: roleCode === 'student' ? 'teacher_manual_review' : null,
-    membership_verified_at: roleCode === 'student' ? new Date().toISOString() : null,
-  });
-  assert.equal(profileError, null, `profile ${email}: ${profileError?.message ?? ''}`);
+  const isStudent = roleCode === 'student';
+  sqlExec(`
+    insert into public.profiles (
+      user_id,
+      school_id,
+      full_name,
+      account_status,
+      school_membership_status,
+      membership_verification_method,
+      membership_verified_at
+    ) values (
+      '${userId}'::uuid,
+      '${schoolId}'::uuid,
+      ${sqlLiteral(fullName)},
+      'approved',
+      ${sqlLiteral(isStudent ? 'verified' : 'needs_revalidation')},
+      ${sqlLiteral(isStudent ? 'teacher_manual_review' : null)},
+      ${isStudent ? 'now()' : 'null'}
+    );
 
-  const { data: role, error: roleError } = await adminClient
-    .from('roles')
-    .select('id')
-    .eq('code', roleCode)
-    .single();
-  assert.equal(roleError, null, `role ${roleCode}: ${roleError?.message ?? ''}`);
-
-  const { error: grantError } = await adminClient.from('user_roles').insert({
-    user_id: userId,
-    role_id: role.id,
-    school_id: roleCode === 'admin' ? null : schoolId,
-  });
-  assert.equal(grantError, null, `grant ${roleCode}: ${grantError?.message ?? ''}`);
+    insert into public.user_roles (user_id, role_id, school_id)
+    select
+      '${userId}'::uuid,
+      r.id,
+      ${roleCode === 'admin' ? 'null' : `'${schoolId}'::uuid`}
+    from public.roles r
+    where r.code = ${sqlLiteral(roleCode)};
+  `);
 
   const client = createClient(supabaseUrl, anonKey, {
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
@@ -60,24 +88,28 @@ async function makeUser({ email, fullName, schoolId, roleCode }) {
   return { userId, client };
 }
 
-const { data: schools, error: schoolError } = await adminClient
-  .from('schools')
-  .select('id,code')
-  .order('code');
-assert.equal(schoolError, null);
-assert.ok(schools.length >= 1, 'expected at least one school');
-const schoolA = schools[0];
+const schoolAId = sqlValue(
+  "select id::text from public.schools where code='THPT_NGUYEN_DU' limit 1;",
+);
+assert.ok(schoolAId, 'expected THPT_NGUYEN_DU seed school');
+const schoolA = { id: schoolAId, code: 'THPT_NGUYEN_DU' };
 
-let schoolB = schools.find((school) => school.id !== schoolA.id);
-if (!schoolB) {
-  const { data, error } = await adminClient
-    .from('schools')
-    .insert({ code: `PHASE5B_${Date.now()}`, name: 'Phase 5B Test School' })
-    .select('id,code')
-    .single();
-  assert.equal(error, null);
-  schoolB = data;
+let schoolBId = sqlValue(`
+  select id::text
+  from public.schools
+  where id <> '${schoolA.id}'::uuid
+  order by code
+  limit 1;
+`);
+if (!schoolBId) {
+  schoolBId = sqlValue(`
+    insert into public.schools (code, name)
+    values ('PHASE5B_TEST', 'Phase 5B Test School')
+    on conflict (code) do update set name=excluded.name
+    returning id::text;
+  `);
 }
+const schoolB = { id: schoolBId };
 
 const nonce = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 const teacherA = await makeUser({
