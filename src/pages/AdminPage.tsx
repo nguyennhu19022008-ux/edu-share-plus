@@ -5,6 +5,7 @@ import { AdminModalMeta, AdminSwitch, CheckIcon, SearchIcon, ShieldIcon, adminSt
 import { AdminOverview, AdminPageHeading, AdminTopbar } from '../features/admin/components/AdminShellSections';
 import { listAccountReviewQueue, reviewStudentAccount } from '../features/admin/accountReviewService';
 import type { AccountReviewDecision, AccountReviewQueueItem } from '../features/admin/accountReviewTypes';
+import { formatRosterMatchReason } from '../features/admin/accountReviewPresentation';
 
 const PAGE_SIZE = 6;
 const STATUS_OPTIONS:AdminPostStatus[] = ['Chờ duyệt','Đang mở','Từ chối'];
@@ -293,7 +294,7 @@ export default function AdminPage() {
                 <table className="admin-review-table">
                   <thead>
                     <tr>
-                      {['Học sinh','Trường / lớp khai báo','Liên hệ','Gửi lúc','Trạng thái','Lý do hiện tại','Thao tác'].map((item,index)=><th key={item} className={index>=4?'align-center':''}>{item}</th>)}
+                      {['Học sinh','Trường / lớp khai báo','Liên hệ','Gửi lúc','Trạng thái','Đối chiếu roster / ghi chú','Thao tác'].map((item,index)=><th key={item} className={index>=4?'align-center':''}>{item}</th>)}
                     </tr>
                   </thead>
                   <tbody>
@@ -306,7 +307,7 @@ export default function AdminPage() {
                           <td className="admin-owner-cell"><strong>{item.contactEmail || 'Chưa có email'}</strong><span>{item.phone || 'Chưa có số điện thoại'}</span></td>
                           <td className="admin-date-cell"><span>{formatReviewDate(item.submittedAt)}</span></td>
                           <td className="align-center admin-status-cell"><span className="admin-status-pill"><i />{reviewStatusLabel(item.reviewStatus)}</span></td>
-                          <td>{item.currentReason || '—'}</td>
+                          <td className="admin-owner-cell"><strong>{formatRosterMatchReason(item.rosterMatchReason)}</strong><span>{item.currentReason || 'Chưa có ghi chú của giáo viên.'}</span></td>
                           <td className="admin-action-cell">
                             <div className="admin-row-actions">
                               <button type="button" className="admin-table-primary" disabled={Boolean(reviewActionUserId)} onClick={() => void decideAccountReview(item,'approved')}>{busy ? 'Đang xử lý...' : 'Duyệt'}</button>

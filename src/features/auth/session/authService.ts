@@ -14,6 +14,9 @@ type StudentContextRpc = {
   school_id: string;
   school_name: string | null;
   class_id: string | null;
+  school_membership_status: StudentSessionProfile['schoolMembershipStatus'];
+  membership_verification_method: StudentSessionProfile['membershipVerificationMethod'];
+  membership_verified_at: string;
 };
 
 function normalizeLoginError(message: string) {
@@ -44,6 +47,14 @@ function normalizeStudentContextError(message: string) {
 
   if (message.includes('EDU_SHARE_STUDENT_PROFILE_NOT_FOUND')) {
     return 'Không tìm thấy hồ sơ học sinh tương ứng với tài khoản Auth.';
+  }
+
+  if (message.includes('EDU_SHARE_STUDENT_ACCOUNT_NOT_APPROVED')) {
+    return 'Email đã được xác minh nhưng tài khoản học sinh vẫn đang chờ nhà trường phê duyệt.';
+  }
+
+  if (message.includes('EDU_SHARE_STUDENT_MEMBERSHIP_NOT_VERIFIED')) {
+    return 'Tài khoản chưa có tư cách thành viên trường đã được xác minh. Vui lòng chờ hoặc liên hệ giáo viên phụ trách.';
   }
 
   if (message.includes('EDU_SHARE_AUTH_REQUIRED')) {
@@ -101,12 +112,25 @@ export async function getStudentSessionProfile(
     );
   }
 
+  if (
+    !context.school_membership_status
+    || !context.membership_verification_method
+    || !context.membership_verified_at
+  ) {
+    throw new Error(
+      'Ngữ cảnh học sinh thiếu thông tin xác minh tư cách thành viên trường.',
+    );
+  }
+
   return {
     userId: context.user_id,
     fullName: context.full_name ?? '',
     accountStatus: context.account_status,
     schoolId: context.school_id,
     classId: context.class_id ?? null,
+    schoolMembershipStatus: context.school_membership_status,
+    membershipVerificationMethod: context.membership_verification_method,
+    membershipVerifiedAt: context.membership_verified_at,
   };
 }
 

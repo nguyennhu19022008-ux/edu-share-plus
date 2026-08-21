@@ -82,6 +82,7 @@ const signup = await supabase.auth.signUp({
   password,
   options: {
     data: {
+      registration_intent: 'student_v2',
       full_name: 'Phase 5A Test Student',
       school_id: schoolId,
       class_name: '12A1',
@@ -120,6 +121,8 @@ const authHeaders = {
   Authorization: `Bearer ${accessToken}`,
 };
 
+// Email confirmation proves Auth identity, but a pending/unverified school
+// membership is still outside the protected student application surface.
 const context = await jsonRequest(`${supabaseUrl}/rest/v1/rpc/get_current_student_context`, {
   method: 'POST',
   headers: {
@@ -128,10 +131,11 @@ const context = await jsonRequest(`${supabaseUrl}/rest/v1/rpc/get_current_studen
   },
   body: '{}',
 });
-assert.equal(context.response.status, 200, `student context failed: ${JSON.stringify(context.body)}`);
-assert.equal(context.body?.user_id, userId);
-assert.equal(context.body?.school_id, schoolId);
-assert.equal(context.body?.account_status, 'pending_review');
+assert.notEqual(
+  context.response.status,
+  200,
+  `pending student must not receive protected student context: ${JSON.stringify(context.body)}`,
+);
 
 const review = await waitFor(async () => {
   const result = await jsonRequest(
@@ -147,4 +151,4 @@ assert.equal(review.status, 'pending');
 assert.equal(review.submission_snapshot?.email, email);
 assert.ok(review.submission_snapshot?.email_confirmed_at);
 
-console.log('Local Auth E2E PASS: signup -> blocked pre-confirm login -> email confirmation -> review queue -> authenticated student context');
+console.log('Local Auth E2E PASS: signup -> blocked pre-confirm login -> email confirmation -> review queue -> protected student context blocked pending approval');

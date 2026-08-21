@@ -35,7 +35,7 @@ jobs:
 
   local-auth-e2e:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -61,9 +61,14 @@ jobs:
           set +a
           echo "SUPABASE_URL=${API_URL:-http://127.0.0.1:54321}" >> "$GITHUB_ENV"
           echo "SUPABASE_ANON_KEY=${PUBLISHABLE_KEY:-$ANON_KEY}" >> "$GITHUB_ENV"
+          echo "SUPABASE_SERVICE_ROLE_KEY=${SECRET_KEY:-$SERVICE_ROLE_KEY}" >> "$GITHUB_ENV"
+          echo "SUPABASE_DB_URL=${DB_URL:-postgresql://postgres:postgres@127.0.0.1:54322/postgres}" >> "$GITHUB_ENV"
 
       - name: Local email-confirmation E2E
         run: node tests/localAuthConfirmation.e2e.mjs
+
+      - name: Phase 5B full integration matrix
+        run: node scripts/test-roster-registration-trust.mjs
 
       - name: Stop local Supabase
         if: always()
