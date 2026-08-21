@@ -82,6 +82,7 @@ const signup = await supabase.auth.signUp({
   password,
   options: {
     data: {
+      registration_intent: 'student_v2',
       full_name: 'Phase 5A Test Student',
       school_id: schoolId,
       class_name: '12A1',
