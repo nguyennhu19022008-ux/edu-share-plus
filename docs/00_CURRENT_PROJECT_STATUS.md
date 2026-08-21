@@ -6,6 +6,7 @@
 - The Google Apps Script / Google Sheets generation is frozen as historical and research reference; operational legacy data is not migrated into V2.
 - Phase 4G Auth lifecycle hardening is the latest completed product milestone before Core V2 Phase 5.
 - Phase 5A — Foundation Stabilization is in progress on `phase/5a-foundation-stabilization`.
+- **Cost policy: Free-tier-first.** Core functionality must work on the Supabase Free Plan and other free/open-source tooling wherever practical. Paid-only platform features are optional hardening/scale upgrades, not Core release blockers unless the project owner explicitly changes this policy.
 
 ## Runtime architecture
 
@@ -18,7 +19,7 @@ Auth and teacher account-review flows use real Supabase. Marketplace, owner-post
 - Trusted student/staff/account-review RPCs are live.
 - Storage metadata tables exist, but application Storage buckets are not yet provisioned.
 - `public.rls_auto_enable()` browser-role EXECUTE access was revoked in migration `20260820235606_harden_rls_auto_enable_execute`.
-- Leaked-password protection remains a hosted Auth setting to enable before Phase 5A can be marked PASS.
+- Supabase Security Advisor reports leaked-password protection disabled. Supabase documents this feature as **Pro Plan and above**, so the warning is accepted on the Free Plan and does not block Core V2 release.
 
 ## Approved Core V2 decisions
 
@@ -30,15 +31,20 @@ Core V2 is one multi-school EDU SHARE+ network. Teacher authority remains school
 
 ## Known gaps
 
-- Hosted leaked-password protection is still disabled.
-- Local Auth confirmation configuration must be validated in a local Supabase runtime.
+- Local Auth confirmation configuration still needs one end-to-end local runtime validation.
 - Marketplace/profile/posts remain partially mock-backed.
 - No operational Storage buckets exist yet.
 - No roster subsystem exists yet.
 
+## Accepted Free-Plan limitations
+
+- Supabase Leaked Password Protection is paid-only (Pro+), so it is not required for Phase 5A PASS.
+- Security on Free Plan instead relies on mandatory email confirmation, strong application password rules, safe session handling, RLS, narrow RPC permissions, and school/teacher verification.
+- Paid platform features may be adopted later only when they provide enough value to justify cost.
+
 ## Definition of Done
 
-A checkpoint passes only after build/tests, relevant database/RLS verification, Security Advisor review, documentation update, and unauthorized-path checks pass.
+A checkpoint passes only after build/tests, relevant database/RLS verification, Security Advisor review, documentation update, and unauthorized-path checks pass. Warnings caused solely by unavailable paid-only features may be explicitly accepted when a documented free alternative/risk treatment exists.
 
 ## Next checkpoint
 
