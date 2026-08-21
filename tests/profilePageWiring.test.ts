@@ -41,3 +41,9 @@ test('StudentHeader no longer reads mock profile or notification data', () => {
   assert.doesNotMatch(headerSource, /getBundle\s*\(/, 'StudentHeader must not read mock profile bundles');
   assert.match(headerSource, /notifications\s*\?\?\s*\[\]/, 'header notifications must default to an empty real-data state');
 });
+
+test('ProfilePage submits password changes through the real Auth path after form validation', () => {
+  assert.match(pageSource, /changeMyPassword\s*\(/, 'ProfilePage must call changeMyPassword()');
+  assert.match(pageSource, /validateProfilePasswordChange\s*\(/, 'ProfilePage must validate current/new/confirmation before mutation');
+  assert.doesNotMatch(pageSource, /recordPasswordChanged|mô phỏng đổi mật khẩu local/, 'ProfilePage must not simulate password changes');
+});
