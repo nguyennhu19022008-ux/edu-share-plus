@@ -20,7 +20,20 @@ test('EditPostPage updates only through the trusted service and keeps moderation
   assert.doesNotMatch(source, /contactInfo|\.replace\(/);
 });
 
-test('EditPostPage uses structured sale/contact/visibility fields and defers media to Phase 5F', () => {
+test('EditPostPage loads, validates, uploads and removes private post media through the media service', () => {
+  for (const symbol of ['listPostMedia', 'validatePostMediaFiles', 'uploadPostMedia', 'removeMyPostMedia']) {
+    assert.match(source, new RegExp(symbol));
+  }
+  assert.match(source, /type=["']file["']/);
+  assert.match(source, /accept=["']image\/jpeg,image\/png,image\/webp["']/);
+  assert.match(source, /\bmultiple\b/);
+  assert.match(source, /validatePostMediaFiles\s*\([^,]+,\s*media\.length\s*\)/s);
+  assert.match(source, /uploadPostMedia\s*\(\s*post\.id\s*,\s*selectedFiles\s*\)/);
+  assert.match(source, /removeMyPostMedia\s*\(\s*post\.id\s*,/);
+  assert.doesNotMatch(source, /URL\.createObjectURL|getPublicUrl|\.storage\.from\s*\(|upsert\s*:/);
+});
+
+test('EditPostPage keeps structured sale/contact/visibility fields and routes with the server id', () => {
   for (const field of [
     'categoryId',
     'visibilityScope',
@@ -35,7 +48,5 @@ test('EditPostPage uses structured sale/contact/visibility fields and defers med
   ]) {
     assert.match(source, new RegExp(field));
   }
-  assert.match(source, /Phase 5F/);
-  assert.doesNotMatch(source, /URL\.createObjectURL|type=["']file["']/);
   assert.match(source, /navigateLegacy\(['"]myDetail['"],\s*\{\s*id\s*:\s*result\.id\s*\}\)/);
 });
