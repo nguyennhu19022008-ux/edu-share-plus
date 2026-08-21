@@ -109,8 +109,9 @@ Editing media does not change post moderation status in 5F. Content-edit moderat
 - verified Student only
 - file must be caller-owned, purpose `avatar`, bucket `profile-media`, status `uploaded`
 - updates `profiles.avatar_file_id`
-- marks new file `bound`
-- returns prior avatar file metadata so the client can remove the superseded private object and then mark it deleted
+- marks the new file `bound`
+- if a previous avatar exists, marks that previous `file_objects` row `orphaned` in the same transaction
+- returns the previous avatar file ID, bucket and path so the authenticated client can physically remove the superseded private object and then mark its metadata deleted
 
 Avatar reads in Phase 5F are self-only. Cross-user avatar publication is intentionally deferred until a concrete consumer and privacy rule require it.
 
@@ -128,7 +129,7 @@ Authenticated only. The object must match an existing reservation owned by the c
 
 ### DELETE
 
-Caller can delete only caller-owned objects that are `reserved`, `uploaded`, `orphaned`, or a superseded avatar explicitly returned by `set_my_avatar`. Bound active post media cannot be physically deleted until `remove_my_post_media` has removed the binding.
+Caller can delete only caller-owned objects whose metadata is `reserved`, `uploaded`, or `orphaned`. Bound active post media cannot be physically deleted until `remove_my_post_media` has removed the binding. A superseded avatar becomes deletable because `set_my_avatar` atomically marks it `orphaned`.
 
 No UPDATE policy is granted on `storage.objects`, which prevents browser upsert/move/overwrite semantics.
 
@@ -167,7 +168,7 @@ Post detail/list media services return logical media plus a signed URL with a sh
 - replace Phase 5F placeholder with avatar picker and current avatar
 - JPEG/PNG/WebP <=3 MiB
 - reserve/upload/finalize/set avatar
-- remove superseded avatar through authenticated Storage delete
+- remove superseded avatar through authenticated Storage delete and metadata tombstone
 - face image upload remains disabled
 
 ## Error handling
