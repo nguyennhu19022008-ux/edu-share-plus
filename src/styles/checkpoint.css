@@ -135,3 +135,32 @@ button, input, textarea, select { font: inherit; }
 .auth-inline-error .text-link{flex:none}
 .auth-success-state{border-color:#bbf7d0;background:#f0fdf4;color:#166534}
 .auth-market-card select:disabled,.auth-market-card input:disabled,.auth-market-card button:disabled{cursor:not-allowed;opacity:.68}
+
+/* Phase 5B — trusted, school-scoped roster management. */
+.roster-management-panel{margin-top:18px}
+.roster-panel-content{display:grid;gap:18px}
+.roster-panel-state{margin:0}
+.roster-school-chip{display:inline-flex;align-items:center;padding:7px 10px;border-radius:999px;background:#eef2ff;color:#3730a3;font-size:11px;font-weight:800}
+.roster-import-grid{display:grid;grid-template-columns:minmax(160px,.45fr) minmax(260px,1fr) auto;gap:12px;align-items:end}
+.roster-field{display:grid;gap:6px}
+.roster-field>span{font-size:11px;font-weight:800;color:#475569}
+.roster-field input,.roster-filter-row input,.roster-filter-row select{min-height:38px;border:1px solid #dbe1ea;border-radius:9px;background:#fff;padding:8px 10px;color:#172033;box-sizing:border-box}
+.roster-file-field small{font-size:10px;color:#64748b;overflow-wrap:anywhere}
+.roster-import-action{display:flex;align-items:flex-end}
+.roster-preview-block{display:grid;gap:10px}
+.roster-summary-strip{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;padding:10px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;font-size:11px;color:#64748b}
+.roster-summary-strip strong{color:#166534}
+.roster-panel-state ul{margin:6px 0 0;padding-left:18px}
+.roster-preview-table{max-height:360px}
+.roster-section-heading{display:flex;align-items:end;justify-content:space-between;gap:12px;border-top:1px solid #eef2f7;padding-top:16px}
+.roster-section-heading h3{margin:0 0 4px;font-size:14px}
+.roster-section-heading p{margin:0;color:#64748b;font-size:11px;line-height:1.5}
+.roster-filter-row{display:flex;gap:8px;min-width:min(100%,440px)}
+.roster-filter-row input{flex:1;min-width:0}
+.roster-filter-row select{flex:none}
+@media(max-width:760px){
+  .roster-import-grid{grid-template-columns:1fr}
+  .roster-import-action{justify-content:flex-start}
+  .roster-section-heading{align-items:stretch;flex-direction:column}
+  .roster-filter-row{min-width:0;width:100%;flex-direction:column}
+}
