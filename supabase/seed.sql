@@ -1,0 +1,3 @@
+-- Intentionally empty.
+-- Reference data required by local development is seeded through versioned migrations.
+-- Keeping this file present satisfies supabase/config.toml without introducing unversioned data.

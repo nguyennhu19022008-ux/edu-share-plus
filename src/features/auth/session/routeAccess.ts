@@ -1,4 +1,5 @@
 import { LEGACY_PAGES, type LegacyPage } from '../../../app/legacyRouter';
+import { readSafeReturnTarget } from './routeAccessCore';
 
 const STUDENT_PROTECTED_PAGES = new Set<LegacyPage>([
   'index',
@@ -19,22 +20,13 @@ export function currentRelativeTarget() {
 }
 
 export function readSafeStudentReturnTarget(): string | null {
-  const next = new URLSearchParams(window.location.search).get('next');
-  if (!next) return null;
-
-  try {
-    const target = new URL(next, window.location.origin);
-    if (target.origin !== window.location.origin) return null;
-    if (target.pathname !== window.location.pathname) return null;
-
-    const page = target.searchParams.get('page') || 'landing';
-    if (!LEGACY_PAGES.includes(page as LegacyPage)) return null;
-    if (!isStudentProtectedPage(page as LegacyPage)) return null;
-
-    return `${target.pathname}${target.search}`;
-  } catch {
-    return null;
-  }
+  return readSafeReturnTarget({
+    search: window.location.search,
+    origin: window.location.origin,
+    pathname: window.location.pathname,
+    isKnownPage: (page) => LEGACY_PAGES.includes(page as LegacyPage),
+    isProtectedPage: (page) => isStudentProtectedPage(page as LegacyPage),
+  });
 }
 
 export function navigateToRelativeTarget(target: string) {

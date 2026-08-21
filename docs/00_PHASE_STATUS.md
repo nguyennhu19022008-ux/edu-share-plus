@@ -1,48 +1,40 @@
-# EDU SHARE+ Rebuild — Phase Status
+# EDU SHARE+ Rebuild — Historical Phase Status
+
+> Historical checkpoint index. This file no longer represents the current implementation phase. See `00_CURRENT_PROJECT_STATUS.md` for current status and `ROADMAP.md` for the approved Core V2 sequence.
 
 ## Phase 0 — Audit
-Architecture-level audit completed from the supplied ZIP. Source ZIP remains read-only/source-of-truth.
+Architecture-level audit completed from the supplied legacy project. The legacy source remains read-only historical/research reference.
 
 ## Phase 1 — Local Frontend — PASS & FROZEN
 
-- Checkpoint 1A — PASS: landing + student/teacher auth UI shell.
-- Checkpoint 1B — PASS: student marketplace, search/filter/sort/pagination local behavior.
-- Checkpoint 1C / 1C.1 — PASS: detail page, comments/replies/report/contact local behavior; similar-post route refresh fixed.
-- Checkpoint 1D — PASS: legacy Add Post page and image preview/local submit flow.
-- Checkpoint 1E — PASS: legacy My Posts owner dashboard and local management actions.
-- Checkpoint 1F — PASS: legacy owner detail (`myDetail`) + edit/resubmit (`editPost`).
-- Checkpoint 1G — PASS: legacy student profile (`profile`).
-- Checkpoint 1H — PASS: legacy Teacher/Admin Dashboard (`admin`).
-- Checkpoint 1I — PASS: integration audit + cross-screen flow validation.
-
-Phase 1 baseline is frozen. Further visible UI/UX changes require explicit approval unless fixing a regression against the frozen baseline.
+- 1A: landing + student/teacher auth UI shell.
+- 1B: student marketplace local behavior.
+- 1C/1C.1: detail/comments/replies/report/contact local behavior.
+- 1D: Add Post local flow.
+- 1E: My Posts local management.
+- 1F: owner detail + edit/resubmit.
+- 1G: student profile.
+- 1H: Teacher/Admin Dashboard.
+- 1I: integration audit.
 
 ## Phase 2 — Frontend Architecture — PASS & FROZEN
 
-- Checkpoint 2A — PASS: frontend architecture audit; no runtime behavior change.
-- Checkpoint 2B — PASS: shared application shell + exhaustive lazy legacy route registry + centralized route metadata/boundaries.
-- Checkpoint 2C — PASS: core screens modularized into feature-owned presentation components/utilities without changing UI/UX.
-- Checkpoint 2D — PASS: provider-neutral repository contracts + mock adapters + React data-access provider; pages/components no longer import mock/local stores directly.
+- 2A: frontend architecture audit.
+- 2B: shared app shell and route registry.
+- 2C: feature modularization.
+- 2D: provider-neutral repository contracts + mock adapters + data-access provider.
 
-## Phase 3 — Database Design
+## Phase 3 — Database Design — PASS / historical
 
-- Checkpoint 3A — **PASS:** database requirements + entity audit + provisional backend permission matrix. No database/SQL created.
-- Checkpoint 3B — **PASS:** target database ERD + relationship decisions + implementation-wave boundaries. No database/SQL created.
-- Checkpoint 3C — **PASS:** PostgreSQL physical schema contract + constraints + index blueprint + RLS/security model. No database/SQL created.
-- Checkpoint 3D — **CURRENT / CANDIDATE:** offline migration SQL draft + RLS policy/grant draft + database test matrix. No Supabase project created; SQL has not been executed.
-- Next after acceptance: create a development/local Supabase database environment and validate migrations/RLS before any frontend connection.
+- 3A: requirements/entity audit.
+- 3B: target ERD/relationship decisions.
+- 3C: PostgreSQL physical schema contract.
+- 3D: migration/RLS/test drafts.
 
-See:
+## Phase 4 — Supabase/Auth integration — completed milestones
 
-- `docs/05_PERMISSION_MATRIX.md`
-- `docs/06_DATABASE_ERD.md`
-- `docs/17_FRONTEND_ARCHITECTURE_AUDIT.md`
-- `docs/18_PHASE2B_APPLICATION_SHELL.md`
-- `docs/19_PHASE2C_FEATURE_MODULARIZATION.md`
-- `docs/20_PHASE2D_DATA_ACCESS_BOUNDARY.md`
-- `docs/21_PHASE3A_DATABASE_REQUIREMENTS_ENTITY_AUDIT.md`
-- `docs/22_PHASE3B_DATABASE_ERD_RELATIONSHIP_DECISIONS.md`
-- `docs/23_PHASE3C_POSTGRESQL_SCHEMA_CONTRACT.md`
-- `docs/08_SECURITY_MODEL.md`
+The project subsequently created and connected the real Supabase development backend, added Auth provisioning, student/staff separation, trusted teacher account review, and Auth lifecycle hardening through Phase 4G.
 
-- `docs/24_PHASE3D_MIGRATION_RLS_TEST_DRAFT.md`
+## Current work
+
+Current implementation work has moved to **Core V2 Phase 5A — Foundation Stabilization**. See `00_CURRENT_PROJECT_STATUS.md` and `ROADMAP.md`.
