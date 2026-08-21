@@ -67,14 +67,8 @@ jobs:
       - name: Local email-confirmation E2E
         run: node tests/localAuthConfirmation.e2e.mjs
 
-      - name: Phase 5B registration trust E2E
-        run: node tests/rosterRegistrationTrust.e2e.mjs
-
-      - name: Phase 5B roster management E2E
-        run: node tests/rosterManagement.e2e.mjs
-
-      - name: Phase 5B membership-aware review E2E
-        run: node tests/membershipReview.e2e.mjs
+      - name: Phase 5B full integration matrix
+        run: node scripts/test-roster-registration-trust.mjs
 
       - name: Stop local Supabase
         if: always()
