@@ -143,7 +143,7 @@ max_frequency = "5s"
 [auth.external.apple]
 enabled = false
 client_id = ""
-secret = "env(SUPABASE_AUTH_EXTERNAL_APPLE_SECRET"
+secret = "env(SUPABASE_AUTH_EXTERNAL_APPLE_SECRET)"
 redirect_uri = ""
 url = ""
 skip_nonce_check = false
