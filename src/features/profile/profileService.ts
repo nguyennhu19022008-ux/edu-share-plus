@@ -1,5 +1,7 @@
 import { getSupabaseClient } from '../../lib/supabase/client';
+import { getMyAvatarSignedUrl } from '../storage/mediaService';
 import {
+  parseAvatarFileId,
   parseProfilePrivacyResponse,
   parseStudentProfileView,
 } from './profileReadModel';
@@ -139,12 +141,22 @@ export async function getMyProfile(): Promise<StudentProfileView> {
   }
 
   try {
-    return parseStudentProfileView({
+    const avatarFileId = parseAvatarFileId(profile.avatar_file_id);
+    const view = parseStudentProfileView({
       authUser:user,
       profile,
       privateProfile,
       classLabel,
     });
+
+    let avatarUrl = '';
+    try {
+      avatarUrl = await getMyAvatarSignedUrl(avatarFileId);
+    } catch {
+      // Avatar delivery failure is non-fatal: profile data remains truthful and usable.
+    }
+
+    return { ...view, avatarUrl };
   } catch (error) {
     if (error instanceof Error && error.message === 'PROFILE_RESPONSE_INVALID') {
       throw new Error('Dữ liệu hồ sơ trả về không hợp lệ. Vui lòng thử lại sau.');
