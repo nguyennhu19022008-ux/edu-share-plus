@@ -4,7 +4,7 @@
 
 **Goal:** Replace marketplace favorite, comment/reply, and contact-reveal mocks with live Supabase-backed flows that enforce the existing verified-Student marketplace boundary, preserve privacy, and produce auditable contact access without duplicating PII.
 
-**Architecture:** Use a hybrid boundary. Favorites remain direct authenticated table operations under tightened RLS, while comments, saved-post projection, contact reveal, and owner contact history use narrow trusted RPCs with fixed `search_path=''`. Frontend code lives in a focused `features/interactions` module and `DetailPage`, `ProfilePage`, and `MyDetailPage` consume only parsed service responses.
+**Architecture:** Use a hybrid boundary. Favorites remain direct authenticated table operations under tightened RLS, while comments, saved-post projection, contact reveal, and owner interaction history use narrow trusted RPCs with fixed `search_path=''`. Frontend code lives in a focused `features/interactions` module and `DetailPage`, `ProfilePage`, and `MyDetailPage` consume only parsed service responses.
 
 **Tech Stack:** PostgreSQL 17, Supabase Auth/PostgREST/RLS, `@supabase/supabase-js` 2.112.x, React 19, TypeScript 5.8, Vite 7, Node 22, Node built-in test runner, esbuild-based unit bundling, local Supabase CLI 2.113.x, repository-scoped self-hosted GitHub Actions runner.
 
@@ -64,7 +64,14 @@ assert.equal(saved.error, null);
 assert.equal(saved.data.items[0].id, postId);
 ```
 
-Also assert: pending/teacher/out-of-scope reader cannot save; reader B cannot SELECT/DELETE reader A's favorite; hidden/completed/withdrawn/rejected posts cannot be newly saved; a previously saved row remains stored but disappears from `list_my_saved_posts` when the post becomes non-readable.
+For cross-user DELETE, assert the request cannot remove the row rather than requiring PostgREST to return an error:
+
+```js
+await otherReader.client.from('favorites').delete().eq('user_id', reader.userId).eq('post_id', postId);
+assert.equal(sqlValue(`select count(*)::text from public.favorites where user_id='${reader.userId}'::uuid and post_id='${postId}'::uuid;`), '1');
+```
+
+Also assert: pending/teacher/out-of-scope reader cannot save; reader B cannot SELECT reader A's favorite; hidden/completed/withdrawn/rejected posts cannot be newly saved; a previously saved row remains stored but disappears from `list_my_saved_posts` when the post becomes non-readable.
 
 - [ ] **Step 2: Run the favorites E2E before migration and verify RED**
 
@@ -119,8 +126,6 @@ Do not expose raw owner UUID as part of this addition.
 
 - [ ] **Step 4: Extend the marketplace detail parser contract**
 
-Update `MarketplaceDetailResponse`:
-
 ```ts
 export type MarketplaceDetailResponse = {
   post:MarketplaceReadPost;
@@ -163,7 +168,7 @@ git commit -m "feat: enforce live favorites boundary"
 - Produces RPC `public.list_post_comments(p_post_id uuid) returns jsonb`.
 - `create_my_comment` returns `{ id, postId, parentId, createdAt }`.
 - `delete_my_comment` returns `{ id, deletedAt, alreadyDeleted }`.
-- `list_post_comments` returns `{ items:[{ id,parentId,body,isDeleted,authorName,authorClassName,createdAt,canDelete }], totalCount }`.
+- `list_post_comments` returns `{ items:[{ id,parentId,body,isDeleted,authorName,authorClassName,createdAt,canDelete }], totalCount }` ordered by `created_at asc, id asc`; the client groups rows by `parentId`.
 
 - [ ] **Step 1: Write RED comments E2E**
 
@@ -216,8 +221,6 @@ Keep authenticated SELECT grant because existing staff moderation reads use `com
 
 - [ ] **Step 4: Implement `create_my_comment`**
 
-Key server flow:
-
 ```sql
 v_actor_id := (select auth.uid());
 if v_actor_id is null or not (select private.is_marketplace_eligible()) then
@@ -249,7 +252,7 @@ case when p.show_class then sc.label else null end as author_class_name,
 (c.author_id = (select auth.uid()) and c.deleted_at is null) as can_delete
 ```
 
-Return `visibility_status='visible'` non-deleted roots/replies plus deleted roots only when at least one visible non-deleted reply remains. Do not return deleted replies to ordinary users because replies cannot have children under the two-level contract.
+Return `visibility_status='visible'` non-deleted roots/replies plus deleted roots only when at least one visible non-deleted reply remains. Do not return deleted replies to ordinary users because replies cannot have children under the two-level contract. Order returned flat rows by `created_at asc, id asc`.
 
 - [ ] **Step 6: Lock down RPC execution and verify GREEN**
 
@@ -270,7 +273,7 @@ git commit -m "feat: add trusted marketplace comments"
 
 ---
 
-### Task 3: Audited contact reveal with 15-minute race-safe dedupe and owner history
+### Task 3: Audited contact reveal, owner aggregate, and 15-minute race-safe dedupe
 
 **Files:**
 - Create: `tests/contactBackend.e2e.mjs`
@@ -280,11 +283,11 @@ git commit -m "feat: add trusted marketplace comments"
 - Produces RPC `public.reveal_post_contact(p_post_id uuid) returns jsonb`.
 - Produces RPC `public.list_my_post_contact_events(p_post_id uuid, p_limit integer default 20) returns jsonb`.
 - Reveal response: `{ method:'email'|'phone', value:string, eventId:string, eventCreatedAt:string, eventReused:boolean }`.
-- Owner history response: `{ items:[{ id,requesterName,requesterClassName,revealedMethod,createdAt }], totalCount }`.
+- Owner history response: `{ items:[{ id,requesterName,requesterClassName,revealedMethod,createdAt }], totalCount, favoriteCount }`.
 
 - [ ] **Step 1: Write RED contact E2E**
 
-Create an owner with both contact fields and explicit privacy toggles, plus eligible/ineligible viewers. Define the exact audit-count helper:
+Create an owner with both contact fields and explicit privacy toggles, plus eligible/ineligible viewers. Define exact audit-count helper:
 
 ```js
 function contactEventCount(postId, requesterId) {
@@ -312,7 +315,7 @@ assert.equal(second.data.eventReused, true);
 assert.equal(contactEventCount(postId, reader.userId), '1');
 ```
 
-Assert race safety with five concurrent valid clicks from the same requester:
+Assert race safety with five concurrent valid clicks:
 
 ```js
 const concurrent = await Promise.all(
@@ -322,11 +325,11 @@ assert.equal(concurrent.every((result) => result.error === null), true);
 assert.equal(contactEventCount(postId, reader.userId), '1');
 ```
 
-Flip `show_email=false` with test-admin SQL and assert another reveal inside the same window fails despite the existing event; verify no phone fallback. Restore email privacy, backdate the existing event by 16 minutes with test-admin SQL, reveal again, and assert count becomes `2` and `eventReused=false`.
+Flip `show_email=false` with test-admin SQL and assert another reveal inside the same window fails despite the existing event; verify no phone fallback. Restore email privacy, backdate the existing event by 16 minutes, reveal again, and assert count becomes `2` and `eventReused=false`.
 
-For selected-method change inside an active dedupe window: create a fresh recent email event, update the post's selected method to `phone` in test-admin SQL while keeping the post otherwise visible, and assert reveal fails with the dedicated method-change cooldown error rather than revealing phone without a matching new audit event. Backdate the prior event past 15 minutes and assert phone reveal then succeeds with a new `revealed_method='phone'` event.
+For selected-method change inside an active dedupe window: create a fresh recent email event, update the post's selected method to `phone` in test-admin SQL while keeping the post otherwise visible, and assert reveal fails with `EDU_SHARE_CONTACT_METHOD_CHANGED_DURING_DEDUPE` rather than revealing phone without a matching audit event. Backdate the prior event past 15 minutes and assert phone reveal then succeeds with a new `revealed_method='phone'` event.
 
-Also cover owner self-reveal, out-of-scope viewer, pending/teacher, hidden/completed/withdrawn/rejected post, and direct browser SELECT/INSERT/UPDATE/DELETE against `contact_events` denied after migration. Assert `contact_events` contains `revealed_method` but no contact-value column. Owner history must show requester identity according to current `show_name/show_class` and no requester contact PII.
+Also cover owner self-reveal, out-of-scope viewer, pending/teacher, hidden/completed/withdrawn/rejected post, and direct browser SELECT/INSERT/UPDATE/DELETE against `contact_events` denied after migration. Assert `contact_events` contains `revealed_method` but no contact-value column. Owner history must show requester identity according to current `show_name/show_class`, contain no requester PII, and return the true aggregate `favoriteCount` without returning favorite user IDs.
 
 - [ ] **Step 2: Run contact E2E before migration and verify RED**
 
@@ -348,8 +351,6 @@ alter table public.contact_events
 
 Future 5G RPC-created rows always provide non-null method. Do not add email/phone/contact-value columns.
 
-Replace raw browser reads with trusted projections:
-
 ```sql
 revoke select, insert, update, delete on public.contact_events from public, anon, authenticated;
 drop policy if exists contact_events_read_requester on public.contact_events;
@@ -358,9 +359,7 @@ drop policy if exists contact_events_read_post_owner on public.contact_events;
 
 - [ ] **Step 4: Implement race-safe `reveal_post_contact`**
 
-Check actor/marketplace/post visibility first, reject `p.owner_id = auth.uid()`, then load only the selected owner contact field + its privacy flag. Validate the current method/value before any dedupe reuse.
-
-Serialize same requester/post reveals:
+Check actor/marketplace/post visibility first, reject `p.owner_id = auth.uid()`, then load only the selected owner contact field + privacy flag. Validate current method/value before dedupe reuse.
 
 ```sql
 perform pg_catalog.pg_advisory_xact_lock(
@@ -368,7 +367,7 @@ perform pg_catalog.pg_advisory_xact_lock(
 );
 ```
 
-After the lock, load the newest event in the 15-minute window:
+After the lock:
 
 ```sql
 select ce.id, ce.created_at, ce.revealed_method
@@ -381,11 +380,11 @@ order by ce.created_at desc, ce.id desc
 limit 1;
 ```
 
-If a recent event exists and `v_recent_method = v_method`, reuse its audit metadata and return the newly revalidated current contact value with `eventReused=true`. If a recent event exists with a different method, raise `EDU_SHARE_CONTACT_METHOD_CHANGED_DURING_DEDUPE`; do not reveal the new value. If no recent event exists, insert `event_type='view_contact'`, `revealed_method=v_method`, and return `eventReused=false`.
+If recent method equals current method, reuse audit metadata and return the newly revalidated current contact value with `eventReused=true`. If recent method differs, raise `EDU_SHARE_CONTACT_METHOD_CHANGED_DURING_DEDUPE` and reveal nothing. If no recent event exists, insert `event_type='view_contact'`, `revealed_method=v_method`, return `eventReused=false`.
 
-- [ ] **Step 5: Implement owner history projection**
+- [ ] **Step 5: Implement owner history + favorite aggregate projection**
 
-Require `posts.owner_id = auth.uid()`. Limit must be 1..50. Return only 5G events with non-null `revealed_method`. Join requester `profiles` and class label; mask current identity with `show_name/show_class`. Return only event ID, masked name/class, method, timestamp, and `totalCount`. Never join or return requester `profile_private`.
+`list_my_post_contact_events` requires `(select private.is_marketplace_eligible())` and verifies `posts.owner_id = auth.uid()`. Limit is 1..50. Return only events with non-null `revealed_method`. Join requester `profiles` and class label; mask current identity with `show_name/show_class`. Return only event ID, masked name/class, method, timestamp, `totalCount`, plus `favoriteCount = count(*) from public.favorites where post_id=p_post_id`. Never join requester `profile_private`; never return favorite user IDs.
 
 - [ ] **Step 6: Verify contact matrix GREEN**
 
@@ -402,6 +401,10 @@ git add tests/contactBackend.e2e.mjs supabase/migrations/20260822152200_phase5g_
 git commit -m "feat: add audited contact reveal"
 ```
 
+- [ ] **Step 8: Open the Phase 5G draft PR**
+
+Open `phase/5g-interactions-contact` -> `main` as a draft after all three backend matrices are locally green. The PR body records the approved scope and states that hosted migrations have not yet been applied. From this point onward, frontend/CI commits receive pull-request CI coverage in addition to local verification.
+
 ---
 
 ### Task 4: Strict frontend interaction model and parsers
@@ -412,24 +415,81 @@ git commit -m "feat: add audited contact reveal"
 - Modify: `package.json`
 
 **Interfaces:**
-- Produces types `CommentView`, `CommentMutationResult`, `CommentDeleteResult`, `ContactRevealView`, `OwnerContactEventView`, `OwnerContactHistory`, `SavedPostView`, `SavedPostList`.
-- Produces parsers `parseCommentListResponse`, `parseCommentMutationResponse`, `parseCommentDeleteResponse`, `parseContactRevealResponse`, `parseOwnerContactHistoryResponse`, `parseSavedPostListResponse`.
-
-Use exact TypeScript shapes:
+- Produces:
 
 ```ts
 export type CommentView = {
-  id:string; parentId:string|null; body:string|null; isDeleted:boolean;
-  authorName:string; authorClassName:string|null; createdAt:string; canDelete:boolean;
+  id:string;
+  parentId:string|null;
+  body:string|null;
+  isDeleted:boolean;
+  authorName:string;
+  authorClassName:string|null;
+  createdAt:string;
+  canDelete:boolean;
 };
+
+export type CommentMutationResult = {
+  id:string;
+  postId:string;
+  parentId:string|null;
+  createdAt:string;
+};
+
+export type CommentDeleteResult = {
+  id:string;
+  deletedAt:string;
+  alreadyDeleted:boolean;
+};
+
 export type ContactRevealView = {
-  method:'email'|'phone'; value:string; eventId:string; eventCreatedAt:string; eventReused:boolean;
+  method:'email'|'phone';
+  value:string;
+  eventId:string;
+  eventCreatedAt:string;
+  eventReused:boolean;
 };
+
+export type OwnerContactEventView = {
+  id:string;
+  requesterName:string;
+  requesterClassName:string|null;
+  revealedMethod:'email'|'phone';
+  createdAt:string;
+};
+
+export type OwnerContactHistory = {
+  items:OwnerContactEventView[];
+  totalCount:number;
+  favoriteCount:number;
+};
+
 export type SavedPostView = {
-  id:string; title:string; tradeType:'lend'|'give'|'exchange'|'low_price_sale';
-  categoryName:string; price:number|null; publishedAt:string|null; createdAt:string; favoriteCount:number;
+  id:string;
+  title:string;
+  tradeType:'lend'|'give'|'exchange'|'low_price_sale';
+  categoryName:string;
+  price:number|null;
+  publishedAt:string|null;
+  createdAt:string;
+  favoriteCount:number;
+};
+
+export type SavedPostList = {
+  items:SavedPostView[];
+  totalCount:number;
+  limit:number;
+  offset:number;
 };
 ```
+
+- Produces parsers:
+  - `parseCommentListResponse(raw:unknown):CommentView[]`
+  - `parseCommentMutationResponse(raw:unknown):CommentMutationResult`
+  - `parseCommentDeleteResponse(raw:unknown):CommentDeleteResult`
+  - `parseContactRevealResponse(raw:unknown):ContactRevealView`
+  - `parseOwnerContactHistoryResponse(raw:unknown):OwnerContactHistory`
+  - `parseSavedPostListResponse(raw:unknown):SavedPostList`
 
 - [ ] **Step 1: Write parser tests first**
 
@@ -446,7 +506,7 @@ assert.throws(() => parseContactRevealResponse({ method:'email', value:'x', even
 assert.throws(() => parseCommentListResponse({ items:[{ id:'x', body:42 }] }), /INTERACTION_RESPONSE_INVALID/);
 ```
 
-Test deleted comment contract (`body:null`, `isDeleted:true`), nullable class, booleans, UUID-shaped IDs, safe integer counts, valid timestamps, enum values, nullable saved-post price/publish time, and malformed payload fail-closed behavior.
+Test deleted comment contract (`body:null`, `isDeleted:true`), nullable class, booleans, UUID-shaped IDs, safe integer counts, valid timestamps, enum values, nullable saved-post price/publish time, owner history `favoriteCount`, and malformed payload fail-closed behavior.
 
 - [ ] **Step 2: Run parser test and verify RED**
 
@@ -460,7 +520,7 @@ Run `npm run test:interaction-model`; expected FAIL because module is missing.
 
 - [ ] **Step 3: Implement strict parsers**
 
-Use small helpers (`isRecord`, UUID/string/null parser, boolean parser, timestamp parser, safe non-negative integer parser, enum parser). `invalid()` throws exactly `INTERACTION_RESPONSE_INVALID`. Do not silently coerce values.
+Use small helpers (`isRecord`, UUID/string/null parser, boolean parser, timestamp parser, safe non-negative integer parser, enum parser). `invalid()` throws exactly `INTERACTION_RESPONSE_INVALID`. Do not silently coerce values. `parseCommentListResponse` validates `{items,totalCount}` but returns the validated `items` array because DetailPage does not display a separate comment total in 5G.
 
 - [ ] **Step 4: Run and verify GREEN**
 
@@ -572,7 +632,7 @@ Capture old saved/count, update optimistically, call `setPostSaved`, and rollbac
 
 - [ ] **Step 5: Implement real comments UI**
 
-Submit calls `createMyComment`; pending disables submit. On success clear input and refresh `listPostComments`. Reply passes the clicked comment ID to backend. Show delete only when `comment.canDelete`; confirm, call `deleteMyComment`, refresh. Render `body ?? 'Bình luận đã được tác giả xóa'`. Keep report-comment deferred to Phase 5H.
+Submit calls `createMyComment`; pending disables submit. On success clear input and refresh `listPostComments`. Reply passes clicked comment ID to backend. Show delete only when `comment.canDelete`; confirm, call `deleteMyComment`, refresh. Render `body ?? 'Bình luận đã được tác giả xóa'`. Keep report-comment deferred to Phase 5H.
 
 - [ ] **Step 6: Implement explicit contact reveal**
 
@@ -620,7 +680,7 @@ Add `test:profile-saved-posts-wiring`; expected FAIL because Profile still shows
 
 - [ ] **Step 3: Implement saved-post loading and removal**
 
-Load saved posts alongside profile data with independent loading/error state so favorite-list failure does not erase truthful profile data. Render title, trade label mapped from the four DB enums, category, formatted VND price or `Miễn phí / thỏa thuận`, published/created date, detail navigation, and unsave button. On unsave success remove the item then re-fetch `listMySavedPosts` for server reconciliation.
+Load saved posts alongside profile data with independent loading/error state so favorite-list failure does not erase truthful profile data. Render title, trade label mapped from four DB enums, category, formatted VND price or `Miễn phí / thỏa thuận`, published/created date, detail navigation, and unsave button. On unsave success remove item then re-fetch `listMySavedPosts` for server reconciliation.
 
 Do not display hidden/non-readable saved posts because the RPC filters current visibility. Do not use favorite rows as an authorization bypass.
 
@@ -641,7 +701,7 @@ git commit -m "feat: show live saved posts in profile"
 
 ---
 
-### Task 8: Add owner contact-reveal history to MyDetailPage
+### Task 8: Add owner favorite count and contact-reveal history to MyDetailPage
 
 **Files:**
 - Modify: `src/pages/MyDetailPage.tsx`
@@ -649,29 +709,30 @@ git commit -m "feat: show live saved posts in profile"
 - Modify: `package.json`
 
 **Interfaces:**
-- Consumes `listMyPostContactEvents(postId,20)`.
-- Does not consume requester contact PII.
+- Consumes `listMyPostContactEvents(postId,20):Promise<OwnerContactHistory>` where response includes `favoriteCount`.
+- Does not consume requester contact PII or favorite-user identities.
 
 - [ ] **Step 1: Write MyDetail RED wiring test**
 
 ```ts
 assert.match(source, /listMyPostContactEvents\s*\(/);
 assert.match(source, /Hoạt động liên hệ/);
+assert.match(source, /favoriteCount/);
 assert.doesNotMatch(source, /Lượt lưu, yêu cầu liên hệ, bình luận và báo cáo sẽ được nối ở Phase 5G\/5H/);
 assert.doesNotMatch(source, /contact_email|profile_private/);
 ```
 
 - [ ] **Step 2: Run and verify RED**
 
-Add `test:owner-contact-history-wiring`; expected FAIL against the current placeholder.
+Add `test:owner-contact-history-wiring`; expected FAIL against current placeholder.
 
-- [ ] **Step 3: Load history independently of owner-post core detail**
+- [ ] **Step 3: Load owner interaction history independently**
 
-When `postId` is present, call `listMyPostContactEvents(postId,20)` in parallel with existing owner detail/media reads. Contact-history failure shows a scoped message and never blocks owner post detail.
+When `postId` is present, call `listMyPostContactEvents(postId,20)` in parallel with existing owner detail/media reads. Interaction-history failure shows a scoped message and never blocks owner post detail.
 
-- [ ] **Step 4: Render audited history**
+- [ ] **Step 4: Render truthful aggregates and audited history**
 
-Render total count and recent rows with masked requester name, optional class, Vietnamese timestamp, and `Email` / `Số điện thoại` from `revealedMethod`. Do not display requester contact values. Keep report/notification metrics deferred to 5H and do not invent them.
+Render `favoriteCount` as aggregate only; do not display who favorited. Render contact `totalCount` and recent rows with masked requester name, optional class, Vietnamese timestamp, and `Email` / `Số điện thoại` from `revealedMethod`. Do not display requester contact values. Keep report/notification metrics deferred to 5H and do not invent them.
 
 - [ ] **Step 5: Run tests/build GREEN**
 
@@ -685,7 +746,7 @@ npm run build
 
 ```bash
 git add src/pages/MyDetailPage.tsx tests/ownerContactHistoryWiring.test.ts package.json
-git commit -m "feat: show owner contact audit history"
+git commit -m "feat: show owner interaction audit"
 ```
 
 ---
@@ -710,7 +771,7 @@ assert.doesNotMatch(myDetail, /yêu cầu liên hệ.*Phase 5G/i);
 assert.match(detail, /Báo cáo.*Phase 5H|Phase 5H.*Báo cáo/si);
 ```
 
-Scan the literal source text under `src/features/interactions` and fail if it contains `service_role`, `SUPABASE_SERVICE_ROLE`, `localStorage`, `sessionStorage`, or `profile_private`.
+Scan literal source text under `src/features/interactions` and fail if it contains `service_role`, `SUPABASE_SERVICE_ROLE`, `localStorage`, `sessionStorage`, or `profile_private`.
 
 - [ ] **Step 2: Wire scripts**
 
@@ -728,7 +789,7 @@ Immediately after `Phase 5F private storage matrix`:
           node tests/contactBackend.e2e.mjs
 ```
 
-Do not change the same-repo self-hosted PR condition, concurrency, cleanup, Node version, or local credential export.
+Do not change same-repo self-hosted PR condition, concurrency, cleanup, Node version, or local credential export.
 
 - [ ] **Step 4: Run full local verification**
 
@@ -758,7 +819,7 @@ git commit -m "ci: add Phase 5G interaction matrix"
 
 ---
 
-### Task 10: Draft PR, hosted-development rollout, audit, docs, and exact-head gate
+### Task 10: Hosted-development rollout, audit, docs, and exact-head gate
 
 **Files:**
 - Modify: `docs/00_CURRENT_PROJECT_STATUS.md`
@@ -769,19 +830,15 @@ git commit -m "ci: add Phase 5G interaction matrix"
 - Hosted project: development project `brnshmzflawffaysyyvx`.
 - PASS means exact final PR HEAD has green `verify` and `local-auth-e2e` jobs with the 5G matrix included.
 
-- [ ] **Step 1: Open draft PR before hosted mutation**
+- [ ] **Step 1: Refresh the existing draft PR body and verify implementation-head CI**
 
-Open `phase/5g-interactions-contact` -> `main` as draft with scope, privacy boundary, RED/GREEN evidence, and explicit note that reports/notifications/moderation remain later phases.
+Update the draft PR with completed local backend/frontend evidence and explicit note that hosted migrations are still pending. Both self-hosted jobs must complete successfully on the exact implementation HEAD before hosted mutation. Do not proceed from a failing, cancelled, queued, or older SHA.
 
-- [ ] **Step 2: Verify pre-hosted PR CI on exact implementation HEAD**
-
-Both self-hosted jobs must complete successfully. Do not apply hosted migrations from a head whose CI is failing, cancelled, or still queued.
-
-- [ ] **Step 3: Apply the three reviewed migrations to hosted development only**
+- [ ] **Step 2: Apply the three reviewed migrations to hosted development only**
 
 Apply in order: favorites, comments, contact. Use migration DDL actions, never ad-hoc DDL via raw SQL. If hosted tooling assigns different timestamps, rename repository files to those exact versions without changing SQL bytes, then commit alignment.
 
-- [ ] **Step 4: Audit hosted schema and permissions**
+- [ ] **Step 3: Audit hosted schema and permissions**
 
 Record evidence that:
 
@@ -797,17 +854,17 @@ notifications/reports/moderation grants: unchanged by 5G
 
 Run Supabase Security Advisor and Performance Advisor. Classify trusted authenticated SECURITY DEFINER warnings as intentional only after verifying internal auth checks + fixed search path. Do not add/drop indexes merely to silence performance hints without query-plan evidence.
 
-- [ ] **Step 5: Update project docs truthfully**
+- [ ] **Step 4: Update project docs truthfully**
 
-`docs/00_CURRENT_PROJECT_STATUS.md` corrects the stale 5F checkpoint to integrated/PASS and marks Phase 5G PASS only after hosted audit + full matrix. Runtime architecture says favorites/comments/contact are real, while reports/notifications/moderation remain later phases. Next checkpoint becomes 5H.
+`docs/00_CURRENT_PROJECT_STATUS.md` corrects stale 5F wording to integrated/PASS and marks Phase 5G PASS only after hosted audit + full matrix. Runtime architecture says favorites/comments/contact are real, while reports/notifications/moderation remain later phases. Next checkpoint becomes 5H.
 
 `docs/ROADMAP.md` changes the 5G line to `**5G Interactions + Contact — PASS**` with a concise summary of live favorites, two-level comments/soft-delete, and audited privacy-gated contact reveal.
 
-- [ ] **Step 6: Run final exact-head CI after docs/migration-history alignment**
+- [ ] **Step 5: Run final exact-head CI after docs/migration-history alignment**
 
-Push the final docs/alignment commit and require a fresh PR CI run on that exact SHA. Verify both jobs and individual steps, including `Phase 5G interactions/contact matrix`.
+Push final docs/alignment commit and require a fresh PR CI run on that exact SHA. Verify both jobs and individual steps, including `Phase 5G interactions/contact matrix`.
 
-- [ ] **Step 7: Final verification before PASS/merge claim**
+- [ ] **Step 6: Final verification before PASS/merge claim**
 
 ```text
 unit tests PASS
@@ -830,7 +887,8 @@ contact privacy change rechecked on every reveal
 15-minute contact audit dedupe race-safe
 method change during dedupe fails closed rather than creating an unaudited reveal
 contact PII absent from audit rows/browser persistence
-owner contact history contains masked identity only
+owner sees aggregate favorite count but never favorite identities
+owner contact history contains masked requester identity only
 reports/notifications/moderation permissions not widened
 hosted migrations aligned with repository
 Security/Performance advisors reviewed
