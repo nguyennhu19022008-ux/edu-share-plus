@@ -17,15 +17,17 @@ test('MyPostsPage uses paginated server reads and trusted lifecycle/create workf
   assert.doesNotMatch(listSource, /12A1|local-ui@/);
 });
 
-test('MyDetailPage reads own detail and uses only trusted owner workflows', () => {
+test('MyDetailPage reads own detail and uses trusted owner workflows plus the 5G audit projection', () => {
   assert.match(detailSource, /getMyPost/);
   assert.match(detailSource, /changeMyPostLifecycle/);
   assert.match(detailSource, /createMyPost/);
+  assert.match(detailSource, /listMyPostContactEvents/);
   assert.match(detailSource, /rejectionReason/);
   assert.match(detailSource, /moderationStatus/);
   assert.match(detailSource, /lifecycleStatus/);
+  assert.match(detailSource, /favoriteCount/);
   assert.doesNotMatch(detailSource, /useDataAccess|ownerPosts|ownerDetail/);
-  assert.doesNotMatch(detailSource, /toggleHidden|favoriteCount|contactViewCount|contactedCount|commentCount|reportCount|buildOwnerEffectiveness|effectiveness/);
+  assert.doesNotMatch(detailSource, /toggleHidden|reportCount|buildOwnerEffectiveness|effectiveness/);
   assert.doesNotMatch(detailSource, /12A1|local-ui@/);
 });
 
@@ -34,11 +36,15 @@ test('owner completion UI matches the backend approved-only completion contract'
   assert.match(detailSource, /post\.lifecycleStatus\s*===\s*['"]active['"]\s*&&\s*post\.moderationStatus\s*===\s*['"]approved['"]/);
 });
 
-test('MyDetailPage renders only private signed post media and keeps interactions deferred', () => {
+test('MyDetailPage renders private signed post media and live owner contact audit without private PII', () => {
   assert.match(detailSource, /listPostMedia\s*\(/);
   assert.match(detailSource, /media\.map\s*\(/);
   assert.match(detailSource, /item\.signedUrl/);
-  assert.match(detailSource, /Phase 5G\/5H/);
+  assert.match(detailSource, /listMyPostContactEvents\s*\(/);
+  assert.match(detailSource, /Hoạt động liên hệ/);
+  assert.match(detailSource, /Phase 5H/);
   assert.doesNotMatch(detailSource, /getPublicUrl|URL\.createObjectURL|\.storage\.from\s*\(/);
+  assert.doesNotMatch(detailSource, /contact_email|contact_phone|profile_private/i);
   assert.doesNotMatch(detailSource, /Ảnh\/media thật sẽ được nối ở Phase 5F/);
+  assert.doesNotMatch(detailSource, /Lượt lưu, yêu cầu liên hệ, bình luận và báo cáo sẽ được nối ở Phase 5G\/5H/);
 });
