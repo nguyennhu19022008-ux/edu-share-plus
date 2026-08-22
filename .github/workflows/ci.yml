@@ -93,14 +93,11 @@ jobs:
       - name: Phase 5F private storage matrix
         run: node tests/storageBackend.e2e.mjs
 
-      - name: Phase 5G favorites matrix
-        run: node tests/favoritesBackend.e2e.mjs
-
-      - name: Phase 5G comments matrix
-        run: node tests/commentsBackend.e2e.mjs
-
-      - name: Phase 5G contact matrix
-        run: node tests/contactBackend.e2e.mjs
+      - name: Phase 5G interactions/contact matrix
+        run: |
+          node tests/favoritesBackend.e2e.mjs
+          node tests/commentsBackend.e2e.mjs
+          node tests/contactBackend.e2e.mjs
 
       - name: Stop local Supabase
         if: always()
