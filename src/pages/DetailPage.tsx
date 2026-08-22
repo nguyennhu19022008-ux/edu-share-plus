@@ -9,6 +9,8 @@ import {
 } from '../features/marketplace/marketplaceDetailPageModel';
 import { getMarketplacePost } from '../features/marketplace/marketplaceReadService';
 import type { MarketplaceReadPost } from '../features/marketplace/types';
+import { listPostMedia } from '../features/storage/mediaService';
+import type { SignedMedia } from '../features/storage/mediaModel';
 
 type LocalComment = {
   id: string;
@@ -75,6 +77,8 @@ export default function DetailPage() {
   const [requestedPostId] = useState(() => readRequestedMarketplacePostId(window.location.search));
   const [loadState, setLoadState] = useState<MarketplaceDetailLoadState>({ status:'loading' });
   const [retryKey, setRetryKey] = useState(0);
+  const [media, setMedia] = useState<SignedMedia[]>([]);
+  const [mediaError, setMediaError] = useState('');
   const [saved, setSaved] = useState(false);
   const [contactVisible, setContactVisible] = useState(false);
   const [comments, setComments] = useState<LocalComment[]>(LOCAL_UI_COMMENTS);
@@ -84,6 +88,8 @@ export default function DetailPage() {
     let active = true;
     setLoadState({ status:'loading' });
     setContactVisible(false);
+    setMedia([]);
+    setMediaError('');
 
     void loadMarketplaceDetail(
       requestedPostId || '',
@@ -91,7 +97,16 @@ export default function DetailPage() {
     ).then((state) => {
       if (!active) return;
       setLoadState(state);
-      if (state.status === 'ready') setSaved(profile.isPostSaved(state.detail.post.id));
+      if (state.status !== 'ready') return;
+
+      setSaved(profile.isPostSaved(state.detail.post.id));
+      void listPostMedia(state.detail.post.id)
+        .then((items) => {
+          if (active) setMedia(items);
+        })
+        .catch((reason:unknown) => {
+          if (active) setMediaError(reason instanceof Error ? reason.message : 'Không thể tải ảnh bài đăng.');
+        });
     });
 
     return () => {
@@ -190,7 +205,7 @@ export default function DetailPage() {
               </div>
               <div className="desc" style={{ marginTop:14 }}>{post.description || 'Chưa có mô tả.'}</div>
               <div className="privacy-note">
-                <b>Dữ liệu bài đăng đang đọc từ Supabase.</b> Favorite, bình luận, liên hệ và báo cáo bên dưới vẫn là mô phỏng local cho tới các phase 5G–5H.
+                <b>Dữ liệu bài đăng đang đọc từ Supabase.</b> Ảnh được phân phối bằng URL ký ngắn hạn; favorite, bình luận, liên hệ và báo cáo vẫn là mô phỏng local cho tới các phase 5G–5H.
               </div>
 
               {contactVisible ? (
@@ -209,10 +224,22 @@ export default function DetailPage() {
               </div>
             </section>
 
-            {post.hasImage ? (
-              <div className="state">Bài đăng có ảnh, nhưng Phase 5C không cấp public Storage URL. Ảnh private sẽ được nối ở Phase 5F.</div>
+            {media.length ? (
+              <div className="detail-media-gallery">
+                {media.map((item) => (
+                  <img
+                    key={item.fileId}
+                    src={item.signedUrl}
+                    alt={item.altText || `Ảnh bài đăng ${item.sortOrder + 1}`}
+                    loading="lazy"
+                    decoding="async"
+                  />
+                ))}
+              </div>
+            ) : mediaError ? (
+              <div className="state">{mediaError}</div>
             ) : (
-              <div className="state">Bài đăng chưa có ảnh.</div>
+              <div className="state">Bài đăng chưa có ảnh khả dụng.</div>
             )}
           </div>
         </section>
