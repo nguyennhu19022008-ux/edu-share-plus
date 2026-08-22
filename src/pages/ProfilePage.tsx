@@ -1,8 +1,8 @@
 import { type ChangeEvent, type FormEvent, useEffect, useState } from 'react';
 import { navigateLegacy } from '../app/legacyRouter';
 import StudentHeader from '../components/student/StudentHeader';
-import { listMySavedPosts } from '../features/interactions/interactionService';
-import type { SavedPostList } from '../features/interactions/interactionModel';
+import { listMySavedPosts, setPostSaved } from '../features/interactions/interactionService';
+import type { SavedPostList, SavedPostView } from '../features/interactions/interactionModel';
 import {
   PrivacyLine,
   ProfileInfoCard,
@@ -24,12 +24,11 @@ import { uploadMyAvatar } from '../features/storage/mediaService';
 type MessageState = { tone:'ok' | 'error'; text:string } | null;
 
 function formatSavedPrice(value:number | null):string {
-  if (value === null || value === 0) return 'Miễn phí / Thỏa thuận';
+  if (value === null || value === 0) return 'Miễn phí / thỏa thuận';
   return `${new Intl.NumberFormat('vi-VN').format(value)} ₫`;
 }
 
-function formatSavedDate(value:string | null):string {
-  if (!value) return '';
+function formatSavedDate(value:string):string {
   const date = new Date(value);
   if (!Number.isFinite(date.getTime())) return '';
   return new Intl.DateTimeFormat('vi-VN', {
@@ -37,6 +36,13 @@ function formatSavedDate(value:string | null):string {
     month:'2-digit',
     year:'numeric',
   }).format(date);
+}
+
+function tradeLabel(value:SavedPostView['tradeType']):string {
+  if (value === 'lend') return 'Cho mượn';
+  if (value === 'give') return 'Tặng';
+  if (value === 'exchange') return 'Trao đổi';
+  return 'Bán giá rẻ';
 }
 
 export default function ProfilePage() {
@@ -54,6 +60,7 @@ export default function ProfilePage() {
   const [savedPosts, setSavedPosts] = useState<SavedPostList | null>(null);
   const [savedPostsLoading, setSavedPostsLoading] = useState(true);
   const [savedPostsError, setSavedPostsError] = useState('');
+  const [unsavingPostId, setUnsavingPostId] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -178,6 +185,30 @@ export default function ProfilePage() {
     }
   };
 
+  const handleUnsavePost = async (postId:string) => {
+    if (unsavingPostId) return;
+    setUnsavingPostId(postId);
+    setSavedPostsError('');
+    try {
+      await setPostSaved(postId, false);
+      setSavedPosts((current) => current ? {
+        ...current,
+        items:current.items.filter((item) => item.id !== postId),
+        totalCount:Math.max(0, current.totalCount - 1),
+      } : current);
+      const reconciled = await listMySavedPosts(20, 0);
+      setSavedPosts(reconciled);
+    } catch (error) {
+      setSavedPostsError(
+        error instanceof Error
+          ? error.message
+          : 'Không thể bỏ lưu bài đăng lúc này. Vui lòng thử lại.',
+      );
+    } finally {
+      setUnsavingPostId(null);
+    }
+  };
+
   const handlePasswordSubmit = async (event:FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (passwordSaving) return;
@@ -298,19 +329,28 @@ export default function ProfilePage() {
                     <>
                       <div className="meta" style={{ marginBottom:10 }}>Đang hiển thị {savedPosts.items.length} / {savedPosts.totalCount} bài bạn đã lưu và hiện còn quyền xem.</div>
                       <div className="mini-grid">
-                        {savedPosts.items.map((item) => (
-                          <button
-                            className="mini-card"
-                            type="button"
-                            key={item.id}
-                            onClick={() => navigateLegacy('detail', { id:item.id })}
-                          >
-                            <b>{item.title}</b>
-                            <span>{item.tradeType} • {item.categoryName}</span>
-                            <small>{formatSavedPrice(item.price)}{item.publishedAt ? ` • ${formatSavedDate(item.publishedAt)}` : ''}</small>
-                            <small>Đã lưu bởi {item.favoriteCount} học sinh</small>
-                          </button>
-                        ))}
+                        {savedPosts.items.map((item) => {
+                          const displayDate = item.publishedAt ?? item.createdAt;
+                          return (
+                            <article className="mini-card" key={item.id}>
+                              <b>{item.title}</b>
+                              <span>{tradeLabel(item.tradeType)} • {item.categoryName}</span>
+                              <small>{formatSavedPrice(item.price)} • {formatSavedDate(displayDate)}</small>
+                              <small>Đã lưu bởi {item.favoriteCount} học sinh</small>
+                              <div className="btn-row" style={{ marginTop:8 }}>
+                                <button className="linkbtn" type="button" onClick={() => navigateLegacy('detail', { id:item.id })}>Xem chi tiết</button>
+                                <button
+                                  className="linkbtn danger"
+                                  type="button"
+                                  disabled={unsavingPostId === item.id}
+                                  onClick={() => void handleUnsavePost(item.id)}
+                                >
+                                  {unsavingPostId === item.id ? 'Đang bỏ lưu…' : 'Bỏ lưu'}
+                                </button>
+                              </div>
+                            </article>
+                          );
+                        })}
                       </div>
                     </>
                   ) : (
