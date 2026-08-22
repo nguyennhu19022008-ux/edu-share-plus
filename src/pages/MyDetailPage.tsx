@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { navigateLegacy } from '../app/legacyRouter';
 import StudentHeader from '../components/student/StudentHeader';
+import type { OwnerContactHistory } from '../features/interactions/interactionModel';
+import { listMyPostContactEvents } from '../features/interactions/interactionService';
 import type { OwnerPostDetail, OwnerPostView } from '../features/my-posts/ownerPostModel';
 import {
   changeMyPostLifecycle,
@@ -28,6 +30,10 @@ function contactLabel(method:OwnerPostView['preferredContactMethod']):string {
   return method === 'email' ? 'Email trong hồ sơ' : 'Số điện thoại trong hồ sơ';
 }
 
+function revealedMethodLabel(method:'email' | 'phone'):string {
+  return method === 'email' ? 'Email' : 'Số điện thoại';
+}
+
 function formatHistoryTime(value:string):string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
@@ -43,6 +49,9 @@ export default function MyDetailPage() {
   const [detail, setDetail] = useState<OwnerPostDetail | null>(null);
   const [media, setMedia] = useState<SignedMedia[]>([]);
   const [mediaError, setMediaError] = useState('');
+  const [interactionHistory, setInteractionHistory] = useState<OwnerContactHistory | null>(null);
+  const [interactionHistoryLoading, setInteractionHistoryLoading] = useState(true);
+  const [interactionHistoryError, setInteractionHistoryError] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
@@ -55,10 +64,14 @@ export default function MyDetailPage() {
     setError('');
     setMedia([]);
     setMediaError('');
+    setInteractionHistory(null);
+    setInteractionHistoryLoading(true);
+    setInteractionHistoryError('');
 
     if (!postId) {
       setDetail(null);
       setLoading(false);
+      setInteractionHistoryLoading(false);
       return () => { cancelled = true; };
     }
 
@@ -79,6 +92,23 @@ export default function MyDetailPage() {
       })
       .catch((reason:unknown) => {
         if (!cancelled) setMediaError(reason instanceof Error ? reason.message : 'Không thể tải ảnh bài đăng.');
+      });
+
+    void listMyPostContactEvents(postId, 20)
+      .then((history) => {
+        if (!cancelled) setInteractionHistory(history);
+      })
+      .catch((reason:unknown) => {
+        if (!cancelled) {
+          setInteractionHistoryError(
+            reason instanceof Error
+              ? reason.message
+              : 'Không thể tải hoạt động liên hệ lúc này.',
+          );
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setInteractionHistoryLoading(false);
       });
 
     return () => {
@@ -187,7 +217,7 @@ export default function MyDetailPage() {
           <div>
             <span className="eyebrow">CHI TIẾT TIN ĐĂNG</span>
             <h1>Chi tiết bài đăng của tôi</h1>
-            <p>Trạng thái, lịch sử và ảnh bên dưới đến trực tiếp từ Supabase theo quyền owner.</p>
+            <p>Trạng thái, lịch sử, ảnh và số liệu tương tác bên dưới đến trực tiếp từ Supabase theo quyền owner.</p>
           </div>
           <div className="btn-row">
             <button className="btn gray" type="button" onClick={() => navigateLegacy('myPosts')}>← Bài của tôi</button>
@@ -266,7 +296,40 @@ export default function MyDetailPage() {
             ) : (
               <div className="state">Bài đăng chưa có ảnh khả dụng.</div>
             )}
-            <div className="state">Lượt lưu, yêu cầu liên hệ, bình luận và báo cáo sẽ được nối ở Phase 5G/5H. Chưa có số liệu giả trong trang này.</div>
+
+            <section className="card">
+              <h3>Hoạt động liên hệ</h3>
+              {interactionHistoryLoading ? (
+                <div className="state">Đang tải số liệu tương tác...</div>
+              ) : interactionHistoryError ? (
+                <div className="state error">{interactionHistoryError}</div>
+              ) : interactionHistory ? (
+                <>
+                  <div className="grid-2">
+                    <p><b>Lượt lưu:</b> {interactionHistory.favoriteCount}</p>
+                    <p><b>Lượt xem liên hệ đã audit:</b> {interactionHistory.totalCount}</p>
+                  </div>
+                  {interactionHistory.items.length ? (
+                    <div className="timeline">
+                      {interactionHistory.items.map((item) => (
+                        <div className="timeline-item" key={item.id}>
+                          <div className="timeline-dot" />
+                          <div className="timeline-body">
+                            <b>{item.requesterName}{item.requesterClassName ? ` • ${item.requesterClassName}` : ''}</b>
+                            <span>Đã xem kênh: {revealedMethodLabel(item.revealedMethod)}</span>
+                            <small>{formatHistoryTime(item.createdAt)}</small>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : <div className="state">Chưa có lượt xem liên hệ được ghi nhận.</div>}
+                </>
+              ) : (
+                <div className="state">Chưa có dữ liệu tương tác khả dụng.</div>
+              )}
+              <p className="form-note">Chỉ hiển thị danh tính đã được backend áp dụng quyền riêng tư. Giá trị liên hệ của người xem không được trả về ở đây.</p>
+              <p className="form-note">Báo cáo và thông báo vẫn thuộc Phase 5H; trang này không hiển thị số liệu giả cho các tính năng đó.</p>
+            </section>
           </aside>
         </section>
 
