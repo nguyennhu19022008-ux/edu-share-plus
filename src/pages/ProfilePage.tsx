@@ -1,6 +1,8 @@
 import { type ChangeEvent, type FormEvent, useEffect, useState } from 'react';
 import { navigateLegacy } from '../app/legacyRouter';
 import StudentHeader from '../components/student/StudentHeader';
+import { listMySavedPosts } from '../features/interactions/interactionService';
+import type { SavedPostList } from '../features/interactions/interactionModel';
 import {
   PrivacyLine,
   ProfileInfoCard,
@@ -21,6 +23,22 @@ import { uploadMyAvatar } from '../features/storage/mediaService';
 
 type MessageState = { tone:'ok' | 'error'; text:string } | null;
 
+function formatSavedPrice(value:number | null):string {
+  if (value === null || value === 0) return 'Miễn phí / Thỏa thuận';
+  return `${new Intl.NumberFormat('vi-VN').format(value)} ₫`;
+}
+
+function formatSavedDate(value:string | null):string {
+  if (!value) return '';
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return '';
+  return new Intl.DateTimeFormat('vi-VN', {
+    day:'2-digit',
+    month:'2-digit',
+    year:'numeric',
+  }).format(date);
+}
+
 export default function ProfilePage() {
   const [profile, setProfile] = useState<StudentProfileView | null>(null);
   const [privacy, setPrivacy] = useState<ProfilePrivacy | null>(null);
@@ -33,12 +51,17 @@ export default function ProfilePage() {
   const [avatarSaving, setAvatarSaving] = useState(false);
   const [avatarMessage, setAvatarMessage] = useState<MessageState>(null);
   const [message, setMessage] = useState<MessageState>(null);
+  const [savedPosts, setSavedPosts] = useState<SavedPostList | null>(null);
+  const [savedPostsLoading, setSavedPostsLoading] = useState(true);
+  const [savedPostsError, setSavedPostsError] = useState('');
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setLoadError('');
     setMessage(null);
+    setSavedPostsLoading(true);
+    setSavedPostsError('');
 
     void getMyProfile()
       .then((next) => {
@@ -58,6 +81,24 @@ export default function ProfilePage() {
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
+      });
+
+    void listMySavedPosts(20, 0)
+      .then((next) => {
+        if (cancelled) return;
+        setSavedPosts(next);
+      })
+      .catch((error:unknown) => {
+        if (cancelled) return;
+        setSavedPosts(null);
+        setSavedPostsError(
+          error instanceof Error
+            ? error.message
+            : 'Không thể tải bài đã lưu lúc này. Vui lòng thử lại.',
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setSavedPostsLoading(false);
       });
 
     return () => {
@@ -216,8 +257,8 @@ export default function ProfilePage() {
                   <div className="profile-card-head"><h3>Cài đặt quyền riêng tư</h3><span className="tag cat">Supabase</span></div>
                   <PrivacyLine name="showName" label="Cho phép hiển thị tên khi tính năng công khai sử dụng cờ này" checked={privacy.showName} help="Tên vẫn chỉ được hiển thị ở những luồng được backend cho phép." onChange={(checked) => setPrivacy((value) => value ? ({ ...value, showName:checked }) : value)} />
                   <PrivacyLine name="showClass" label="Cho phép hiển thị lớp khi tính năng công khai sử dụng cờ này" checked={privacy.showClass} help="Lớp vẫn chịu ràng buộc bởi phạm vi trường và chính sách marketplace." onChange={(checked) => setPrivacy((value) => value ? ({ ...value, showClass:checked }) : value)} />
-                  <PrivacyLine name="showEmail" label="Cho phép dùng email trong luồng liên hệ" checked={privacy.showEmail} help="Email không được công khai trực tiếp ở Phase 5D; contact reveal thật thuộc Phase 5G." onChange={(checked) => setPrivacy((value) => value ? ({ ...value, showEmail:checked }) : value)} />
-                  <PrivacyLine name="showPhone" label="Cho phép dùng số điện thoại trong luồng liên hệ" checked={privacy.showPhone} help="Số điện thoại không được công khai trực tiếp ở Phase 5D; contact reveal thật thuộc Phase 5G." onChange={(checked) => setPrivacy((value) => value ? ({ ...value, showPhone:checked }) : value)} />
+                  <PrivacyLine name="showEmail" label="Cho phép dùng email trong luồng liên hệ" checked={privacy.showEmail} help="Khi bật, email chỉ có thể được trả qua luồng liên hệ được kiểm soát và có audit nếu bài đăng chọn email." onChange={(checked) => setPrivacy((value) => value ? ({ ...value, showEmail:checked }) : value)} />
+                  <PrivacyLine name="showPhone" label="Cho phép dùng số điện thoại trong luồng liên hệ" checked={privacy.showPhone} help="Khi bật, số điện thoại chỉ có thể được trả qua luồng liên hệ được kiểm soát và có audit nếu bài đăng chọn số điện thoại." onChange={(checked) => setPrivacy((value) => value ? ({ ...value, showPhone:checked }) : value)} />
                   <div className="btn-row">
                     <button className="btn primary" type="submit" disabled={privacySaving}>{privacySaving ? 'Đang lưu...' : 'Lưu quyền riêng tư'}</button>
                   </div>
@@ -248,8 +289,33 @@ export default function ProfilePage() {
                 </form>
 
                 <div className="profile-card">
-                  <div className="profile-card-head"><h3>Bài tôi đã lưu</h3><span className="tag">Phase 5G</span></div>
-                  <div className="state">Danh sách yêu thích chưa được hiển thị ở đây để tránh dùng dữ liệu mẫu. Phase 5G sẽ nối nguồn favorites thật từ Supabase.</div>
+                  <div className="profile-card-head"><h3>Bài tôi đã lưu</h3><span className="tag">Supabase</span></div>
+                  {savedPostsLoading ? (
+                    <div className="state">Đang tải bài đã lưu...</div>
+                  ) : savedPostsError ? (
+                    <div className="state error">{savedPostsError}</div>
+                  ) : savedPosts && savedPosts.items.length ? (
+                    <>
+                      <div className="meta" style={{ marginBottom:10 }}>Đang hiển thị {savedPosts.items.length} / {savedPosts.totalCount} bài bạn đã lưu và hiện còn quyền xem.</div>
+                      <div className="mini-grid">
+                        {savedPosts.items.map((item) => (
+                          <button
+                            className="mini-card"
+                            type="button"
+                            key={item.id}
+                            onClick={() => navigateLegacy('detail', { id:item.id })}
+                          >
+                            <b>{item.title}</b>
+                            <span>{item.tradeType} • {item.categoryName}</span>
+                            <small>{formatSavedPrice(item.price)}{item.publishedAt ? ` • ${formatSavedDate(item.publishedAt)}` : ''}</small>
+                            <small>Đã lưu bởi {item.favoriteCount} học sinh</small>
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  ) : (
+                    <div className="state">Bạn chưa lưu bài đăng nào đang khả dụng.</div>
+                  )}
                 </div>
 
                 <form className="profile-card" onSubmit={handlePasswordSubmit}>
@@ -265,7 +331,7 @@ export default function ProfilePage() {
 
                 <div className="profile-card">
                   <div className="profile-card-head"><h3>Thông báo gần đây</h3><span className="tag">Phase 5H</span></div>
-                  <div className="state">Thông báo thật chưa được nối vào hồ sơ. Phase 5H sẽ dùng nguồn notifications trên Supabase; Phase 5D không hiển thị thông báo mẫu.</div>
+                  <div className="state">Thông báo thật chưa được nối vào hồ sơ. Phase 5H sẽ dùng nguồn notifications trên Supabase; hiện không hiển thị thông báo mẫu.</div>
                 </div>
 
                 {message ? <div className={`state ${message.tone}`}>{message.text}</div> : null}
