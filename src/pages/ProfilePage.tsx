@@ -1,4 +1,4 @@
-import { type FormEvent, useEffect, useState } from 'react';
+import { type ChangeEvent, type FormEvent, useEffect, useState } from 'react';
 import { navigateLegacy } from '../app/legacyRouter';
 import StudentHeader from '../components/student/StudentHeader';
 import {
@@ -16,6 +16,8 @@ import type {
   ProfilePrivacy,
   StudentProfileView,
 } from '../features/profile/types';
+import { validateAvatarFile } from '../features/storage/mediaModel';
+import { uploadMyAvatar } from '../features/storage/mediaService';
 
 type MessageState = { tone:'ok' | 'error'; text:string } | null;
 
@@ -27,6 +29,9 @@ export default function ProfilePage() {
   const [reloadKey, setReloadKey] = useState(0);
   const [privacySaving, setPrivacySaving] = useState(false);
   const [passwordSaving, setPasswordSaving] = useState(false);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarSaving, setAvatarSaving] = useState(false);
+  const [avatarMessage, setAvatarMessage] = useState<MessageState>(null);
   const [message, setMessage] = useState<MessageState>(null);
 
   useEffect(() => {
@@ -80,6 +85,55 @@ export default function ProfilePage() {
       });
     } finally {
       setPrivacySaving(false);
+    }
+  };
+
+  const handleAvatarFileChange = (event:ChangeEvent<HTMLInputElement>) => {
+    const file = event.currentTarget.files?.[0] ?? null;
+    setAvatarMessage(null);
+
+    if (!file) {
+      setAvatarFile(null);
+      return;
+    }
+
+    const validationError = validateAvatarFile(file);
+    if (validationError) {
+      event.currentTarget.value = '';
+      setAvatarFile(null);
+      setAvatarMessage({ tone:'error', text:validationError });
+      return;
+    }
+
+    setAvatarFile(file);
+  };
+
+  const handleAvatarSubmit = async (event:FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!avatarFile || avatarSaving) return;
+
+    const avatarForm = event.currentTarget;
+    const validationError = validateAvatarFile(avatarFile);
+    if (validationError) {
+      setAvatarMessage({ tone:'error', text:validationError });
+      return;
+    }
+
+    setAvatarSaving(true);
+    setAvatarMessage(null);
+    try {
+      await uploadMyAvatar(avatarFile);
+      avatarForm.reset();
+      setAvatarFile(null);
+      setAvatarMessage({ tone:'ok', text:'Đã cập nhật ảnh đại diện riêng tư.' });
+      setReloadKey((value) => value + 1);
+    } catch (error) {
+      setAvatarMessage({
+        tone:'error',
+        text:error instanceof Error ? error.message : 'Không thể cập nhật ảnh đại diện lúc này.',
+      });
+    } finally {
+      setAvatarSaving(false);
     }
   };
 
@@ -169,10 +223,29 @@ export default function ProfilePage() {
                   </div>
                 </form>
 
-                <div className="profile-card">
-                  <div className="profile-card-head"><h3>Ảnh hồ sơ</h3><span className="tag">Phase 5F</span></div>
-                  <div className="state">Upload avatar và ảnh nhận diện chưa được mở. Phase 5F sẽ nối private Storage, giới hạn định dạng/kích thước và quyền đọc an toàn; Phase 5D không mô phỏng việc lưu ảnh.</div>
-                </div>
+                <form className="profile-card" onSubmit={handleAvatarSubmit}>
+                  <div className="profile-card-head"><h3>Ảnh đại diện</h3><span className="tag">Private Storage</span></div>
+                  {profile.avatarUrl ? (
+                    <img className="profile-preview has-photo" src={profile.avatarUrl} alt="Ảnh đại diện hiện tại" loading="lazy" decoding="async" />
+                  ) : (
+                    <div className="state">Bạn chưa có ảnh đại diện.</div>
+                  )}
+                  <div className="field">
+                    <label className="req" htmlFor="profile-avatar-file">Chọn ảnh mới</label>
+                    <input
+                      id="profile-avatar-file"
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      onChange={handleAvatarFileChange}
+                    />
+                    <div className="form-note">JPEG, PNG hoặc WebP; tối đa 3 MiB. Ảnh được lưu trong bucket riêng tư và hiển thị bằng URL ký ngắn hạn.</div>
+                  </div>
+                  <div className="btn-row">
+                    <button className="btn primary" type="submit" disabled={!avatarFile || avatarSaving}>{avatarSaving ? 'Đang tải ảnh…' : 'Cập nhật ảnh đại diện'}</button>
+                  </div>
+                  {avatarMessage ? <div className={`state ${avatarMessage.tone}`} role="status">{avatarMessage.text}</div> : null}
+                  <div className="state">Ảnh nhận diện riêng vẫn chưa được mở trong Core V2.</div>
+                </form>
 
                 <div className="profile-card">
                   <div className="profile-card-head"><h3>Bài tôi đã lưu</h3><span className="tag">Phase 5G</span></div>
