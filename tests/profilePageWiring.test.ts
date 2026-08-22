@@ -20,12 +20,15 @@ test('ProfilePage loads and saves profile data through the real Supabase profile
   }
 });
 
-test('ProfilePage keeps deferred image, saved-post and notification features truthful', () => {
+test('ProfilePage uploads only a private avatar while saved posts and notifications remain deferred', () => {
+  assert.match(pageSource, /uploadMyAvatar\s*\(/, 'ProfilePage must upload avatar through the private media service');
+  assert.match(pageSource, /validateAvatarFile\s*\(/, 'ProfilePage must validate avatar files before upload');
+  assert.match(pageSource, /type=['"]file['"]/, 'ProfilePage must expose an avatar file input');
+  assert.match(pageSource, /accept=['"]image\/jpeg,image\/png,image\/webp['"]/, 'avatar input must accept only the approved MIME set');
   assert.doesNotMatch(pageSource, /URL\.createObjectURL\s*\(/, 'ProfilePage must not simulate persisted profile images');
-  assert.doesNotMatch(pageSource, /<ProfileUploadBox/, 'profile uploads remain unavailable until Phase 5F');
+  assert.doesNotMatch(pageSource, /face.*upload|upload.*face|biometric/i, 'Phase 5F must not open a face or biometric upload workflow');
   assert.doesNotMatch(pageSource, /<SavedPostsSection/, 'saved posts remain unavailable until Phase 5G');
   assert.doesNotMatch(pageSource, /<NotificationsSection/, 'notifications remain unavailable until Phase 5H');
-  assert.match(pageSource, /Phase 5F/, 'image deferral must be explicit to users');
   assert.match(pageSource, /Phase 5G/, 'saved-post deferral must be explicit to users');
   assert.match(pageSource, /Phase 5H/, 'notification deferral must be explicit to users');
 });
