@@ -7,6 +7,8 @@ import {
   createMyPost,
   getMyPost,
 } from '../features/my-posts/ownerPostService';
+import { listPostMedia } from '../features/storage/mediaService';
+import type { SignedMedia } from '../features/storage/mediaModel';
 
 function getPostId():string {
   return new URLSearchParams(window.location.search).get('id')?.trim() || '';
@@ -39,6 +41,8 @@ function formatHistoryTime(value:string):string {
 export default function MyDetailPage() {
   const postId = getPostId();
   const [detail, setDetail] = useState<OwnerPostDetail | null>(null);
+  const [media, setMedia] = useState<SignedMedia[]>([]);
+  const [mediaError, setMediaError] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
@@ -49,6 +53,8 @@ export default function MyDetailPage() {
     let cancelled = false;
     setLoading(true);
     setError('');
+    setMedia([]);
+    setMediaError('');
 
     if (!postId) {
       setDetail(null);
@@ -65,6 +71,14 @@ export default function MyDetailPage() {
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
+      });
+
+    void listPostMedia(postId)
+      .then((items) => {
+        if (!cancelled) setMedia(items);
+      })
+      .catch((reason:unknown) => {
+        if (!cancelled) setMediaError(reason instanceof Error ? reason.message : 'Không thể tải ảnh bài đăng.');
       });
 
     return () => {
@@ -173,7 +187,7 @@ export default function MyDetailPage() {
           <div>
             <span className="eyebrow">CHI TIẾT TIN ĐĂNG</span>
             <h1>Chi tiết bài đăng của tôi</h1>
-            <p>Trạng thái và lịch sử bên dưới đến trực tiếp từ dữ liệu owner-scoped trong Supabase.</p>
+            <p>Trạng thái, lịch sử và ảnh bên dưới đến trực tiếp từ Supabase theo quyền owner.</p>
           </div>
           <div className="btn-row">
             <button className="btn gray" type="button" onClick={() => navigateLegacy('myPosts')}>← Bài của tôi</button>
@@ -234,7 +248,24 @@ export default function MyDetailPage() {
           </article>
 
           <aside className="owner-detail-side">
-            <div className="state">Ảnh/media thật sẽ được nối ở Phase 5F (Storage). Phase 5E không hiển thị ảnh giả.</div>
+            {media.length ? (
+              <div className="owner-media-gallery">
+                {media.map((item) => (
+                  <img
+                    className="owner-detail-img"
+                    key={item.fileId}
+                    src={item.signedUrl}
+                    alt={item.altText || `Ảnh bài đăng ${item.sortOrder + 1}`}
+                    loading="lazy"
+                    decoding="async"
+                  />
+                ))}
+              </div>
+            ) : mediaError ? (
+              <div className="state">{mediaError}</div>
+            ) : (
+              <div className="state">Bài đăng chưa có ảnh khả dụng.</div>
+            )}
             <div className="state">Lượt lưu, yêu cầu liên hệ, bình luận và báo cáo sẽ được nối ở Phase 5G/5H. Chưa có số liệu giả trong trang này.</div>
           </aside>
         </section>
