@@ -60,7 +60,7 @@ test('normalizes empty feed response', () => {
   assert.equal(result.totalPages, 0);
 });
 
-test('maps detail response and rejects malformed server responses', () => {
+test('maps detail response including current viewer state and rejects malformed server responses', () => {
   const rawPost = {
     id: 'post-2', schoolId: 'school-1', classId: 'class-1', categoryId: 'category-1',
     title: 'Máy tính cầm tay', description: 'Hoạt động bình thường.', tradeType: 'low_price_sale', price: 120000,
@@ -68,10 +68,20 @@ test('maps detail response and rejects malformed server responses', () => {
     categoryCode: 'small_electronics', categoryName: 'Đồ điện tử nhỏ', ownerName: 'Nguyễn A', className: '11A04',
     hasImage: true, favoriteCount: 5, ownerReputationScore: 8.2, ownerReputationLabel: 'Rất tốt', commentsEnabled: true,
   };
-  const detail = parseMarketplaceDetailResponse({ post: rawPost, similarPosts: [] });
+  const detail = parseMarketplaceDetailResponse({
+    post: rawPost,
+    similarPosts: [],
+    viewerSaved: true,
+    viewerOwnsPost: false,
+  });
   assert.equal(detail.post.tradeType, 'Bán giá rẻ');
   assert.equal(detail.post.price, 120000);
   assert.equal(detail.commentsEnabled, true);
+  assert.equal(detail.viewerSaved, true);
+  assert.equal(detail.viewerOwnsPost, false);
+
   assert.throws(() => parseMarketplaceReadResponse({ items: 'not-an-array' }), /MARKETPLACE_RESPONSE_INVALID/);
   assert.throws(() => parseMarketplaceDetailResponse({ post: null }), /MARKETPLACE_RESPONSE_INVALID/);
+  assert.throws(() => parseMarketplaceDetailResponse({ post: rawPost, similarPosts: [], viewerOwnsPost:false }), /MARKETPLACE_RESPONSE_INVALID/);
+  assert.throws(() => parseMarketplaceDetailResponse({ post: rawPost, similarPosts: [], viewerSaved:true }), /MARKETPLACE_RESPONSE_INVALID/);
 });
