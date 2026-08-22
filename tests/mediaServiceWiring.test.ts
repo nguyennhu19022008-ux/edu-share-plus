@@ -48,3 +48,34 @@ test('media service exposes post media and self-avatar operations through focuse
     );
   }
 });
+
+test('media service signs uploaded objects before committing post or avatar bindings', () => {
+  assert.ok(existsSync(servicePath), 'Phase 5F media service must exist');
+  const source = readFileSync(servicePath, 'utf8');
+
+  const postStart = source.indexOf('export async function uploadPostMedia');
+  const postEnd = source.indexOf('export async function listPostMedia');
+  const postUploadSource = source.slice(postStart, postEnd);
+  const postSignIndex = postUploadSource.indexOf('createPrivateSignedUrl');
+  const postBindIndex = postUploadSource.indexOf("rpc('bind_my_post_media'");
+
+  assert.ok(postStart >= 0 && postEnd > postStart, 'uploadPostMedia source must be discoverable');
+  assert.ok(postSignIndex >= 0 && postBindIndex >= 0, 'post upload must sign and bind media');
+  assert.ok(
+    postSignIndex < postBindIndex,
+    'post upload must obtain signed delivery before bind commit so signing failure cannot be reported after attachment succeeds',
+  );
+
+  const avatarStart = source.indexOf('export async function uploadMyAvatar');
+  const avatarEnd = source.indexOf('export async function getMyAvatarSignedUrl');
+  const avatarUploadSource = source.slice(avatarStart, avatarEnd);
+  const avatarSignIndex = avatarUploadSource.indexOf('createPrivateSignedUrl');
+  const avatarBindIndex = avatarUploadSource.indexOf("rpc('set_my_avatar'");
+
+  assert.ok(avatarStart >= 0 && avatarEnd > avatarStart, 'uploadMyAvatar source must be discoverable');
+  assert.ok(avatarSignIndex >= 0 && avatarBindIndex >= 0, 'avatar upload must sign and bind media');
+  assert.ok(
+    avatarSignIndex < avatarBindIndex,
+    'avatar upload must obtain signed delivery before bind commit so signing failure cannot masquerade as an avatar update failure',
+  );
+});
