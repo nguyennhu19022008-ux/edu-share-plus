@@ -120,6 +120,7 @@ async function createApprovedPost(title, visibility='school') {
   sqlExec(`
     update public.posts
     set moderation_status='approved', lifecycle_status='active', is_hidden=false,
+        completed_at=null, withdrawn_at=null,
         published_at=now(), visibility_scope=${sqlLiteral(visibility)}
     where id='${postId}'::uuid;
   `);
@@ -212,10 +213,10 @@ assert.equal(
 );
 
 for (const [label, stateSql] of [
-  ['hidden', "is_hidden=true, moderation_status='approved', lifecycle_status='active'"],
-  ['completed', "is_hidden=false, moderation_status='approved', lifecycle_status='completed'"],
-  ['withdrawn', "is_hidden=false, moderation_status='approved', lifecycle_status='withdrawn'"],
-  ['rejected', "is_hidden=false, moderation_status='rejected', lifecycle_status='active'"],
+  ['hidden', "is_hidden=true, moderation_status='approved', lifecycle_status='active', completed_at=null, withdrawn_at=null"],
+  ['completed', "is_hidden=false, moderation_status='approved', lifecycle_status='completed', completed_at=now(), withdrawn_at=null"],
+  ['withdrawn', "is_hidden=false, moderation_status='approved', lifecycle_status='withdrawn', completed_at=null, withdrawn_at=now()"],
+  ['rejected', "is_hidden=false, moderation_status='rejected', lifecycle_status='active', completed_at=null, withdrawn_at=null"],
 ]) {
   sqlExec(`update public.posts set ${stateSql} where id='${postId}'::uuid;`);
   const denied = await reader.client.from('favorites').insert({ user_id:reader.userId, post_id:postId });
@@ -224,7 +225,8 @@ for (const [label, stateSql] of [
 
 sqlExec(`
   update public.posts
-  set is_hidden=false, moderation_status='approved', lifecycle_status='active', published_at=now()
+  set is_hidden=false, moderation_status='approved', lifecycle_status='active',
+      completed_at=null, withdrawn_at=null, published_at=now()
   where id='${postId}'::uuid;
 `);
 
