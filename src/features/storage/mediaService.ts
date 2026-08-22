@@ -132,6 +132,15 @@ export async function uploadPostMedia(
     try {
       const reserved = await reserveUploadFinalize('post_media', file, id);
       const sortOrder = existingCount + index;
+
+      let signedUrl:string;
+      try {
+        signedUrl = await createPrivateSignedUrl(reserved.bucket, reserved.path);
+      } catch (error) {
+        await cleanupUnboundObject(reserved);
+        throw error;
+      }
+
       const { data:boundRaw, error:bindError } = await supabase.rpc('bind_my_post_media', {
         p_post_id:id,
         p_file_id:reserved.id,
@@ -144,23 +153,15 @@ export async function uploadPostMedia(
         throw safeUploadError();
       }
 
-      try {
-        const signedUrl = await createPrivateSignedUrl(reserved.bucket, reserved.path);
-        attached.push({
-          fileId:reserved.id,
-          bucket:reserved.bucket,
-          path:reserved.path,
-          altText:null,
-          sortOrder,
-          isPrimary:boundRaw.isPrimary,
-          signedUrl,
-        });
-      } catch (error) {
-        failed.push({
-          name:file.name,
-          message:error instanceof Error ? error.message : safeReadError().message,
-        });
-      }
+      attached.push({
+        fileId:reserved.id,
+        bucket:reserved.bucket,
+        path:reserved.path,
+        altText:null,
+        sortOrder,
+        isPrimary:boundRaw.isPrimary,
+        signedUrl,
+      });
     } catch (error) {
       failed.push({
         name:file.name,
@@ -240,6 +241,15 @@ export async function uploadMyAvatar(file:File):Promise<string> {
 
   const supabase = getSupabaseClient();
   const reserved = await reserveUploadFinalize('avatar', file, null);
+
+  let signedUrl:string;
+  try {
+    signedUrl = await createPrivateSignedUrl(reserved.bucket, reserved.path);
+  } catch (error) {
+    await cleanupUnboundObject(reserved);
+    throw error;
+  }
+
   const { data:boundRaw, error:bindError } = await supabase.rpc('set_my_avatar', { p_file_id:reserved.id });
   if (bindError || !isRecord(boundRaw)) {
     await cleanupUnboundObject(reserved);
@@ -254,7 +264,7 @@ export async function uploadMyAvatar(file:File):Promise<string> {
     await cleanupUnboundObject({ id:previous.fileId, bucket:previous.bucket, path:previous.path });
   }
 
-  return createPrivateSignedUrl(reserved.bucket, reserved.path);
+  return signedUrl;
 }
 
 export async function getMyAvatarSignedUrl(avatarFileId:string | null):Promise<string> {
