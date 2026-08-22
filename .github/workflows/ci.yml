@@ -99,6 +99,9 @@ jobs:
       - name: Phase 5G comments matrix
         run: node tests/commentsBackend.e2e.mjs
 
+      - name: Phase 5G contact matrix
+        run: node tests/contactBackend.e2e.mjs
+
       - name: Stop local Supabase
         if: always()
         run: npx supabase stop --no-backup
