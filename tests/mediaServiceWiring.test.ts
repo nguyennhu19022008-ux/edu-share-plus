@@ -1,0 +1,81 @@
+import assert from 'node:assert/strict';
+import { existsSync, readFileSync } from 'node:fs';
+import test from 'node:test';
+
+const servicePath = 'src/features/storage/mediaService.ts';
+
+test('media service uses the trusted private Storage workflow without public URLs or browser secrets', () => {
+  assert.ok(existsSync(servicePath), 'Phase 5F media service must exist');
+  const source = readFileSync(servicePath, 'utf8');
+
+  for (const rpc of [
+    'reserve_my_file',
+    'finalize_my_file',
+    'bind_my_post_media',
+    'remove_my_post_media',
+    'set_my_avatar',
+    'mark_my_file_deleted',
+  ]) {
+    assert.match(source, new RegExp(`['\"]${rpc}['\"]`), `media service must use ${rpc}`);
+  }
+
+  assert.match(source, /\.storage\.from\s*\(/, 'media service must use the authenticated Supabase Storage client');
+  assert.match(source, /\.upload\s*\(/, 'media service must upload through Supabase Storage');
+  assert.match(source, /upsert\s*:\s*false/, 'media uploads must never overwrite an existing object');
+  assert.match(source, /\.createSignedUrl\s*\(/, 'private media delivery must use short-lived signed URLs');
+  assert.match(source, /createSignedUrl\s*\([^,]+,\s*300\s*\)/s, 'signed URL lifetime must be five minutes');
+  assert.match(source, /\.remove\s*\(/, 'cleanup must use the Storage API instead of SQL mutation');
+
+  assert.doesNotMatch(source, /getPublicUrl/i, 'private media service must not generate public URLs');
+  assert.doesNotMatch(source, /SERVICE_ROLE|service[_-]?role|SUPABASE_SERVICE|sb_secret_/i, 'browser media service must not read or embed service-role/secret credentials');
+});
+
+test('media service exposes post media and self-avatar operations through focused helpers', () => {
+  assert.ok(existsSync(servicePath), 'Phase 5F media service must exist');
+  const source = readFileSync(servicePath, 'utf8');
+
+  for (const exportedFunction of [
+    'uploadPostMedia',
+    'listPostMedia',
+    'removeMyPostMedia',
+    'uploadMyAvatar',
+    'getMyAvatarSignedUrl',
+  ]) {
+    assert.match(
+      source,
+      new RegExp(`export\\s+async\\s+function\\s+${exportedFunction}\\b`),
+      `media service must export ${exportedFunction}`,
+    );
+  }
+});
+
+test('media service signs uploaded objects before committing post or avatar bindings', () => {
+  assert.ok(existsSync(servicePath), 'Phase 5F media service must exist');
+  const source = readFileSync(servicePath, 'utf8');
+
+  const postStart = source.indexOf('export async function uploadPostMedia');
+  const postEnd = source.indexOf('export async function listPostMedia');
+  const postUploadSource = source.slice(postStart, postEnd);
+  const postSignIndex = postUploadSource.indexOf('createPrivateSignedUrl');
+  const postBindIndex = postUploadSource.indexOf("rpc('bind_my_post_media'");
+
+  assert.ok(postStart >= 0 && postEnd > postStart, 'uploadPostMedia source must be discoverable');
+  assert.ok(postSignIndex >= 0 && postBindIndex >= 0, 'post upload must sign and bind media');
+  assert.ok(
+    postSignIndex < postBindIndex,
+    'post upload must obtain signed delivery before bind commit so signing failure cannot be reported after attachment succeeds',
+  );
+
+  const avatarStart = source.indexOf('export async function uploadMyAvatar');
+  const avatarEnd = source.indexOf('export async function getMyAvatarSignedUrl');
+  const avatarUploadSource = source.slice(avatarStart, avatarEnd);
+  const avatarSignIndex = avatarUploadSource.indexOf('createPrivateSignedUrl');
+  const avatarBindIndex = avatarUploadSource.indexOf("rpc('set_my_avatar'");
+
+  assert.ok(avatarStart >= 0 && avatarEnd > avatarStart, 'uploadMyAvatar source must be discoverable');
+  assert.ok(avatarSignIndex >= 0 && avatarBindIndex >= 0, 'avatar upload must sign and bind media');
+  assert.ok(
+    avatarSignIndex < avatarBindIndex,
+    'avatar upload must obtain signed delivery before bind commit so signing failure cannot masquerade as an avatar update failure',
+  );
+});

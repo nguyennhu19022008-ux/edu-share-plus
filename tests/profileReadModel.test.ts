@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
+  parseAvatarFileId,
   parseProfilePrivacyResponse,
   parseStudentProfileView,
 } from '../src/features/profile/profileReadModel';
@@ -53,6 +54,16 @@ test('maps real self profile rows without inventing activity or image URLs', () 
   });
   assert.equal('activity' in view, false);
   assert.equal('detail' in view.reputation, false);
+});
+
+test('parses avatar file identity strictly for private signed URL resolution', () => {
+  assert.equal(parseAvatarFileId(null), null);
+  assert.equal(
+    parseAvatarFileId('22222222-2222-4222-8222-222222222222'),
+    '22222222-2222-4222-8222-222222222222',
+  );
+  assert.throws(() => parseAvatarFileId(42), /PROFILE_RESPONSE_INVALID/);
+  assert.throws(() => parseAvatarFileId('not-a-uuid'), /PROFILE_RESPONSE_INVALID/);
 });
 
 test('uses safe class and last-login fallbacks without fabricating values', () => {

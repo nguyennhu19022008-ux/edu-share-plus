@@ -4,15 +4,21 @@ on:
   push:
     branches:
       - main
-      - 'phase/**'
   pull_request:
+    branches:
+      - main
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
 
 jobs:
   verify:
-    runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: [self-hosted, linux, x64, edu-share-ci]
     timeout-minutes: 10
     steps:
       - name: Checkout
@@ -22,7 +28,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
 
       - name: Install dependencies
         run: npm ci
@@ -34,7 +39,8 @@ jobs:
         run: npm run build
 
   local-auth-e2e:
-    runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: [self-hosted, linux, x64, edu-share-ci]
     timeout-minutes: 30
     steps:
       - name: Checkout
@@ -44,10 +50,12 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Clean stale local Supabase
+        run: npx supabase stop --no-backup || true
 
       - name: Start local Supabase
         run: npx supabase start
@@ -81,6 +89,9 @@ jobs:
 
       - name: Phase 5E owner post read matrix
         run: node tests/ownerPostRead.e2e.mjs
+
+      - name: Phase 5F private storage matrix
+        run: node tests/storageBackend.e2e.mjs
 
       - name: Stop local Supabase
         if: always()

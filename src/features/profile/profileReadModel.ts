@@ -88,6 +88,15 @@ function maskPhone(phone: string): string {
   return `${digits.slice(0, 2)}•• ••• ${digits.slice(-3)}`;
 }
 
+export function parseAvatarFileId(value: unknown): string | null {
+  if (value === null || value === undefined) return null;
+  if (typeof value !== 'string') invalidProfileResponse();
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)) {
+    invalidProfileResponse();
+  }
+  return value;
+}
+
 export function parseProfilePrivacyResponse(value: unknown): ProfilePrivacy {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     invalidProfileResponse();

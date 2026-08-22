@@ -13,6 +13,14 @@ test('profile service reads the signed-in identity and self profile rows through
   assert.doesNotMatch(source, /getProfileBundleLocal|getBundle|profileRepository/, 'profile service must never fall back to local profile mocks');
 });
 
+test('profile service resolves only the self avatar through private signed storage', () => {
+  assert.match(source, /parseAvatarFileId\s*\(\s*profile\.avatar_file_id\s*\)/, 'avatar_file_id must pass through the strict profile parser');
+  assert.match(source, /getMyAvatarSignedUrl\s*\(/, 'profile service must resolve avatar media through the private media service');
+  assert.match(source, /avatarUrl/, 'resolved signed avatar URL must be copied into the transient profile view');
+  assert.doesNotMatch(source, /getMyAvatarSignedUrl\s*\(\s*privateProfile\.face_file_id/, 'face_file_id must not be treated as an avatar or biometric upload flow');
+  assert.doesNotMatch(source, /getPublicUrl|service_role|auth\.admin/, 'profile media reads must not bypass private Storage or use admin secrets');
+});
+
 test('profile privacy mutation uses only the trusted RPC and parses its response', () => {
   assert.match(source, /rpc\(['"]update_my_profile_privacy['"]/, 'privacy writes must use the trusted RPC');
   assert.match(source, /parseProfilePrivacyResponse\s*\(/, 'privacy RPC responses must be strictly parsed');

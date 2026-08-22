@@ -29,8 +29,13 @@ test('AddPostPage collects structured low-price-sale inputs without arbitrary co
   assert.doesNotMatch(source, /contactInfo/);
 });
 
-test('AddPostPage keeps media persistence deferred to Phase 5F and routes with the server id', () => {
-  assert.match(source, /Phase 5F/);
-  assert.doesNotMatch(source, /URL\.createObjectURL|ownerPosts|LOCAL-NEW/);
+test('AddPostPage validates and persists selected post images only after the server post exists', () => {
+  assert.match(source, /validatePostMediaFiles/);
+  assert.match(source, /uploadPostMedia/);
+  assert.match(source, /type=["']file["']/);
+  assert.match(source, /accept=["']image\/jpeg,image\/png,image\/webp["']/);
+  assert.match(source, /\bmultiple\b/);
+  assert.match(source, /uploadPostMedia\s*\(\s*result\.id\s*,\s*selectedFiles\s*\)/);
+  assert.doesNotMatch(source, /URL\.createObjectURL|getPublicUrl|\.storage\.from\s*\(/);
   assert.match(source, /navigateLegacy\(['"]myDetail['"],\s*\{\s*id\s*:\s*result\.id\s*\}\)/);
 });

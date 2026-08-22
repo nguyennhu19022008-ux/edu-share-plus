@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useState } from 'react';
+import { ChangeEvent, FormEvent, useEffect, useState } from 'react';
 import { navigateLegacy } from '../app/legacyRouter';
 import StudentHeader from '../components/student/StudentHeader';
 import type {
@@ -12,6 +12,8 @@ import {
   loadOwnerPostReferenceOptions,
   type OwnerPostReferenceOptions,
 } from '../features/my-posts/ownerPostService';
+import { validatePostMediaFiles } from '../features/storage/mediaModel';
+import { uploadPostMedia } from '../features/storage/mediaService';
 
 const TRADE_OPTIONS:Array<{ value:OwnerTradeType; label:string }> = [
   { value:'lend', label:'Cho mượn' },
@@ -58,6 +60,8 @@ export default function AddPostPage() {
   const [tradeType, setTradeType] = useState<OwnerTradeType>('lend');
   const [visibilityScope, setVisibilityScope] = useState<OwnerVisibilityScope>('inherit');
   const [preferredContactMethod, setPreferredContactMethod] = useState<OwnerContactMethod>('email');
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [mediaError, setMediaError] = useState('');
   const [submitState, setSubmitState] = useState<SubmitState>({ tone:'idle', message:'' });
   const [submitting, setSubmitting] = useState(false);
 
@@ -89,9 +93,28 @@ export default function AddPostPage() {
     };
   }, [optionsVersion]);
 
+  const onMediaChange = (event:ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.currentTarget.files ?? []);
+    const validationError = validatePostMediaFiles(files);
+    if (validationError) {
+      setSelectedFiles([]);
+      setMediaError(validationError);
+      event.currentTarget.value = '';
+      return;
+    }
+    setSelectedFiles(files);
+    setMediaError('');
+  };
+
   const onSubmit = async (event:FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (submitting || !options) return;
+
+    const validationError = validatePostMediaFiles(selectedFiles);
+    if (validationError) {
+      setMediaError(validationError);
+      return;
+    }
 
     const data = new FormData(event.currentTarget);
     const categoryId = String(data.get('categoryId') ?? '').trim();
@@ -123,8 +146,9 @@ export default function AddPostPage() {
     setSubmitting(true);
     setSubmitState({ tone:'idle', message:'' });
 
+    let result;
     try {
-      const result = await createMyPost({
+      result = await createMyPost({
         categoryId,
         title,
         description,
@@ -139,19 +163,31 @@ export default function AddPostPage() {
         brand,
         model,
       });
-
-      setSubmitState({
-        tone:'ok',
-        message:'Đã gửi bài ở trạng thái chờ giáo viên duyệt.',
-      });
-      navigateLegacy('myDetail', { id:result.id });
     } catch (error) {
       setSubmitState({
         tone:'error',
         message:error instanceof Error ? error.message : 'Không thể tạo bài lúc này.',
       });
       setSubmitting(false);
+      return;
     }
+
+    if (selectedFiles.length) {
+      try {
+        const mediaResult = await uploadPostMedia(result.id, selectedFiles);
+        if (mediaResult.failed.length) {
+          window.alert(`Bài đã được tạo, nhưng ${mediaResult.failed.length} ảnh chưa gắn được. Bạn có thể thử lại trong trang chỉnh sửa.`);
+        }
+      } catch {
+        window.alert('Bài đã được tạo, nhưng ảnh chưa thể tải lên. Bạn có thể thử lại trong trang chỉnh sửa.');
+      }
+    }
+
+    setSubmitState({
+      tone:'ok',
+      message:'Đã gửi bài ở trạng thái chờ giáo viên duyệt.',
+    });
+    navigateLegacy('myDetail', { id:result.id });
   };
 
   const canSubmit = Boolean(
@@ -200,13 +236,7 @@ export default function AddPostPage() {
 
               <div className="field">
                 <label className="req" htmlFor="add-trade">Loại bài đăng</label>
-                <select
-                  id="add-trade"
-                  name="tradeType"
-                  required
-                  value={tradeType}
-                  onChange={(event) => setTradeType(event.target.value as OwnerTradeType)}
-                >
+                <select id="add-trade" name="tradeType" required value={tradeType} onChange={(event) => setTradeType(event.target.value as OwnerTradeType)}>
                   {TRADE_OPTIONS.map((item) => <option value={item.value} key={item.value}>{item.label}</option>)}
                 </select>
               </div>
@@ -221,12 +251,7 @@ export default function AddPostPage() {
 
               <div className="field">
                 <label className="req" htmlFor="add-visibility">Phạm vi hiển thị</label>
-                <select
-                  id="add-visibility"
-                  name="visibilityScope"
-                  value={visibilityScope}
-                  onChange={(event) => setVisibilityScope(event.target.value as OwnerVisibilityScope)}
-                >
+                <select id="add-visibility" name="visibilityScope" value={visibilityScope} onChange={(event) => setVisibilityScope(event.target.value as OwnerVisibilityScope)}>
                   {options.visibilityScopes.map((scope) => <option value={scope} key={scope}>{VISIBILITY_LABELS[scope]}</option>)}
                 </select>
               </div>
@@ -234,14 +259,7 @@ export default function AddPostPage() {
 
             <div className="field">
               <label className="req" htmlFor="add-description">Mô tả tình trạng đồ</label>
-              <textarea
-                id="add-description"
-                name="description"
-                required
-                minLength={10}
-                maxLength={5000}
-                placeholder="Nêu tình trạng, số lượng, lớp phù hợp và cách giao nhận mong muốn."
-              />
+              <textarea id="add-description" name="description" required minLength={10} maxLength={5000} placeholder="Nêu tình trạng, số lượng, lớp phù hợp và cách giao nhận mong muốn." />
             </div>
 
             <div className="grid-2">
@@ -252,12 +270,7 @@ export default function AddPostPage() {
               <div className="field">
                 <label className="req" htmlFor="add-contact-method">Kênh liên hệ</label>
                 {options.contactMethods.length ? (
-                  <select
-                    id="add-contact-method"
-                    name="preferredContactMethod"
-                    value={preferredContactMethod}
-                    onChange={(event) => setPreferredContactMethod(event.target.value as OwnerContactMethod)}
-                  >
+                  <select id="add-contact-method" name="preferredContactMethod" value={preferredContactMethod} onChange={(event) => setPreferredContactMethod(event.target.value as OwnerContactMethod)}>
                     {options.contactMethods.map((method) => <option value={method} key={method}>{CONTACT_LABELS[method]}</option>)}
                   </select>
                 ) : (
@@ -272,14 +285,8 @@ export default function AddPostPage() {
                 <h2>Thông tin bán giá rẻ</h2>
                 <p className="form-note">Các trường này tạo dữ liệu có cấu trúc cho Price Estimator ở giai đoạn sau; hiện hệ thống chưa tự định giá.</p>
                 <div className="grid-2">
-                  <div className="field">
-                    <label className="req" htmlFor="add-sale-price">Giá bán mong muốn</label>
-                    <input id="add-sale-price" name="salePrice" inputMode="numeric" required placeholder="Ví dụ: 70000" />
-                  </div>
-                  <div className="field">
-                    <label className="req" htmlFor="add-original-price">Giá mua ban đầu</label>
-                    <input id="add-original-price" name="originalPurchasePrice" inputMode="numeric" required placeholder="Ví dụ: 180000" />
-                  </div>
+                  <div className="field"><label className="req" htmlFor="add-sale-price">Giá bán mong muốn</label><input id="add-sale-price" name="salePrice" inputMode="numeric" required placeholder="Ví dụ: 70000" /></div>
+                  <div className="field"><label className="req" htmlFor="add-original-price">Giá mua ban đầu</label><input id="add-original-price" name="originalPurchasePrice" inputMode="numeric" required placeholder="Ví dụ: 180000" /></div>
                   <div className="field">
                     <label className="req" htmlFor="add-condition">Tình trạng</label>
                     <select id="add-condition" name="conditionGrade" required defaultValue="">
@@ -287,18 +294,9 @@ export default function AddPostPage() {
                       {CONDITION_OPTIONS.map((item) => <option value={item.value} key={item.value}>{item.label}</option>)}
                     </select>
                   </div>
-                  <div className="field">
-                    <label htmlFor="add-purchase-date">Ngày mua gần đúng</label>
-                    <input id="add-purchase-date" name="purchaseDate" type="date" max={new Date().toISOString().slice(0, 10)} />
-                  </div>
-                  <div className="field">
-                    <label htmlFor="add-brand">Thương hiệu</label>
-                    <input id="add-brand" name="brand" maxLength={120} placeholder="Ví dụ: Casio" />
-                  </div>
-                  <div className="field">
-                    <label htmlFor="add-model">Mẫu / model</label>
-                    <input id="add-model" name="model" maxLength={120} placeholder="Ví dụ: fx-580VN X" />
-                  </div>
+                  <div className="field"><label htmlFor="add-purchase-date">Ngày mua gần đúng</label><input id="add-purchase-date" name="purchaseDate" type="date" max={new Date().toISOString().slice(0, 10)} /></div>
+                  <div className="field"><label htmlFor="add-brand">Thương hiệu</label><input id="add-brand" name="brand" maxLength={120} placeholder="Ví dụ: Casio" /></div>
+                  <div className="field"><label htmlFor="add-model">Mẫu / model</label><input id="add-model" name="model" maxLength={120} placeholder="Ví dụ: fx-580VN X" /></div>
                 </div>
                 <label className="field" htmlFor="add-price-estimate">
                   <span>Giá mua ban đầu là số ước tính</span>
@@ -308,14 +306,19 @@ export default function AddPostPage() {
             ) : null}
 
             <div className="field upload-zone">
-              <b>Ảnh minh họa</b>
-              <div className="form-note">
-                Ảnh sẽ được hỗ trợ ở Phase 5F (Storage). Phase 5E chưa tải hoặc lưu ảnh, vì vậy bài tạo ở bước này không tuyên bố có media đã được lưu.
-              </div>
+              <label htmlFor="add-media"><b>Ảnh minh họa</b></label>
+              <input id="add-media" type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={onMediaChange} />
+              <div className="form-note">Tối đa 5 ảnh, mỗi ảnh không quá 5 MiB. Chỉ JPEG, PNG hoặc WebP. Ảnh được lưu trong bucket private.</div>
+              {selectedFiles.length ? (
+                <ul>
+                  {selectedFiles.map((file) => <li key={`${file.name}-${file.size}`}>{file.name} • {(file.size / 1024 / 1024).toFixed(2)} MiB</li>)}
+                </ul>
+              ) : null}
+              {mediaError ? <div className="state error" role="alert">{mediaError}</div> : null}
             </div>
 
             <button type="submit" className="btn primary full" disabled={submitting || !canSubmit}>
-              {submitting ? 'Đang gửi bài…' : 'Gửi bài chờ duyệt'}
+              {submitting ? 'Đang gửi bài và ảnh…' : 'Gửi bài chờ duyệt'}
             </button>
             {submitState.tone !== 'idle' ? (
               <div className={`state ${submitState.tone === 'ok' ? 'ok' : 'error'} add-submit-state`} role="status">{submitState.message}</div>
