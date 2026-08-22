@@ -14,7 +14,8 @@
     "test:media-model": "esbuild tests/mediaModel.test.ts --bundle --platform=node --format=esm --outfile=.media-model-test.mjs && node --test .media-model-test.mjs; status=$?; node -e \"require('node:fs').rmSync('.media-model-test.mjs',{force:true})\"; exit $status",
     "test:media-service-wiring": "esbuild tests/mediaServiceWiring.test.ts --bundle --platform=node --format=esm --outfile=.media-service-wiring-test.mjs && node --test .media-service-wiring-test.mjs; status=$?; node -e \"require('node:fs').rmSync('.media-service-wiring-test.mjs',{force:true})\"; exit $status",
     "test:interaction-model": "esbuild tests/interactionModel.test.ts --bundle --platform=node --format=esm --outfile=.interaction-model-test.mjs && node --test .interaction-model-test.mjs; status=$?; node -e \"require('node:fs').rmSync('.interaction-model-test.mjs',{force:true})\"; exit $status",
-    "test:run": "npm run test:unit && npm run test:storage-contract && npm run test:media-model && npm run test:media-service-wiring && npm run test:interaction-model",
+    "test:interaction-service-wiring": "esbuild tests/interactionServiceWiring.test.ts --bundle --platform=node --format=esm --outfile=.interaction-service-wiring-test.mjs && node --test .interaction-service-wiring-test.mjs; status=$?; node -e \"require('node:fs').rmSync('.interaction-service-wiring-test.mjs',{force:true})\"; exit $status",
+    "test:run": "npm run test:unit && npm run test:storage-contract && npm run test:media-model && npm run test:media-service-wiring && npm run test:interaction-model && npm run test:interaction-service-wiring",
     "preview": "vite preview --host 0.0.0.0 --port 4173"
   },
   "dependencies": {
