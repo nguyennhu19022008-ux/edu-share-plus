@@ -29,6 +29,8 @@ export type MarketplaceDetailResponse = {
   post:MarketplaceReadPost;
   similarPosts:MarketplaceReadPost[];
   commentsEnabled:boolean;
+  viewerSaved:boolean;
+  viewerOwnsPost:boolean;
 };
 
 const UI_TO_DB_TRADE: Record<TradeType, string> = {
@@ -181,5 +183,7 @@ export function parseMarketplaceDetailResponse(raw:unknown):MarketplaceDetailRes
     post:mapPost(raw.post),
     similarPosts:raw.similarPosts.map(mapPost),
     commentsEnabled:raw.post.commentsEnabled === undefined ? true : booleanValue(raw.post.commentsEnabled),
+    viewerSaved:booleanValue(raw.viewerSaved),
+    viewerOwnsPost:booleanValue(raw.viewerOwnsPost),
   };
 }
