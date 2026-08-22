@@ -20,17 +20,21 @@ test('ProfilePage loads and saves profile data through the real Supabase profile
   }
 });
 
-test('ProfilePage uploads only a private avatar while saved posts and notifications remain deferred', () => {
+test('ProfilePage uploads only a private avatar and renders live saved posts while notifications remain deferred', () => {
   assert.match(pageSource, /uploadMyAvatar\s*\(/, 'ProfilePage must upload avatar through the private media service');
   assert.match(pageSource, /validateAvatarFile\s*\(/, 'ProfilePage must validate avatar files before upload');
   assert.match(pageSource, /type=['"]file['"]/, 'ProfilePage must expose an avatar file input');
   assert.match(pageSource, /accept=['"]image\/jpeg,image\/png,image\/webp['"]/, 'avatar input must accept only the approved MIME set');
   assert.doesNotMatch(pageSource, /URL\.createObjectURL\s*\(/, 'ProfilePage must not simulate persisted profile images');
-  assert.doesNotMatch(pageSource, /face.*upload|upload.*face|biometric/i, 'Phase 5F must not open a face or biometric upload workflow');
-  assert.doesNotMatch(pageSource, /<SavedPostsSection/, 'saved posts remain unavailable until Phase 5G');
+  assert.doesNotMatch(pageSource, /face.*upload|upload.*face|biometric/i, 'Phase 5G must not open a face or biometric upload workflow');
+
+  assert.match(pageSource, /listMySavedPosts\s*\(/, 'ProfilePage must load saved posts through the Phase 5G interaction service');
+  assert.match(pageSource, /savedPosts/, 'ProfilePage must keep an explicit live saved-post state');
+  assert.match(pageSource, /navigateLegacy\(['"]detail['"]\s*,\s*\{\s*id\s*:/, 'saved-post cards must navigate to the real marketplace detail route');
+  assert.doesNotMatch(pageSource, /Danh sách yêu thích chưa được hiển thị|Phase 5G sẽ nối nguồn favorites thật/, 'saved-post deferral copy must be removed once Phase 5G is live');
+
   assert.doesNotMatch(pageSource, /<NotificationsSection/, 'notifications remain unavailable until Phase 5H');
-  assert.match(pageSource, /Phase 5G/, 'saved-post deferral must be explicit to users');
-  assert.match(pageSource, /Phase 5H/, 'notification deferral must be explicit to users');
+  assert.match(pageSource, /Phase 5H/, 'notification deferral must remain explicit to users');
 });
 
 test('real profile presentation uses StudentProfileView without fabricated activity or reputation detail', () => {
