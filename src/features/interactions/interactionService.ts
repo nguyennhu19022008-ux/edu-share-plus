@@ -76,9 +76,9 @@ function contactError(error:BackendError | null):Error {
   return new Error('Không thể xem thông tin liên hệ lúc này. Vui lòng thử lại.');
 }
 
-function parseSafely<T>(parser:(raw:unknown) => T, data:unknown, fallback:() => Error):T {
+function parseSafely<T>(parse:() => T, fallback:() => Error):T {
   try {
-    return parser(data);
+    return parse();
   } catch (error) {
     if (error instanceof Error && error.message === 'INTERACTION_RESPONSE_INVALID') {
       throw fallback();
@@ -117,7 +117,7 @@ export async function listMySavedPosts(limit=20, offset=0):Promise<SavedPostList
     p_offset:offset,
   });
   if (error) throw interactionReadError();
-  return parseSafely(parseSavedPostListResponse, data, interactionReadError);
+  return parseSafely(() => parseSavedPostListResponse(data), interactionReadError);
 }
 
 export async function listPostComments(postId:string):Promise<CommentView[]> {
@@ -127,7 +127,7 @@ export async function listPostComments(postId:string):Promise<CommentView[]> {
     p_post_id:normalizedId,
   });
   if (error) throw interactionReadError();
-  return parseSafely(parseCommentListResponse, data, interactionReadError);
+  return parseSafely(() => parseCommentListResponse(data), interactionReadError);
 }
 
 export async function createMyComment(
@@ -146,7 +146,7 @@ export async function createMyComment(
     p_reply_to_comment_id:normalizedReplyId,
   });
   if (error) throw commentError(error);
-  return parseSafely(parseCommentMutationResponse, data, () => commentError(null));
+  return parseSafely(() => parseCommentMutationResponse(data), () => commentError(null));
 }
 
 export async function deleteMyComment(commentId:string):Promise<CommentDeleteResult> {
@@ -156,7 +156,7 @@ export async function deleteMyComment(commentId:string):Promise<CommentDeleteRes
     p_comment_id:normalizedId,
   });
   if (error) throw commentError(error);
-  return parseSafely(parseCommentDeleteResponse, data, () => commentError(null));
+  return parseSafely(() => parseCommentDeleteResponse(data), () => commentError(null));
 }
 
 export async function revealPostContact(postId:string):Promise<ContactRevealView> {
@@ -166,7 +166,7 @@ export async function revealPostContact(postId:string):Promise<ContactRevealView
     p_post_id:normalizedId,
   });
   if (error) throw contactError(error);
-  return parseSafely(parseContactRevealResponse, data, () => contactError(null));
+  return parseSafely(() => parseContactRevealResponse(data), () => contactError(null));
 }
 
 export async function listMyPostContactEvents(
@@ -180,5 +180,5 @@ export async function listMyPostContactEvents(
     p_limit:limit,
   });
   if (error) throw interactionReadError();
-  return parseSafely(parseOwnerContactHistoryResponse, data, interactionReadError);
+  return parseSafely(() => parseOwnerContactHistoryResponse(data), interactionReadError);
 }
