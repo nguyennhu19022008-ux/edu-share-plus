@@ -1,7 +1,14 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { navigateLegacy } from '../app/legacyRouter';
-import { useDataAccess } from '../app/providers/DataAccessProvider';
 import StudentHeader from '../components/student/StudentHeader';
+import {
+  createMyComment,
+  deleteMyComment,
+  listPostComments,
+  revealPostContact,
+  setPostSaved,
+} from '../features/interactions/interactionService';
+import type { CommentView, ContactRevealView } from '../features/interactions/interactionModel';
 import {
   loadMarketplaceDetail,
   readRequestedMarketplacePostId,
@@ -12,22 +19,21 @@ import type { MarketplaceReadPost } from '../features/marketplace/types';
 import { listPostMedia } from '../features/storage/mediaService';
 import type { SignedMedia } from '../features/storage/mediaModel';
 
-type LocalComment = {
-  id: string;
-  parentId?: string;
-  name: string;
-  className?: string;
-  date: string;
-  content: string;
-};
-
-const LOCAL_UI_COMMENTS: LocalComment[] = [
-  { id:'LC-001', name:'Học sinh', className:'11A2', date:'10/08/2026 17:04', content:'Bạn cho mình hỏi đồ dùng này hiện còn không ạ?' },
-  { id:'LC-002', parentId:'LC-001', name:'Học sinh', className:'12A1', date:'10/08/2026 17:12', content:'Hiện bài vẫn đang mở nhé.' },
-];
-
-function formatMoney(value: number) {
+function formatMoney(value:number) {
   return value > 0 ? `${new Intl.NumberFormat('vi-VN').format(value)} ₫` : 'Miễn phí / Thỏa thuận';
+}
+
+function formatCommentTime(value:string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return new Intl.DateTimeFormat('vi-VN', {
+    timeZone:'Asia/Ho_Chi_Minh',
+    day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit',
+  }).format(date);
+}
+
+function errorMessage(reason:unknown, fallback:string) {
+  return reason instanceof Error ? reason.message : fallback;
 }
 
 function DetailState({ state, onRetry }:{ state:MarketplaceDetailLoadState; onRetry:()=>void }) {
@@ -73,23 +79,33 @@ function SimilarPosts({ posts }:{ posts:MarketplaceReadPost[] }) {
 }
 
 export default function DetailPage() {
-  const { profile } = useDataAccess();
   const [requestedPostId] = useState(() => readRequestedMarketplacePostId(window.location.search));
   const [loadState, setLoadState] = useState<MarketplaceDetailLoadState>({ status:'loading' });
   const [retryKey, setRetryKey] = useState(0);
   const [media, setMedia] = useState<SignedMedia[]>([]);
   const [mediaError, setMediaError] = useState('');
   const [saved, setSaved] = useState(false);
-  const [contactVisible, setContactVisible] = useState(false);
-  const [comments, setComments] = useState<LocalComment[]>(LOCAL_UI_COMMENTS);
+  const [favoriteCount, setFavoriteCount] = useState(0);
+  const [viewerOwnsPost, setViewerOwnsPost] = useState(false);
+  const [favoriteBusy, setFavoriteBusy] = useState(false);
+  const [comments, setComments] = useState<CommentView[]>([]);
   const [commentText, setCommentText] = useState('');
+  const [commentBusy, setCommentBusy] = useState(false);
+  const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null);
+  const [commentsLoading, setCommentsLoading] = useState(false);
+  const [contactBusy, setContactBusy] = useState(false);
+  const [revealedContact, setRevealedContact] = useState<ContactRevealView | null>(null);
+  const [interactionError, setInteractionError] = useState('');
 
   useEffect(() => {
     let active = true;
     setLoadState({ status:'loading' });
-    setContactVisible(false);
     setMedia([]);
     setMediaError('');
+    setComments([]);
+    setCommentsLoading(false);
+    setInteractionError('');
+    setRevealedContact(null);
 
     void loadMarketplaceDetail(
       requestedPostId || '',
@@ -99,86 +115,179 @@ export default function DetailPage() {
       setLoadState(state);
       if (state.status !== 'ready') return;
 
-      setSaved(profile.isPostSaved(state.detail.post.id));
-      void listPostMedia(state.detail.post.id)
+      const postId = state.detail.post.id;
+      setSaved(state.detail.viewerSaved);
+      setViewerOwnsPost(state.detail.viewerOwnsPost);
+      setFavoriteCount(state.detail.post.favoriteCount);
+
+      void listPostMedia(postId)
         .then((items) => {
           if (active) setMedia(items);
         })
         .catch((reason:unknown) => {
-          if (active) setMediaError(reason instanceof Error ? reason.message : 'Không thể tải ảnh bài đăng.');
+          if (active) setMediaError(errorMessage(reason, 'Không thể tải ảnh bài đăng.'));
+        });
+
+      setCommentsLoading(true);
+      void listPostComments(postId)
+        .then((items) => {
+          if (active) setComments(items);
+        })
+        .catch((reason:unknown) => {
+          if (active) setInteractionError(errorMessage(reason, 'Không thể tải bình luận.'));
+        })
+        .finally(() => {
+          if (active) setCommentsLoading(false);
         });
     });
 
     return () => {
       active = false;
     };
-  }, [profile, requestedPostId, retryKey]);
+  }, [requestedPostId, retryKey]);
 
   if (loadState.status !== 'ready') {
     return <DetailState state={loadState} onRetry={() => setRetryKey((value) => value + 1)} />;
   }
 
   const { post, similarPosts, commentsEnabled } = loadState.detail;
-  const initiallySaved = profile.wasPostInitiallySaved(post.id);
-  const favoriteCount = Math.max(0, Number(post.favoriteCount || 0) + (saved ? 1 : 0) - (initiallySaved ? 1 : 0));
 
-  const toggleSaved = () => {
-    const next = !saved;
-    profile.setPostSaved(post.id, next);
-    setSaved(next);
+  const refreshComments = async () => {
+    const items = await listPostComments(post.id);
+    setComments(items);
   };
 
-  const sendComment = (event: FormEvent) => {
-    event.preventDefault();
-    if (!commentsEnabled) {
-      window.alert('Bình luận của bài đăng này đang bị tắt.');
-      return;
+  const toggleSaved = async () => {
+    if (favoriteBusy || viewerOwnsPost) return;
+    const previousSaved = saved;
+    const previousCount = favoriteCount;
+    const next = !saved;
+    setFavoriteBusy(true);
+    setInteractionError('');
+    setSaved(next);
+    setFavoriteCount(Math.max(0, previousCount + (next ? 1 : -1)));
+
+    try {
+      await setPostSaved(post.id, next);
+      const freshDetail = await getMarketplacePost(post.id);
+      setSaved(freshDetail.viewerSaved);
+      setViewerOwnsPost(freshDetail.viewerOwnsPost);
+      setFavoriteCount(freshDetail.post.favoriteCount);
+      setLoadState({ status:'ready', detail:freshDetail });
+    } catch (reason:unknown) {
+      setSaved(previousSaved);
+      setFavoriteCount(previousCount);
+      setInteractionError(errorMessage(reason, 'Không thể cập nhật bài đã lưu.'));
+    } finally {
+      setFavoriteBusy(false);
     }
+  };
+
+  const sendComment = async (event:FormEvent) => {
+    event.preventDefault();
+    if (!commentsEnabled || commentBusy) return;
     const content = commentText.trim();
     if (!content) {
-      window.alert('Vui lòng nhập nội dung bình luận.');
+      setInteractionError('Vui lòng nhập nội dung bình luận.');
       return;
     }
-    setComments((current) => [...current, {
-      id:`LOCAL-${Date.now()}`,
-      name:'Học sinh',
-      className:'',
-      date:new Intl.DateTimeFormat('vi-VN', { hour:'2-digit', minute:'2-digit', day:'2-digit', month:'2-digit', year:'numeric' }).format(new Date()),
-      content,
-    }]);
-    setCommentText('');
+
+    setCommentBusy(true);
+    setInteractionError('');
+    try {
+      await createMyComment(post.id, content, null);
+      setCommentText('');
+      await refreshComments();
+    } catch (reason:unknown) {
+      setInteractionError(errorMessage(reason, 'Không thể gửi bình luận.'));
+    } finally {
+      setCommentBusy(false);
+    }
   };
 
-  const replyTo = (comment: LocalComment) => {
-    if (!commentsEnabled) {
-      window.alert('Bình luận của bài đăng này đang bị tắt.');
-      return;
-    }
-    const content = window.prompt(`Trả lời bình luận của ${comment.name || 'người dùng'}:`);
+  const replyTo = async (comment:CommentView) => {
+    if (!commentsEnabled || commentBusy) return;
+    const content = window.prompt(`Trả lời bình luận của ${comment.authorName}:`);
     if (!content?.trim()) return;
-    setComments((current) => [...current, {
-      id:`LOCAL-${Date.now()}`,
-      parentId:comment.id,
-      name:'Học sinh',
-      date:'Vừa xong',
-      content:content.trim(),
-    }]);
+
+    setCommentBusy(true);
+    setInteractionError('');
+    try {
+      await createMyComment(post.id, content.trim(), comment.id);
+      await refreshComments();
+    } catch (reason:unknown) {
+      setInteractionError(errorMessage(reason, 'Không thể gửi phản hồi.'));
+    } finally {
+      setCommentBusy(false);
+    }
+  };
+
+  const removeComment = async (comment:CommentView) => {
+    if (!comment.canDelete || deletingCommentId) return;
+    if (!window.confirm('Xóa bình luận này? Nội dung sẽ không còn hiển thị cho người dùng thông thường.')) return;
+
+    setDeletingCommentId(comment.id);
+    setInteractionError('');
+    try {
+      await deleteMyComment(comment.id);
+      await refreshComments();
+    } catch (reason:unknown) {
+      setInteractionError(errorMessage(reason, 'Không thể xóa bình luận.'));
+    } finally {
+      setDeletingCommentId(null);
+    }
+  };
+
+  const revealContact = async () => {
+    if (contactBusy || viewerOwnsPost) return;
+    setContactBusy(true);
+    setInteractionError('');
+    try {
+      const contact = await revealPostContact(post.id);
+      setRevealedContact(contact);
+    } catch (reason:unknown) {
+      setRevealedContact(null);
+      setInteractionError(errorMessage(reason, 'Không thể xem thông tin liên hệ.'));
+    } finally {
+      setContactBusy(false);
+    }
   };
 
   const reportPost = () => {
     const note = window.prompt('Nhập lý do báo cáo bài đăng:');
     if (note === null) return;
-    window.alert('Báo cáo hiện chỉ là mô phỏng local. Backend thật sẽ được nối ở Phase 5H.');
+    window.alert('Báo cáo hiện chưa gửi lên backend. Workflow báo cáo thật thuộc Phase 5H.');
   };
 
   const reportComment = () => {
     const note = window.prompt('Nhập lý do báo cáo bình luận:');
     if (note === null) return;
-    window.alert('Báo cáo bình luận hiện chỉ là mô phỏng local. Backend thật sẽ được nối ở Phase 5H.');
+    window.alert('Báo cáo bình luận hiện chưa gửi lên backend. Workflow báo cáo thật thuộc Phase 5H.');
   };
 
-  const roots = comments.filter((comment) => !comment.parentId);
+  const roots = comments.filter((comment) => comment.parentId === null);
   const repliesFor = (parentId:string) => comments.filter((comment) => comment.parentId === parentId);
+
+  const renderComment = (comment:CommentView, isReply=false) => (
+    <div className={`comment-item${isReply ? ' comment-reply' : ''}`} key={comment.id}>
+      <div className="title-cell">
+        {comment.authorName}{comment.authorClassName ? ` - ${comment.authorClassName}` : ''}
+      </div>
+      <div className="meta">{formatCommentTime(comment.createdAt)}</div>
+      <div className="desc">{comment.body ?? 'Bình luận đã được tác giả xóa'}</div>
+      <div style={{ marginTop:8 }}>
+        {!comment.isDeleted ? (
+          <button className="linkbtn" type="button" disabled={!commentsEnabled || commentBusy} onClick={() => void replyTo(comment)}>Trả lời</button>
+        ) : null}
+        {comment.canDelete ? (
+          <button className="linkbtn danger" type="button" disabled={deletingCommentId === comment.id} onClick={() => void removeComment(comment)}>
+            {deletingCommentId === comment.id ? 'Đang xóa...' : 'Xóa'}
+          </button>
+        ) : null}
+        {!comment.isDeleted ? <button className="linkbtn danger" type="button" onClick={reportComment}>Báo cáo — Phase 5H</button> : null}
+      </div>
+    </div>
+  );
 
   return (
     <>
@@ -189,6 +298,8 @@ export default function DetailPage() {
           <span>›</span>
           <b>Chi tiết bài đăng</b>
         </div>
+
+        {interactionError ? <div className="state error" style={{ marginBottom:12 }}>{interactionError}</div> : null}
 
         <section>
           <div className="detail-layout">
@@ -205,21 +316,31 @@ export default function DetailPage() {
               </div>
               <div className="desc" style={{ marginTop:14 }}>{post.description || 'Chưa có mô tả.'}</div>
               <div className="privacy-note">
-                <b>Dữ liệu bài đăng đang đọc từ Supabase.</b> Ảnh được phân phối bằng URL ký ngắn hạn; favorite, bình luận, liên hệ và báo cáo vẫn là mô phỏng local cho tới các phase 5G–5H.
+                <b>Dữ liệu bài đăng, lượt lưu, bình luận và luồng liên hệ đang dùng backend thật.</b> Ảnh được phân phối bằng URL ký ngắn hạn. Báo cáo vẫn thuộc Phase 5H.
               </div>
 
-              {contactVisible ? (
+              {revealedContact ? (
                 <div className="contact-card">
-                  <div className="title-cell">Liên hệ — mô phỏng local</div>
-                  <div className="meta">Không có dữ liệu liên hệ thật được trả về ở Phase 5C.</div>
-                  <div>Workflow liên hệ được kiểm tra giao diện local và sẽ nối RPC có audit ở Phase 5G.</div>
+                  <div className="title-cell">{revealedContact.method === 'email' ? 'Email liên hệ' : 'Số điện thoại liên hệ'}</div>
+                  <div>{revealedContact.value}</div>
+                  <div className="meta" style={{ marginTop:6 }}>
+                    Lần xem thông tin liên hệ này được ghi nhận trong nhật ký truy cập để chủ bài có thể kiểm tra.
+                  </div>
                 </div>
               ) : null}
 
               <div className="actions split-actions" style={{ marginTop:16 }}>
-                <button className={`btn ghost save-btn${saved ? ' saved' : ''}`} type="button" onClick={toggleSaved}>{saved ? '♥ Đã lưu' : '♡ Lưu bài'} ({favoriteCount})</button>
-                <button className="btn orange" type="button" onClick={() => setContactVisible(true)}>Xem luồng liên hệ (local)</button>
-                <button className="btn gray" type="button" onClick={reportPost}>Báo cáo (local)</button>
+                {!viewerOwnsPost ? (
+                  <button className={`btn ghost save-btn${saved ? ' saved' : ''}`} type="button" disabled={favoriteBusy} onClick={() => void toggleSaved()}>
+                    {favoriteBusy ? 'Đang cập nhật...' : saved ? '♥ Đã lưu' : '♡ Lưu bài'} ({favoriteCount})
+                  </button>
+                ) : <span className="meta">Bài đăng của bạn • {favoriteCount} lượt lưu</span>}
+                {!viewerOwnsPost ? (
+                  <button className="btn orange" type="button" disabled={contactBusy} onClick={() => void revealContact()}>
+                    {contactBusy ? 'Đang kiểm tra...' : revealedContact ? 'Xem lại liên hệ' : 'Xem liên hệ'}
+                  </button>
+                ) : null}
+                <button className="btn gray" type="button" onClick={reportPost}>Báo cáo — Phase 5H</button>
                 <button className="btn primary" type="button" onClick={() => navigateLegacy('index')}>Quay lại trang chủ</button>
               </div>
             </section>
@@ -251,37 +372,25 @@ export default function DetailPage() {
 
         <section className="panel ecom-section-panel">
           <h2 style={{ margin:'0 0 4px' }}>Bình luận</h2>
-          <div className="meta" style={{ marginBottom:12 }}>Mô phỏng local — chưa đọc/ghi bảng comments ở Phase 5C.</div>
+          <div className="meta" style={{ marginBottom:12 }}>Bình luận được đọc và ghi qua backend với danh tính hiển thị theo thiết lập quyền riêng tư hiện tại.</div>
           {commentsEnabled ? (
-            <form className="comment-box" onSubmit={sendComment}>
-              <textarea value={commentText} onChange={(event) => setCommentText(event.target.value)} placeholder="Nhập bình luận lịch sự, rõ nội dung..." maxLength={1200} />
-              <button className="btn primary" type="submit">Gửi bình luận local</button>
+            <form className="comment-box" onSubmit={(event) => void sendComment(event)}>
+              <textarea
+                value={commentText}
+                onChange={(event) => setCommentText(event.target.value)}
+                placeholder="Nhập bình luận lịch sự, rõ nội dung..."
+                maxLength={2000}
+                disabled={commentBusy}
+              />
+              <button className="btn primary" type="submit" disabled={commentBusy}>{commentBusy ? 'Đang gửi...' : 'Gửi bình luận'}</button>
             </form>
           ) : <div className="state">Bình luận đã bị tắt cho bài đăng này.</div>}
 
           <div className="comment-box" style={{ marginTop:10 }}>
-            {!roots.length ? <div className="state">Chưa có bình luận.</div> : roots.map((comment) => (
+            {commentsLoading ? <div className="state">Đang tải bình luận...</div> : !roots.length ? <div className="state">Chưa có bình luận.</div> : roots.map((comment) => (
               <div key={comment.id}>
-                <div className="comment-item">
-                  <div className="title-cell">{comment.name || 'Người dùng'}{comment.className ? ` - ${comment.className}` : ''}</div>
-                  <div className="meta">{comment.date || ''}</div>
-                  <div className="desc">{comment.content || ''}</div>
-                  <div style={{ marginTop:8 }}>
-                    <button className="linkbtn" type="button" disabled={!commentsEnabled} onClick={() => replyTo(comment)}>Trả lời</button>
-                    <button className="linkbtn danger" type="button" onClick={reportComment}>Báo cáo local</button>
-                  </div>
-                </div>
-                {repliesFor(comment.id).map((reply) => (
-                  <div className="comment-item comment-reply" key={reply.id}>
-                    <div className="title-cell">{reply.name || 'Người dùng'}{reply.className ? ` - ${reply.className}` : ''}</div>
-                    <div className="meta">{reply.date || ''}</div>
-                    <div className="desc">{reply.content || ''}</div>
-                    <div style={{ marginTop:8 }}>
-                      <button className="linkbtn" type="button" disabled={!commentsEnabled} onClick={() => replyTo(reply)}>Trả lời</button>
-                      <button className="linkbtn danger" type="button" onClick={reportComment}>Báo cáo local</button>
-                    </div>
-                  </div>
-                ))}
+                {renderComment(comment)}
+                {repliesFor(comment.id).map((reply) => renderComment(reply, true))}
               </div>
             ))}
           </div>
