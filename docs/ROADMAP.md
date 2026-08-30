@@ -10,7 +10,7 @@
 - **5F Storage — PASS** — private post/profile/evidence buckets, reservation-first immutable uploads, Storage RLS, school-aware file metadata, max-five post media, private signed delivery, self-avatar persistence, cleanup/tombstone lifecycle, hosted migration audit, and the full 5A–5F release matrix are complete. CI now runs on the repository-scoped self-hosted Linux runner under the Free-tier-first policy.
 - **5G Interactions + Contact — PASS** — live favorites boundary, two-level comments with author soft-delete, live saved posts on profile, and audited privacy-gated contact reveal.
 - **5H Notifications + Reports — PASS** — live Supabase notifications query/read and trusted moderation report submission RPCs.
-- **5I Teacher Post Moderation** — PASS when teacher post review/hide/comment-control is atomic, school-scoped, audited, and not mock-backed.
+- **5I Teacher Post Moderation — PASS** — teacher post review/hide/comment-control and report resolution is atomic, school-scoped, audited, and not mock-backed.
 - **5J Remove Runtime Mock** — PASS when no core production route depends on `createMockRepositories()`.
 
 ## Phase 6 — Verified outcomes and research features
