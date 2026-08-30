@@ -10,5 +10,5 @@ private-output/
 migration-private/
 
 *.tsbuildinfo
+.*-test.mjs
 
-*.tsbuildinfo
