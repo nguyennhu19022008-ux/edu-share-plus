@@ -9,14 +9,15 @@
 - **Phase 5C — Marketplace Read: PASS and integrated into `main`.**
 - **Phase 5D — Profile Backend: PASS and integrated into `main`.**
 - **Phase 5E — Create/Edit/My Posts: PASS and integrated into `main`.**
-- **Phase 5F — Storage: PASS candidate on `phase/5f-storage`; hosted deployment/audit and full release matrix are complete, with final documentation-head CI required before integration.**
+- **Phase 5F — Storage: PASS and integrated into `main`.**
+- **Phase 5G — Interactions + Contact: PASS.**
 - **Cost policy: Free-tier-first.** Core functionality must work on Supabase Free Plan and free/open-source infrastructure wherever practical.
 
 ## Runtime architecture
 
-Auth, roster-assisted registration, school membership verification, teacher roster administration, account review, marketplace reads, profile reads/privacy/password changes, owner post create/edit/list/detail/lifecycle, private post media, and self-avatar persistence now use real Supabase.
+Auth, roster-assisted registration, school membership verification, teacher roster administration, account review, marketplace reads, profile reads/privacy/password changes, owner post create/edit/list/detail/lifecycle, private post media, self-avatar persistence, marketplace favorites, two-level comments/replies, audited contact reveal, and live saved posts now use real Supabase.
 
-Favorites, comments/replies, audited contact reveal, reports, notifications, and teacher post-moderation writes remain later-phase work. `src/main.tsx` may still construct `createMockRepositories()` for remaining legacy-backed surfaces; complete removal belongs to Phase 5J.
+Reports, notifications, and teacher post-moderation writes remain later-phase work. `src/main.tsx` may still construct `createMockRepositories()` for remaining legacy-backed surfaces; complete removal belongs to Phase 5J.
 
 ## Phase 5F — private Storage
 
@@ -129,11 +130,10 @@ Core V2 is one multi-school EDU SHARE+ network. Teacher authority remains school
 
 ## Current checkpoint
 
-**Phase 5F — Storage: release gates complete except final documentation-head CI / PR integration.**
+**Phase 5G — Interactions + Contact: PASS.**
 
 ## Known gaps / next-phase work
 
-- Favorites, comments/replies and audited contact reveal remain Phase 5G.
 - Reports/notification workflows remain Phase 5H.
 - Teacher post moderation writes remain Phase 5I.
 - Runtime mock construction remains until Phase 5J removes the final core dependency.
@@ -153,4 +153,4 @@ A checkpoint passes only after build/tests, relevant database/RLS verification, 
 
 ## Next checkpoint
 
-**Phase 5G — Interactions + Contact**
+**Phase 5H — Notifications + Reports**
