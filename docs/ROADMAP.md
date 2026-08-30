@@ -11,7 +11,7 @@
 - **5G Interactions + Contact — PASS** — live favorites boundary, two-level comments with author soft-delete, live saved posts on profile, and audited privacy-gated contact reveal.
 - **5H Notifications + Reports — PASS** — live Supabase notifications query/read and trusted moderation report submission RPCs.
 - **5I Teacher Post Moderation — PASS** — teacher post review/hide/comment-control and report resolution is atomic, school-scoped, audited, and not mock-backed.
-- **5J Remove Runtime Mock** — PASS when no core production route depends on `createMockRepositories()`.
+- **5J Remove Runtime Mock — PASS** — all mock repositories and `DataAccessProvider` completely removed from application runtime. All routes run 100% on real Supabase services.
 
 ## Phase 6 — Verified outcomes and research features
 

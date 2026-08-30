@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { navigateLegacy } from '../app/legacyRouter';
-import { useDataAccess } from '../app/providers/DataAccessProvider';
 import StudentHeader from '../components/student/StudentHeader';
+import { useStudentAuth } from '../features/auth/session/AuthSessionProvider';
+import { listMySavedPosts, setPostSaved } from '../features/interactions/interactionService';
 import { MarketplacePostCard, MarketStatIcon } from '../features/marketplace/components/MarketplaceCards';
 import MarketplacePagination from '../features/marketplace/components/MarketplacePagination';
 import { deriveMarketplacePageState } from '../features/marketplace/marketplacePageModel';
@@ -42,7 +43,7 @@ function getInitialSearchKeyword():string {
 }
 
 export default function MarketplacePage() {
-  const { profile } = useDataAccess();
+  const auth = useStudentAuth();
   const initialSearch = getInitialSearchKeyword();
   const [keyword,setKeyword] = useState(initialSearch);
   const [debouncedKeyword,setDebouncedKeyword] = useState(initialSearch);
@@ -53,9 +54,57 @@ export default function MarketplacePage() {
   const [loading,setLoading] = useState(true);
   const [error,setError] = useState<string | null>(null);
   const [retryKey,setRetryKey] = useState(0);
-  const [savedIds,setSavedIds] = useState<Set<string>>(() => profile.getSavedPostIds());
+  const [savedIds,setSavedIds] = useState<Set<string>>(new Set());
   const filtersRef = useRef<HTMLElement | null>(null);
   const requestSequence = useRef(0);
+
+  useEffect(() => {
+    if (!auth.session) {
+      setSavedIds(new Set());
+      return;
+    }
+    let isMounted = true;
+    listMySavedPosts(100, 0)
+      .then((res) => {
+        if (isMounted) {
+          setSavedIds(new Set(res.items.map((i) => i.id)));
+        }
+      })
+      .catch((err) => {
+        console.warn('Could not load saved posts', err);
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, [auth.session]);
+
+  const handleToggleSaved = async (postId: string) => {
+    if (!auth.session) {
+      navigateLegacy('loginStudent');
+      return;
+    }
+    const isCurrentlySaved = savedIds.has(postId);
+    const nextSaved = !isCurrentlySaved;
+
+    setSavedIds((current) => {
+      const next = new Set(current);
+      if (nextSaved) next.add(postId);
+      else next.delete(postId);
+      return next;
+    });
+
+    try {
+      await setPostSaved(postId, nextSaved);
+    } catch (err) {
+      console.error('Failed to update saved status', err);
+      setSavedIds((current) => {
+        const next = new Set(current);
+        if (isCurrentlySaved) next.add(postId);
+        else next.delete(postId);
+        return next;
+      });
+    }
+  };
 
   useEffect(() => {
     const timer = window.setTimeout(() => setDebouncedKeyword(keyword.trim()), 250);
@@ -197,7 +246,7 @@ export default function MarketplacePage() {
         <section className="post-grid" aria-busy={loading}>
           {loading ? <div className="state">Đang tải bài đăng từ EDU SHARE+...</div> : null}
           {!loading && error ? <div className="state"><p>{error}</p><button className="btn primary" type="button" onClick={()=>setRetryKey((value)=>value+1)}>Thử lại</button></div> : null}
-          {!loading && !error && view.posts.length ? view.posts.map((post)=><MarketplacePostCard key={post.id} post={post} saved={savedIds.has(post.id)} onToggleSaved={()=>{ const nextSaved=profile.togglePostSaved(post.id); setSavedIds((current)=>{ const next=new Set(current); if(nextSaved) next.add(post.id); else next.delete(post.id); return next; }); }}/>) : null}
+          {!loading && !error && view.posts.length ? view.posts.map((post)=><MarketplacePostCard key={post.id} post={post} saved={savedIds.has(post.id)} onToggleSaved={()=>void handleToggleSaved(post.id)}/>) : null}
           {!loading && !error && !view.posts.length ? <div className="state">Chưa có bài đăng phù hợp.</div> : null}
         </section>
 

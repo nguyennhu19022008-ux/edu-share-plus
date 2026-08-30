@@ -13,13 +13,15 @@
 - **Phase 5G — Interactions + Contact: PASS.**
 - **Phase 5H — Notifications + Reports: PASS.**
 - **Phase 5I — Teacher Post Moderation: PASS.**
+- **Phase 5J — Remove Runtime Mock: PASS.**
+- **Phase 5 — Full Core V2 Supabase Migration: 100% PASS.**
 - **Cost policy: Free-tier-first.** Core functionality must work on Supabase Free Plan and free/open-source infrastructure wherever practical.
 
 ## Runtime architecture
 
-Auth, roster-assisted registration, school membership verification, teacher roster administration, account review, marketplace reads, profile reads/privacy/password changes, owner post create/edit/list/detail/lifecycle, private post media, self-avatar persistence, marketplace favorites, two-level comments/replies, audited contact reveal, live saved posts, notifications query/read, moderation report submissions, and teacher post moderation / report resolution now use real Supabase.
+Auth, roster-assisted registration, school membership verification, teacher roster administration, account review, marketplace reads, profile reads/privacy/password changes, owner post create/edit/list/detail/lifecycle, private post media, self-avatar persistence, marketplace favorites, two-level comments/replies, audited contact reveal, live saved posts, notifications query/read, moderation report submissions, and teacher post moderation / report resolution now run 100% on real Supabase backend services.
 
-Runtime mock construction removal belongs to Phase 5J.
+All mock repositories and `DataAccessProvider` have been removed from the application runtime.
 
 ## Phase 5F — private Storage
 
@@ -132,11 +134,12 @@ Core V2 is one multi-school EDU SHARE+ network. Teacher authority remains school
 
 ## Current checkpoint
 
-**Phase 5I — Teacher Post Moderation: PASS.**
+**Phase 5J — Remove Runtime Mock: PASS.**
+**Phase 5 (All 10 Sub-phases 5A–5J) Complete & Verified.**
 
 ## Known gaps / next-phase work
 
-- Runtime mock construction remains until Phase 5J removes the final core dependency.
+- Phase 6 introduces verified outcome tracking, AI price helper / reputation indicators based on real transactions, and production telemetry.
 - Development users created before Phase 5B may require roster reconciliation or explicit teacher verification before protected student access.
 - Performance Advisor findings remain evidence for later query-plan-driven optimization, not automatic schema changes.
 
@@ -153,4 +156,4 @@ A checkpoint passes only after build/tests, relevant database/RLS verification, 
 
 ## Next checkpoint
 
-**Phase 5J — Remove Runtime Mock**
+**Phase 6 — Verified outcomes and research features**
