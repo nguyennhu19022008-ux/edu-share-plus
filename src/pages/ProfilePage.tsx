@@ -3,6 +3,9 @@ import { navigateLegacy } from '../app/legacyRouter';
 import StudentHeader from '../components/student/StudentHeader';
 import { listMySavedPosts, setPostSaved } from '../features/interactions/interactionService';
 import type { SavedPostList, SavedPostView } from '../features/interactions/interactionModel';
+import { formatNotificationDate } from '../features/notifications/notificationModel';
+import { listMyNotifications, markMyNotificationsRead } from '../features/notifications/notificationService';
+import type { AppNotification } from '../features/notifications/types';
 import {
   PrivacyLine,
   ProfileInfoCard,
@@ -61,6 +64,10 @@ export default function ProfilePage() {
   const [savedPostsLoading, setSavedPostsLoading] = useState(true);
   const [savedPostsError, setSavedPostsError] = useState('');
   const [unsavingPostId, setUnsavingPostId] = useState<string | null>(null);
+  const [profileNotifications, setProfileNotifications] = useState<AppNotification[]>([]);
+  const [notificationsLoading, setNotificationsLoading] = useState(true);
+  const [notificationsError, setNotificationsError] = useState('');
+  const [markingNotificationsRead, setMarkingNotificationsRead] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -69,6 +76,8 @@ export default function ProfilePage() {
     setMessage(null);
     setSavedPostsLoading(true);
     setSavedPostsError('');
+    setNotificationsLoading(true);
+    setNotificationsError('');
 
     void getMyProfile()
       .then((next) => {
@@ -106,6 +115,23 @@ export default function ProfilePage() {
       })
       .finally(() => {
         if (!cancelled) setSavedPostsLoading(false);
+      });
+
+    void listMyNotifications({ limit: 10 })
+      .then((res) => {
+        if (cancelled) return;
+        setProfileNotifications(res.items);
+      })
+      .catch((err:unknown) => {
+        if (cancelled) return;
+        setNotificationsError(
+          err instanceof Error
+            ? err.message
+            : 'Không thể tải thông báo lúc này.',
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setNotificationsLoading(false);
       });
 
     return () => {
@@ -247,6 +273,21 @@ export default function ProfilePage() {
     }
   };
 
+  const handleMarkProfileNotificationsRead = async () => {
+    if (markingNotificationsRead) return;
+    setMarkingNotificationsRead(true);
+    try {
+      await markMyNotificationsRead();
+      setProfileNotifications((prev) =>
+        prev.map((n) => ({ ...n, readAt: n.readAt || new Date().toISOString() }))
+      );
+    } catch (err) {
+      console.error('Failed to mark notifications read', err);
+    } finally {
+      setMarkingNotificationsRead(false);
+    }
+  };
+
   const headerUser = profile ? {
     name:profile.name,
     email:profile.email,
@@ -370,8 +411,37 @@ export default function ProfilePage() {
                 </form>
 
                 <div className="profile-card">
-                  <div className="profile-card-head"><h3>Thông báo gần đây</h3><span className="tag">Phase 5H</span></div>
-                  <div className="state">Thông báo thật chưa được nối vào hồ sơ. Phase 5H sẽ dùng nguồn notifications trên Supabase; hiện không hiển thị thông báo mẫu.</div>
+                  <div className="profile-card-head">
+                    <h3>Thông báo gần đây</h3>
+                    <span className="tag">Phase 5H</span>
+                    {profileNotifications.some((n) => !n.readAt) && (
+                      <button
+                        className="btn small gray"
+                        type="button"
+                        disabled={markingNotificationsRead}
+                        onClick={handleMarkProfileNotificationsRead}
+                      >
+                        {markingNotificationsRead ? 'Đang lưu...' : 'Đánh dấu đã đọc'}
+                      </button>
+                    )}
+                  </div>
+                  {notificationsLoading ? (
+                    <div className="state">Đang tải thông báo...</div>
+                  ) : notificationsError ? (
+                    <div className="state error">{notificationsError}</div>
+                  ) : profileNotifications.length ? (
+                    <div className="profile-notifications-list">
+                      {profileNotifications.map((item) => (
+                        <div className={`notify-item${item.readAt ? '' : ' unread'}`} key={item.id}>
+                          <div className="notify-title">{item.title}</div>
+                          <div className="notify-msg">{item.body}</div>
+                          <div className="notify-date">{formatNotificationDate(item.createdAt)}</div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="state">Chưa có thông báo nào.</div>
+                  )}
                 </div>
 
                 {message ? <div className={`state ${message.tone}`}>{message.text}</div> : null}

@@ -16,6 +16,8 @@ import {
 } from '../features/marketplace/marketplaceDetailPageModel';
 import { getMarketplacePost } from '../features/marketplace/marketplaceReadService';
 import type { MarketplaceReadPost } from '../features/marketplace/types';
+import { ReportModal } from '../features/reports/components/ReportModal';
+import type { ReportTargetType } from '../features/reports/types';
 import { listPostMedia } from '../features/storage/mediaService';
 import type { SignedMedia } from '../features/storage/mediaModel';
 
@@ -253,16 +255,34 @@ export default function DetailPage() {
     }
   };
 
-  const reportPost = () => {
-    const note = window.prompt('Nhập lý do báo cáo bài đăng:');
-    if (note === null) return;
-    window.alert('Báo cáo hiện chưa gửi lên backend. Workflow báo cáo thật thuộc Phase 5H.');
+  const [reportModal, setReportModal] = useState<{
+    isOpen: boolean;
+    targetType: ReportTargetType;
+    targetId: string;
+    targetTitle?: string;
+  }>({
+    isOpen: false,
+    targetType: 'post',
+    targetId: '',
+    targetTitle: '',
+  });
+
+  const openReportPost = () => {
+    setReportModal({
+      isOpen: true,
+      targetType: 'post',
+      targetId: post.id,
+      targetTitle: post.title || 'Bài đăng',
+    });
   };
 
-  const reportComment = () => {
-    const note = window.prompt('Nhập lý do báo cáo bình luận:');
-    if (note === null) return;
-    window.alert('Báo cáo bình luận hiện chưa gửi lên backend. Workflow báo cáo thật thuộc Phase 5H.');
+  const openReportComment = (comment: CommentView) => {
+    setReportModal({
+      isOpen: true,
+      targetType: 'comment',
+      targetId: comment.id,
+      targetTitle: `Bình luận của ${comment.authorName}`,
+    });
   };
 
   const roots = comments.filter((comment) => comment.parentId === null);
@@ -284,7 +304,11 @@ export default function DetailPage() {
             {deletingCommentId === comment.id ? 'Đang xóa...' : 'Xóa'}
           </button>
         ) : null}
-        {!comment.isDeleted ? <button className="linkbtn danger" type="button" onClick={reportComment}>Báo cáo — Phase 5H</button> : null}
+        {!comment.isDeleted ? (
+          <button className="linkbtn danger" type="button" onClick={() => openReportComment(comment)}>
+            Báo cáo
+          </button>
+        ) : null}
       </div>
     </div>
   );
@@ -316,7 +340,7 @@ export default function DetailPage() {
               </div>
               <div className="desc" style={{ marginTop:14 }}>{post.description || 'Chưa có mô tả.'}</div>
               <div className="privacy-note">
-                <b>Dữ liệu bài đăng, lượt lưu, bình luận và luồng liên hệ đang dùng backend thật.</b> Ảnh được phân phối bằng URL ký ngắn hạn. Báo cáo vẫn thuộc Phase 5H.
+                <b>Dữ liệu bài đăng, lượt lưu, bình luận và luồng liên hệ đang dùng backend thật.</b> Ảnh được phân phối bằng URL ký ngắn hạn. Báo cáo vi phạm và thông báo được đồng bộ trực tiếp qua Supabase (Phase 5H).
               </div>
 
               {revealedContact ? (
@@ -340,7 +364,7 @@ export default function DetailPage() {
                     {contactBusy ? 'Đang kiểm tra...' : revealedContact ? 'Xem lại liên hệ' : 'Xem liên hệ'}
                   </button>
                 ) : null}
-                <button className="btn gray" type="button" onClick={reportPost}>Báo cáo — Phase 5H</button>
+                <button className="btn gray" type="button" onClick={openReportPost}>Báo cáo</button>
                 <button className="btn primary" type="button" onClick={() => navigateLegacy('index')}>Quay lại trang chủ</button>
               </div>
             </section>
@@ -396,6 +420,15 @@ export default function DetailPage() {
           </div>
         </section>
       </main>
+
+      <ReportModal
+        isOpen={reportModal.isOpen}
+        targetType={reportModal.targetType}
+        targetId={reportModal.targetId}
+        targetTitle={reportModal.targetTitle}
+        onClose={() => setReportModal((m) => ({ ...m, isOpen: false }))}
+      />
+
       <footer className="page-footer">Edu Share+ • Chia sẻ đồ dùng học tập an toàn trong trường</footer>
     </>
   );

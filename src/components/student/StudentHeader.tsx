@@ -1,6 +1,9 @@
-import { useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { navigateLegacy, type LegacyPage } from '../../app/legacyRouter';
 import { useStudentAuth } from '../../features/auth/session/AuthSessionProvider';
+import { formatNotificationDate } from '../../features/notifications/notificationModel';
+import { listMyNotifications, markMyNotificationsRead } from '../../features/notifications/notificationService';
+import type { AppNotification } from '../../features/notifications/types';
 
 interface HeaderNotification { id:string; title:string; message:string; date:string; read:boolean }
 
@@ -14,17 +17,71 @@ export default function StudentHeader({ activePage, user, notifications }: Stude
   const auth = useStudentAuth();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [liveNotifications, setLiveNotifications] = useState<AppNotification[]>([]);
+  const [liveUnreadCount, setLiveUnreadCount] = useState(0);
+  const [markingRead, setMarkingRead] = useState(false);
+
   const authUser = auth.session ? {
     name: auth.profile?.fullName || 'Học sinh',
     email: auth.session.user.email || '',
     avatarUrl: undefined as string | undefined,
   } : null;
   const resolvedUser = user ?? authUser ?? { name:'Học sinh', email:'', avatarUrl:undefined };
-  const resolvedNotifications = notifications ?? [];
+
   const isHomePage = ['index', 'detail', 'add'].includes(activePage);
   const isMyPostsPage = ['myPosts', 'myDetail', 'editPost'].includes(activePage);
   const isProfilePage = activePage === 'profile';
-  const unreadCount = resolvedNotifications.filter((item) => !item.read).length;
+
+  useEffect(() => {
+    if (notifications) return;
+    if (!auth.session) {
+      setLiveNotifications([]);
+      setLiveUnreadCount(0);
+      return;
+    }
+
+    let isMounted = true;
+    listMyNotifications({ limit: 10 })
+      .then((res) => {
+        if (isMounted) {
+          setLiveNotifications(res.items);
+          setLiveUnreadCount(res.unreadCount);
+        }
+      })
+      .catch((err) => {
+        console.warn('Could not load notifications', err);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [auth.session, notifications]);
+
+  const handleMarkAllRead = async () => {
+    if (markingRead) return;
+    setMarkingRead(true);
+    try {
+      await markMyNotificationsRead();
+      setLiveUnreadCount(0);
+      setLiveNotifications((prev) =>
+        prev.map((n) => ({ ...n, readAt: n.readAt || new Date().toISOString() }))
+      );
+    } catch (err) {
+      console.error('Failed to mark notifications read', err);
+    } finally {
+      setMarkingRead(false);
+    }
+  };
+
+  const resolvedNotifications: HeaderNotification[] = notifications ?? (liveNotifications.length ? liveNotifications.map((n) => ({
+    id: n.id,
+    title: n.title,
+    message: n.body,
+    date: formatNotificationDate(n.createdAt),
+    read: Boolean(n.readAt),
+  })) : notifications ?? []);
+
+  const unreadCount = notifications ? notifications.filter((item) => !item.read).length : liveUnreadCount;
 
   const handleLogout = async () => {
     if (loggingOut) return;
@@ -74,7 +131,20 @@ export default function StudentHeader({ activePage, user, notifications }: Stude
       <aside className="notify-panel" style={{ display: notificationsOpen ? 'block' : 'none' }} aria-hidden={!notificationsOpen}>
         <div className="notify-head">
           <span>Thông báo</span>
-          <button type="button" onClick={() => setNotificationsOpen(false)}>Đóng</button>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            {unreadCount > 0 && (
+              <button
+                type="button"
+                className="btn-mark-read"
+                style={{ background: 'none', border: 'none', color: '#1a73e8', cursor: 'pointer', fontSize: '12px' }}
+                onClick={handleMarkAllRead}
+                disabled={markingRead}
+              >
+                {markingRead ? 'Đang lưu...' : 'Đọc tất cả'}
+              </button>
+            )}
+            <button type="button" onClick={() => setNotificationsOpen(false)}>Đóng</button>
+          </div>
         </div>
         <div className="notify-list">
           {resolvedNotifications.length ? resolvedNotifications.slice(0,8).map((item) => (
@@ -83,7 +153,7 @@ export default function StudentHeader({ activePage, user, notifications }: Stude
               <div className="notify-msg">{item.message}</div>
               <div className="notify-date">{item.date}</div>
             </div>
-          )) : <div className="notify-empty">Chưa có thông báo thật. Phase 5H sẽ nối nguồn thông báo Supabase.</div>}
+          )) : <div className="notify-empty">Chưa có thông báo mới.</div>}
         </div>
       </aside>
     </>
