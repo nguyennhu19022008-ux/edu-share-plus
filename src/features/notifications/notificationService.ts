@@ -1,4 +1,4 @@
-﻿import { getSupabaseClient } from '../../lib/supabase/client';
+import { getSupabaseClient } from '../../lib/supabase/client';
 import { parseNotificationListResult } from './notificationModel';
 import type { NotificationListResult } from './types';
 
@@ -16,6 +16,9 @@ export async function listMyNotifications(params?: {
   });
 
   if (error) {
+    if (error.message.includes('schema cache') || error.message.includes('not find the function')) {
+      return { items: [], unreadCount: 0, totalCount: 0, limit, offset };
+    }
     throw new Error(error.message || 'Không thể tải danh sách thông báo.');
   }
 
@@ -30,6 +33,9 @@ export async function markMyNotificationsRead(notificationIds?: string[]): Promi
   });
 
   if (error) {
+    if (error.message.includes('schema cache') || error.message.includes('not find the function')) {
+      return 0;
+    }
     throw new Error(error.message || 'Không thể đánh dấu đã đọc thông báo.');
   }
 

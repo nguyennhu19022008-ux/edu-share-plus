@@ -1,4 +1,4 @@
-﻿import { getSupabaseClient } from '../../lib/supabase/client';
+import { getSupabaseClient } from '../../lib/supabase/client';
 import {
   parseStaffPostsQueueResult,
   parseStaffReportsQueueResult,
@@ -24,6 +24,10 @@ export async function listStaffPostsQueue(params?: {
   });
 
   if (error) {
+    if (error.message.includes('schema cache') || error.message.includes('not find the function')) {
+      console.warn('list_staff_posts_queue RPC not present yet on Supabase:', error.message);
+      return { items: [], totalCount: 0, limit: params?.limit ?? 20, offset: params?.offset ?? 0 };
+    }
     throw new Error(error.message || 'Không thể tải hàng chờ kiểm duyệt bài đăng.');
   }
 
@@ -73,6 +77,10 @@ export async function listStaffReportsQueue(params?: {
   });
 
   if (error) {
+    if (error.message.includes('schema cache') || error.message.includes('not find the function')) {
+      console.warn('list_staff_reports_queue RPC not present yet on Supabase:', error.message);
+      return { items: [], totalCount: 0, limit: params?.limit ?? 20, offset: params?.offset ?? 0 };
+    }
     throw new Error(error.message || 'Không thể tải danh sách báo cáo vi phạm.');
   }
 
