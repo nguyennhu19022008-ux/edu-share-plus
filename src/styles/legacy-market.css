@@ -426,6 +426,26 @@
 /* =========================================================
    INDEX V4.1 — Product cards aligned with the marketplace mockup
    ========================================================= */
+@keyframes heartPop {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.35) rotate(-8deg); }
+  80% { transform: scale(0.95) rotate(4deg); }
+  100% { transform: scale(1) rotate(0); }
+}
+
+@keyframes bellRing {
+  0% { transform: rotate(0); }
+  20% { transform: rotate(14deg); }
+  40% { transform: rotate(-14deg); }
+  60% { transform: rotate(9deg); }
+  80% { transform: rotate(-5deg); }
+  100% { transform: rotate(0); }
+}
+
+.notify-btn:hover svg, .student-notify-btn:hover svg {
+  animation: bellRing .6s ease;
+}
+
 .market-page .post-grid {
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 18px;
@@ -438,13 +458,17 @@
   border: 1px solid #e1e5eb;
   border-radius: 14px;
   box-shadow: 0 3px 13px rgba(15, 23, 42, .055);
-  transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+  transition: transform .25s cubic-bezier(.34,1.56,.64,1), border-color .22s ease, box-shadow .22s ease;
 }
 
 .market-page .market-product-card:hover {
-  transform: translateY(-3px);
-  border-color: #f6a38f;
-  box-shadow: 0 12px 28px rgba(15, 23, 42, .10);
+  transform: translateY(-6px);
+  border-color: #fca5a5;
+  box-shadow: 0 16px 36px rgba(238, 77, 45, .12);
+}
+
+.btn-favorite.active svg, .fav-btn.active svg, .market-fav-btn.active svg {
+  animation: heartPop .38s cubic-bezier(.175,.885,.32,1.275);
 }
 
 .market-product-card-body {
