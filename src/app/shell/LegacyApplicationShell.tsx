@@ -8,6 +8,8 @@ import {
   isStudentProtectedPage,
 } from '../../features/auth/session/routeAccess';
 import { inspectExistingStaffSession } from '../../features/auth/staff/staffAuthService';
+import { registerServiceWorker } from '../../features/pwa/pwaServiceWorker';
+import { PwaInstallBanner } from '../../features/pwa/PwaInstallBanner';
 import RouteErrorBoundary from './RouteErrorBoundary';
 import RouteLoading from './RouteLoading';
 
@@ -191,11 +193,18 @@ export default function LegacyApplicationShell() {
     return <RouteLoading />;
   }
 
+  useEffect(() => {
+    registerServiceWorker();
+  }, []);
+
   return (
-    <RouteErrorBoundary key={`boundary:${route.routeKey}`}>
-      <Suspense fallback={<RouteLoading />}>
-        <RouteComponent key={route.routeKey} />
-      </Suspense>
-    </RouteErrorBoundary>
+    <>
+      <RouteErrorBoundary key={`boundary:${route.routeKey}`}>
+        <Suspense fallback={<RouteLoading />}>
+          <RouteComponent key={route.routeKey} />
+        </Suspense>
+      </RouteErrorBoundary>
+      <PwaInstallBanner />
+    </>
   );
 }

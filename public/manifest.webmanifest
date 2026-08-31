@@ -1,0 +1,31 @@
+{
+  "name": "EDU SHARE+ • Sàn Đồ Dùng Học Tập Học Đường",
+  "short_name": "EduShare+",
+  "description": "Nền tảng chia sẻ và tái sử dụng đồ dùng học tập thông minh cho học sinh THPT",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#ee4d2d",
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "categories": [
+    "education",
+    "lifestyle",
+    "productivity"
+  ],
+  "lang": "vi-VN",
+  "dir": "ltr"
+}
