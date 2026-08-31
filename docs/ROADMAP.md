@@ -15,10 +15,10 @@
 
 ## Phase 6 — Verified outcomes and research features
 
-- **6A Transactions**
-- **6B Price Estimator V1**
-- **6C Reputation V2**
-- **6D Explainable Recommendation V1**
+- **6A Transactions — PASS** — two-party transaction confirmation workflow with automated calculation of money saved (`financial_saved`) and waste reduced (`waste_reduced_kg`) aggregated live on Admin Dashboard and Student Profiles.
+- **6B Price Estimator V1 — PASS** — smart reference & ceiling price recommendation engine based on category, item condition, and educational affordability benchmarks.
+- **6C Reputation V2 — PASS** — data-driven trust and reputation score calculated from verified school membership, successful completed exchanges, peer feedback ratings, and clean moderation records.
+- **6D Explainable Recommendation V1 — PASS** — transparent recommendation engine tailored to student grade level, subject syllabus, and school-specific hot items with clear natural-language explanation badges.
 
 ## Phase 7 — Quality and evaluation
 

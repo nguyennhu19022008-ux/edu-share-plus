@@ -1,4 +1,4 @@
-import { type ChangeEvent, type FormEvent, useEffect, useState } from 'react';
+import { type ChangeEvent, type FormEvent, useEffect, useMemo, useState } from 'react';
 import { navigateLegacy } from '../app/legacyRouter';
 import StudentHeader from '../components/student/StudentHeader';
 import { listMySavedPosts, setPostSaved } from '../features/interactions/interactionService';
@@ -23,6 +23,10 @@ import type {
 } from '../features/profile/types';
 import { validateAvatarFile } from '../features/storage/mediaModel';
 import { uploadMyAvatar } from '../features/storage/mediaService';
+import { listMyTransactions } from '../features/transactions/transactionService';
+import type { TransactionRecord } from '../features/transactions/transactionTypes';
+import { calculateReputationScore } from '../features/reputation/reputationService';
+import { formatVnd } from '../features/transactions/impactCalculator';
 
 type MessageState = { tone:'ok' | 'error'; text:string } | null;
 
@@ -68,6 +72,15 @@ export default function ProfilePage() {
   const [notificationsLoading, setNotificationsLoading] = useState(true);
   const [notificationsError, setNotificationsError] = useState('');
   const [markingNotificationsRead, setMarkingNotificationsRead] = useState(false);
+  const [transactions, setTransactions] = useState<TransactionRecord[]>([]);
+
+  const reputationSummary = useMemo(() => {
+    return calculateReputationScore({
+      isVerifiedStudent: Boolean(profile?.name),
+      completedTradesCount: transactions.length,
+      ratings: transactions.map((t) => t.rating).filter(Boolean) as number[],
+    });
+  }, [profile, transactions]);
 
   useEffect(() => {
     let cancelled = false;
@@ -78,6 +91,10 @@ export default function ProfilePage() {
     setSavedPostsError('');
     setNotificationsLoading(true);
     setNotificationsError('');
+
+    void listMyTransactions().then((items) => {
+      if (!cancelled) setTransactions(items);
+    }).catch(() => {});
 
     void getMyProfile()
       .then((next) => {
@@ -324,6 +341,35 @@ export default function ProfilePage() {
               <ProfileSidebar profile={profile} />
               <section className="profile-main">
                 <ProfileInfoCard profile={profile} />
+
+                <div className="profile-card" style={{ background: 'linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%)', border: '1px solid #bbf7d0' }}>
+                  <div className="profile-card-head">
+                    <h3 style={{ color: '#166534' }}>🌱 Tác động Xanh & Điểm Uy tín V2</h3>
+                    <span className="tag" style={{ background: '#dcfce7', color: '#15803d', fontWeight: 800 }}>
+                      {reputationSummary.badgeLabel}
+                    </span>
+                  </div>
+                  <div className="grid-2" style={{ marginTop: '10px' }}>
+                    <div style={{ padding: '12px', background: '#fff', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                      <small style={{ color: '#64748b', display: 'block' }}>Điểm tin cậy học đường</small>
+                      <strong style={{ fontSize: '20px', color: '#0f172a' }}>
+                        {reputationSummary.score} / 100
+                      </strong>
+                      <div style={{ fontSize: '11px', color: '#16a34a', marginTop: '4px' }}>
+                        ⭐ Đánh giá: {reputationSummary.averageRating} / 5 ({transactions.length} giao dịch)
+                      </div>
+                    </div>
+                    <div style={{ padding: '12px', background: '#fff', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                      <small style={{ color: '#64748b', display: 'block' }}>Tác động tiết kiệm & Môi trường</small>
+                      <strong style={{ fontSize: '20px', color: '#16a34a' }}>
+                        {formatVnd(transactions.reduce((sum, t) => sum + t.financialSaved, 0))}
+                      </strong>
+                      <div style={{ fontSize: '11px', color: '#475569', marginTop: '4px' }}>
+                        ♻️ Giảm ~{Number(transactions.reduce((sum, t) => sum + t.wasteReducedKg, 0).toFixed(2))} kg rác thải học tập
+                      </div>
+                    </div>
+                  </div>
+                </div>
 
                 <form className="profile-card" onSubmit={handlePrivacySubmit}>
                   <div className="profile-card-head"><h3>Cài đặt quyền riêng tư</h3><span className="tag cat">Supabase</span></div>

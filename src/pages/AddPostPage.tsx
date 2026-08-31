@@ -1,4 +1,4 @@
-import { ChangeEvent, FormEvent, useEffect, useState } from 'react';
+import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from 'react';
 import { navigateLegacy } from '../app/legacyRouter';
 import StudentHeader from '../components/student/StudentHeader';
 import type {
@@ -14,6 +14,7 @@ import {
 } from '../features/my-posts/ownerPostService';
 import { validatePostMediaFiles } from '../features/storage/mediaModel';
 import { uploadPostMedia } from '../features/storage/mediaService';
+import { estimateSchoolPrice, validateInputPrice, type ItemCondition } from '../features/estimator/priceEstimator';
 
 const TRADE_OPTIONS:Array<{ value:OwnerTradeType; label:string }> = [
   { value:'lend', label:'Cho mượn' },
@@ -64,8 +65,26 @@ export default function AddPostPage() {
   const [mediaError, setMediaError] = useState('');
   const [submitState, setSubmitState] = useState<SubmitState>({ tone:'idle', message:'' });
   const [submitting, setSubmitting] = useState(false);
+  const [formCategoryName, setFormCategoryName] = useState('');
+  const [formCondition, setFormCondition] = useState<ItemCondition>('good_85');
+  const [formSalePrice, setFormSalePrice] = useState<number>(0);
+  const [formOriginalPrice, setFormOriginalPrice] = useState<number>(0);
 
   const isSale = tradeType === 'low_price_sale';
+
+  const priceEstimate = useMemo(() => {
+    if (!isSale) return null;
+    return estimateSchoolPrice({
+      categoryCodeOrName: formCategoryName,
+      condition: formCondition,
+      originalRetailPrice: formOriginalPrice > 0 ? formOriginalPrice : undefined,
+    });
+  }, [isSale, formCategoryName, formCondition, formOriginalPrice]);
+
+  const priceValidation = useMemo(() => {
+    if (!priceEstimate || formSalePrice <= 0) return { isValid: true };
+    return validateInputPrice(formSalePrice, priceEstimate);
+  }, [priceEstimate, formSalePrice]);
 
   useEffect(() => {
     let cancelled = false;
@@ -243,7 +262,16 @@ export default function AddPostPage() {
 
               <div className="field">
                 <label className="req" htmlFor="add-category">Danh mục</label>
-                <select id="add-category" name="categoryId" required defaultValue="">
+                <select
+                  id="add-category"
+                  name="categoryId"
+                  required
+                  defaultValue=""
+                  onChange={(event) => {
+                    const found = options.categories.find((c) => c.id === event.target.value);
+                    if (found) setFormCategoryName(found.name);
+                  }}
+                >
                   <option value="" disabled>Chọn danh mục</option>
                   {options.categories.map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}
                 </select>
@@ -282,15 +310,60 @@ export default function AddPostPage() {
 
             {isSale ? (
               <section className="card ecom-form-card">
-                <h2>Thông tin bán giá rẻ</h2>
-                <p className="form-note">Các trường này tạo dữ liệu có cấu trúc cho Price Estimator ở giai đoạn sau; hiện hệ thống chưa tự định giá.</p>
+                <h2>Thông tin bán giá rẻ & Trợ lý Định giá</h2>
+                <p className="form-note">Hệ thống gợi ý mức giá trần và khoảng giá hỗ trợ học sinh nhằm tránh đội giá đồ dùng học đường.</p>
+
+                {priceEstimate ? (
+                  <div style={{ margin: '12px 0 16px', padding: '14px 16px', borderRadius: '12px', background: '#eff6ff', border: '1px solid #bfdbfe' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                      <strong style={{ color: '#1e40af', fontSize: '13px' }}>💡 Trợ lý Định giá Thông minh (Price Estimator V1):</strong>
+                      <span style={{ fontSize: '11.5px', fontWeight: 800, color: '#1d4ed8' }}>
+                        Trần tối đa: {new Intl.NumberFormat('vi-VN').format(priceEstimate.maxCeilingPrice)}đ
+                      </span>
+                    </div>
+                    <p style={{ margin: 0, fontSize: '12px', color: '#1e3a8a', lineHeight: 1.5 }}>
+                      {priceEstimate.adviceMessage}
+                    </p>
+                    {!priceValidation.isValid && (
+                      <div style={{ marginTop: '10px', padding: '8px 12px', borderRadius: '8px', background: '#fffbeb', border: '1px solid #fde68a', color: '#b45309', fontSize: '11.5px', fontWeight: 600 }}>
+                        ⚠️ {priceValidation.warningMessage}
+                      </div>
+                    )}
+                  </div>
+                ) : null}
+
                 <div className="grid-2">
-                  <div className="field"><label className="req" htmlFor="add-sale-price">Giá bán mong muốn</label><input id="add-sale-price" name="salePrice" inputMode="numeric" required placeholder="Ví dụ: 70000" /></div>
-                  <div className="field"><label className="req" htmlFor="add-original-price">Giá mua ban đầu</label><input id="add-original-price" name="originalPurchasePrice" inputMode="numeric" required placeholder="Ví dụ: 180000" /></div>
+                  <div className="field">
+                    <label className="req" htmlFor="add-sale-price">Giá bán mong muốn</label>
+                    <input
+                      id="add-sale-price"
+                      name="salePrice"
+                      inputMode="numeric"
+                      required
+                      placeholder="Ví dụ: 70000"
+                      onChange={(e) => setFormSalePrice(Number(e.target.value) || 0)}
+                    />
+                  </div>
+                  <div className="field">
+                    <label className="req" htmlFor="add-original-price">Giá mua ban đầu (Giá gốc)</label>
+                    <input
+                      id="add-original-price"
+                      name="originalPurchasePrice"
+                      inputMode="numeric"
+                      required
+                      placeholder="Ví dụ: 180000"
+                      onChange={(e) => setFormOriginalPrice(Number(e.target.value) || 0)}
+                    />
+                  </div>
                   <div className="field">
                     <label className="req" htmlFor="add-condition">Tình trạng</label>
-                    <select id="add-condition" name="conditionGrade" required defaultValue="">
-                      <option value="" disabled>Chọn tình trạng</option>
+                    <select
+                      id="add-condition"
+                      name="conditionGrade"
+                      required
+                      defaultValue="good_85"
+                      onChange={(e) => setFormCondition(e.target.value as ItemCondition)}
+                    >
                       {CONDITION_OPTIONS.map((item) => <option value={item.value} key={item.value}>{item.label}</option>)}
                     </select>
                   </div>

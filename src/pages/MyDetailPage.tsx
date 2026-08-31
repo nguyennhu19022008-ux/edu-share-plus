@@ -11,6 +11,8 @@ import {
 } from '../features/my-posts/ownerPostService';
 import { listPostMedia } from '../features/storage/mediaService';
 import type { SignedMedia } from '../features/storage/mediaModel';
+import { completePostTransaction } from '../features/transactions/transactionService';
+import { estimateItemImpact, formatVnd } from '../features/transactions/impactCalculator';
 
 function getPostId():string {
   return new URLSearchParams(window.location.search).get('id')?.trim() || '';
@@ -57,6 +59,10 @@ export default function MyDetailPage() {
   const [notice, setNotice] = useState('');
   const [reloadVersion, setReloadVersion] = useState(0);
   const [busy, setBusy] = useState(false);
+  const [completeModalOpen, setCompleteModalOpen] = useState(false);
+  const [rating, setRating] = useState(5);
+  const [feedback, setFeedback] = useState('');
+  const [selectedRequesterId, setSelectedRequesterId] = useState('');
 
   useEffect(() => {
     let cancelled = false;
@@ -135,6 +141,26 @@ export default function MyDetailPage() {
       reload(action === 'complete' ? 'Đã đánh dấu bài hoàn tất.' : 'Đã thu hồi bài đăng.');
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Không thể cập nhật vòng đời bài đăng.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const submitCompleteTransaction = async () => {
+    if (!detail || busy) return;
+    setBusy(true);
+    setError('');
+    try {
+      const res = await completePostTransaction({
+        postId: detail.post.id,
+        requesterId: selectedRequesterId || null,
+        rating,
+        feedback: feedback.trim() || null,
+      });
+      setCompleteModalOpen(false);
+      reload(`🎉 Tuyệt vời! Giao dịch đã hoàn tất thành công. Ước tính bạn đã giúp tiết kiệm ${formatVnd(res.financialSaved)} và giảm ${res.wasteReducedKg} kg rác thải học đường!`);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Không thể hoàn tất giao dịch.');
     } finally {
       setBusy(false);
     }
@@ -271,7 +297,16 @@ export default function MyDetailPage() {
               <div className="actions owner-actions">
                 {canEdit ? <button className="btn primary" type="button" onClick={() => navigateLegacy('editPost', { id:post.id })}>Chỉnh sửa & gửi duyệt lại</button> : null}
                 <button className="btn" type="button" disabled={busy} onClick={() => void duplicatePost()}>Nhân bản bài</button>
-                {canComplete ? <button className="btn green" type="button" disabled={busy} onClick={() => void runLifecycle('complete')}>Đánh dấu hoàn tất</button> : null}
+                {canComplete ? (
+                  <button
+                    className="btn green"
+                    type="button"
+                    disabled={busy}
+                    onClick={() => setCompleteModalOpen(true)}
+                  >
+                    ✨ Hoàn tất & Ghi nhận tác động
+                  </button>
+                ) : null}
                 {canEdit ? <button className="btn danger" type="button" disabled={busy} onClick={() => void runLifecycle('withdraw')}>Thu hồi bài</button> : null}
               </div>
             </div>
@@ -350,6 +385,87 @@ export default function MyDetailPage() {
           </div>
         </section>
       </main>
+
+      {completeModalOpen ? (
+        <div className="modal-backdrop admin-modal-backdrop" onClick={() => setCompleteModalOpen(false)}>
+          <div className="modal-card admin-post-modal" style={{ maxWidth: '520px' }} onClick={(e) => e.stopPropagation()}>
+            <div className="admin-modal-header">
+              <div>
+                <span className="admin-modal-label">XÁC THỰC KẾT QUẢ GIAO DỊCH (PHASE 6A)</span>
+                <h2>Hoàn tất giao dịch đồ dùng</h2>
+              </div>
+              <button type="button" className="admin-modal-close" onClick={() => setCompleteModalOpen(false)}>×</button>
+            </div>
+            <div className="admin-modal-body" style={{ display: 'grid', gap: '14px' }}>
+              <div style={{ padding: '14px', borderRadius: '12px', background: '#f0fdf4', border: '1px solid #bbf7d0', color: '#166534' }}>
+                <strong style={{ display: 'block', fontSize: '14px', marginBottom: '6px' }}>🌱 Tác động Xanh dự kiến:</strong>
+                <p style={{ margin: 0, fontSize: '13px', lineHeight: 1.5 }}>
+                  {estimateItemImpact(post.categoryName, post.tradeType, post.salePrice ?? 0).description}
+                </p>
+              </div>
+
+              {interactionHistory?.items.length ? (
+                <label style={{ display: 'grid', gap: '6px', fontSize: '12px', fontWeight: 600 }}>
+                  <span>Bạn đã trao đổi với học sinh nào? (Tùy chọn)</span>
+                  <select
+                    value={selectedRequesterId}
+                    onChange={(e) => setSelectedRequesterId(e.target.value)}
+                    style={{ height: '38px', borderRadius: '8px', border: '1px solid #d1d5db', padding: '0 10px' }}
+                  >
+                    <option value="">-- Chọn bạn học đã liên hệ --</option>
+                    {interactionHistory.items.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.requesterName} {item.requesterClassName ? `(${item.requesterClassName})` : ''}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : null}
+
+              <label style={{ display: 'grid', gap: '6px', fontSize: '12px', fontWeight: 600 }}>
+                <span>Đánh giá trải nghiệm trao đổi:</span>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  {[5, 4, 3, 2, 1].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      onClick={() => setRating(star)}
+                      style={{
+                        padding: '6px 12px',
+                        borderRadius: '8px',
+                        border: rating === star ? '2px solid #ea580c' : '1px solid #d1d5db',
+                        background: rating === star ? '#fff7ed' : '#fff',
+                        fontWeight: rating === star ? 800 : 500,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {star} ⭐
+                    </button>
+                  ))}
+                </div>
+              </label>
+
+              <label style={{ display: 'grid', gap: '6px', fontSize: '12px', fontWeight: 600 }}>
+                <span>Ghi chú / cảm ơn (Tùy chọn):</span>
+                <textarea
+                  rows={2}
+                  placeholder="Ví dụ: Bạn nhận đồ rất đúng giờ và lịch sự..."
+                  value={feedback}
+                  onChange={(e) => setFeedback(e.target.value)}
+                  style={{ borderRadius: '8px', border: '1px solid #d1d5db', padding: '8px', fontSize: '12px' }}
+                />
+              </label>
+            </div>
+            <div className="admin-modal-footer">
+              <button type="button" className="btn gray" onClick={() => setCompleteModalOpen(false)} disabled={busy}>Hủy</button>
+              <button type="button" className="btn primary" onClick={() => void submitCompleteTransaction()} disabled={busy}>
+                {busy ? 'Đang lưu...' : 'Xác nhận hoàn tất & Cộng điểm uy tín'}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       <footer className="page-footer">Edu Share+ • Chia sẻ đồ dùng học tập an toàn trong trường</footer>
     </>
   );
