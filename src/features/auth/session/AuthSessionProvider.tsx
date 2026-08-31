@@ -38,6 +38,15 @@ export function AuthSessionProvider({ children }: PropsWithChildren) {
 
   useEffect(() => {
     const supabase = getSupabaseClient();
+
+    // Fetch initial session immediately on load
+    void supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session);
+      setAuthReady(true);
+    }).catch(() => {
+      setAuthReady(true);
+    });
+
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, nextSession) => {
