@@ -49,6 +49,10 @@ export default function LegacyApplicationShell() {
     };
   }, [definition]);
 
+  useEffect(() => {
+    registerServiceWorker();
+  }, []);
+
   // Re-check database authorization whenever the browser returns to the app.
   // This catches role/status changes that are not encoded in the current JWT.
   useEffect(() => {
@@ -192,10 +196,6 @@ export default function LegacyApplicationShell() {
   if (protectedStaffRoute && staffGate !== 'allowed') {
     return <RouteLoading />;
   }
-
-  useEffect(() => {
-    registerServiceWorker();
-  }, []);
 
   return (
     <>
