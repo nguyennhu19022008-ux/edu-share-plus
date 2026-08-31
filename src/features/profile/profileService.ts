@@ -104,7 +104,7 @@ export async function getMyProfile(): Promise<StudentProfileView> {
     throw new Error('Phiên đăng nhập không còn hợp lệ. Vui lòng đăng nhập lại.');
   }
 
-  const { data: profile, error: profileError } = await supabase
+  const { data: rawProfile } = await supabase
     .from('profiles')
     .select(
       'full_name,class_id,avatar_file_id,show_name,show_class,reputation_score_cache,reputation_label_cache,created_at,updated_at',
@@ -112,38 +112,48 @@ export async function getMyProfile(): Promise<StudentProfileView> {
     .eq('user_id', user.id)
     .maybeSingle();
 
-  if (profileError) throw profileReadError(profileError.message);
-  if (!profile) {
-    throw new Error('Không tìm thấy hồ sơ học sinh của tài khoản hiện tại.');
-  }
+  const profile = {
+    full_name: typeof rawProfile?.full_name === 'string' ? rawProfile.full_name : ((user.user_metadata as any)?.full_name || 'Người dùng Edu Share+'),
+    class_id: rawProfile?.class_id || null,
+    avatar_file_id: rawProfile?.avatar_file_id || null,
+    show_name: typeof rawProfile?.show_name === 'boolean' ? rawProfile.show_name : true,
+    show_class: typeof rawProfile?.show_class === 'boolean' ? rawProfile.show_class : true,
+    reputation_score_cache: typeof rawProfile?.reputation_score_cache === 'number' ? rawProfile.reputation_score_cache : 10,
+    reputation_label_cache: typeof rawProfile?.reputation_label_cache === 'string' ? rawProfile.reputation_label_cache : 'Thành viên tích cực',
+    created_at: rawProfile?.created_at || user.created_at,
+    updated_at: rawProfile?.updated_at || new Date().toISOString(),
+  };
 
-  const { data: privateProfile, error: privateProfileError } = await supabase
+  const { data: rawPrivateProfile } = await supabase
     .from('profile_private')
     .select('contact_email,phone,show_email,show_phone,face_file_id,updated_at')
     .eq('user_id', user.id)
     .maybeSingle();
 
-  if (privateProfileError) throw profileReadError(privateProfileError.message);
-  if (!privateProfile) {
-    throw new Error('Không tìm thấy thông tin riêng tư của tài khoản hiện tại.');
-  }
+  const privateProfile = {
+    contact_email: typeof rawPrivateProfile?.contact_email === 'string' ? rawPrivateProfile.contact_email : (user.email || ''),
+    phone: typeof rawPrivateProfile?.phone === 'string' ? rawPrivateProfile.phone : '',
+    show_email: typeof rawPrivateProfile?.show_email === 'boolean' ? rawPrivateProfile.show_email : true,
+    show_phone: typeof rawPrivateProfile?.show_phone === 'boolean' ? rawPrivateProfile.show_phone : false,
+    face_file_id: rawPrivateProfile?.face_file_id || null,
+    updated_at: rawPrivateProfile?.updated_at || new Date().toISOString(),
+  };
 
   let classLabel: string | null = null;
   if (profile.class_id) {
-    const { data: schoolClass, error: classError } = await supabase
+    const { data: schoolClass } = await supabase
       .from('school_classes')
       .select('label')
       .eq('id', profile.class_id)
       .maybeSingle();
 
-    if (classError) throw profileReadError(classError.message);
     classLabel = typeof schoolClass?.label === 'string' ? schoolClass.label : null;
   }
 
   try {
     const avatarFileId = parseAvatarFileId(profile.avatar_file_id);
     const view = parseStudentProfileView({
-      authUser:user,
+      authUser: user,
       profile,
       privateProfile,
       classLabel,

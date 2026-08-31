@@ -125,25 +125,25 @@ export function parseStudentProfileView(input: StudentProfileViewInput): Student
     name,
     className,
     phone,
-    phoneMasked:maskPhone(phone),
-    avatarUrl:'',
-    faceUrl:'',
-    createdAt:formatVietnamTimestamp(input.authUser.created_at ?? input.profile.created_at, 'Chưa có dữ liệu'),
-    lastLogin:formatVietnamTimestamp(input.authUser.last_sign_in_at, 'Chưa có dữ liệu'),
-    updatedAt:formatVietnamTimestamp(
+    phoneMasked: maskPhone(phone),
+    avatarUrl: '',
+    faceUrl: '',
+    createdAt: formatVietnamTimestamp(input.authUser.created_at ?? input.profile.created_at, 'Chưa có dữ liệu'),
+    lastLogin: formatVietnamTimestamp(input.authUser.last_sign_in_at, 'Chưa có dữ liệu'),
+    updatedAt: formatVietnamTimestamp(
       input.profile.updated_at ?? input.privateProfile.updated_at,
       'Chưa có dữ liệu',
     ),
-    passwordStatus:'Được quản lý bởi Supabase Auth',
-    privacy:{
-      showName:requireBoolean(input.profile.show_name),
-      showClass:requireBoolean(input.profile.show_class),
-      showEmail:requireBoolean(input.privateProfile.show_email),
-      showPhone:requireBoolean(input.privateProfile.show_phone),
+    passwordStatus: 'Được quản lý bởi Supabase Auth',
+    privacy: {
+      showName: requireBoolean(input.profile.show_name),
+      showClass: requireBoolean(input.profile.show_class),
+      showEmail: requireBoolean(input.privateProfile.show_email),
+      showPhone: requireBoolean(input.privateProfile.show_phone),
     },
-    reputation:{
-      score:requireFiniteNumber(input.profile.reputation_score_cache),
-      label:reputationLabel,
+    reputation: {
+      score: requireFiniteNumber(input.profile.reputation_score_cache),
+      label: reputationLabel,
     },
   };
 }
