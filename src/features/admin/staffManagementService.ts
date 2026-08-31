@@ -126,7 +126,12 @@ export async function assignSchoolStaff(input: AssignStaffInput): Promise<Assign
 
         await supabase
           .from('profiles')
-          .update({ school_id: schoolId, status: 'active', updated_at: new Date().toISOString() })
+          .update({
+            school_id: schoolId,
+            status: 'active',
+            account_status: 'approved',
+            updated_at: new Date().toISOString(),
+          })
           .eq('user_id', targetUserId);
 
         return {

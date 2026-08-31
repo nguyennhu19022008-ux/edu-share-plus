@@ -111,42 +111,60 @@ export async function getCurrentStaffContext(): Promise<StaffContext> {
 
   const userEmail = (user.email || '').toLowerCase().trim();
 
-  // 1. Check if assigned in user_roles
-  const { data: userRole } = await supabase
+  // 1. Check if user already has a staff role in user_roles
+  const { data: userRoles } = await supabase
     .from('user_roles')
     .select('role_id, school_id, roles(code, name)')
-    .eq('user_id', user.id)
-    .limit(1);
+    .eq('user_id', user.id);
 
-  // 2. Check if pre-authorized in roster_entries
+  let existingStaffRole: any = (userRoles || []).find((r: any) =>
+    ['teacher_moderator', 'school_admin', 'admin', 'system_admin'].includes(
+      Array.isArray(r.roles) ? r.roles[0]?.code : r.roles?.code
+    )
+  );
+
+  // 2. Check if pre-authorized in roster_entries or if email was assigned in admin panel
   const { data: rosterMatch } = await supabase
     .from('roster_entries')
     .select('school_id')
     .eq('normalized_email', userEmail)
-    .eq('grade_level', 'staff')
     .limit(1);
 
-  const isStaff = Boolean((userRole && userRole.length > 0) || (rosterMatch && rosterMatch.length > 0));
+  const isPreauthorizedStaff = Boolean(rosterMatch && rosterMatch.length > 0);
 
-  if (isStaff) {
-    let targetSchoolId = (userRole?.[0] as any)?.school_id || rosterMatch?.[0]?.school_id;
+  if (existingStaffRole || isPreauthorizedStaff) {
+    let targetSchoolId =
+      existingStaffRole?.school_id ||
+      rosterMatch?.[0]?.school_id;
 
     if (!targetSchoolId) {
       const { data: firstSchool } = await supabase.from('schools').select('id').limit(1).single();
       targetSchoolId = firstSchool?.id;
     }
 
-    if ((!userRole || userRole.length === 0) && targetSchoolId) {
-      const { data: roleData } = await supabase.from('roles').select('id').eq('code', 'teacher_moderator').single();
+    // If user didn't have staff role in user_roles (e.g. only had 'student'), grant teacher_moderator role!
+    if (!existingStaffRole && targetSchoolId) {
+      const { data: roleData } = await supabase
+        .from('roles')
+        .select('id, name, code')
+        .eq('code', 'teacher_moderator')
+        .single();
+
       if (roleData?.id) {
         await supabase.from('user_roles').upsert({
           user_id: user.id,
           role_id: roleData.id,
           school_id: targetSchoolId,
         });
+        existingStaffRole = {
+          role_id: roleData.id,
+          school_id: targetSchoolId,
+          roles: { code: 'teacher_moderator', name: 'Giáo viên kiểm duyệt' },
+        };
       }
     }
 
+    // Update profile to approved status
     await supabase
       .from('profiles')
       .update({
@@ -165,11 +183,16 @@ export async function getCurrentStaffContext(): Promise<StaffContext> {
 
     const { data: prof } = await supabase.from('profiles').select('full_name').eq('user_id', user.id).single();
 
+    const resolvedRoleCode =
+      (Array.isArray(existingStaffRole?.roles)
+        ? existingStaffRole?.roles[0]?.code
+        : existingStaffRole?.roles?.code) || 'teacher_moderator';
+
     return {
       userId: user.id,
       fullName: prof?.full_name || (user.user_metadata as any)?.full_name || 'Giáo viên',
       accountStatus: 'approved',
-      roleCode: ((userRole?.[0] as any)?.roles?.code as StaffRoleCode) || 'teacher_moderator',
+      roleCode: resolvedRoleCode as StaffRoleCode,
       schoolId: targetSchoolId || null,
       schoolName,
     };
