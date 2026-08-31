@@ -96,11 +96,90 @@ export async function getCurrentStaffContext(): Promise<StaffContext> {
 
   const { data, error } = await supabase.rpc('get_current_staff_context');
 
+  if (!error && data) {
+    try {
+      return parseStaffContext(data);
+    } catch {
+      // fallback to self-healing check
+    }
+  }
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    throw new Error('Phiên đăng nhập giáo viên không hợp lệ hoặc đã hết hạn.');
+  }
+
+  const userEmail = (user.email || '').toLowerCase().trim();
+
+  // 1. Check if assigned in user_roles
+  const { data: userRole } = await supabase
+    .from('user_roles')
+    .select('role_id, school_id, roles(code, name)')
+    .eq('user_id', user.id)
+    .limit(1);
+
+  // 2. Check if pre-authorized in roster_entries
+  const { data: rosterMatch } = await supabase
+    .from('roster_entries')
+    .select('school_id')
+    .eq('normalized_email', userEmail)
+    .eq('grade_level', 'staff')
+    .limit(1);
+
+  const isStaff = Boolean((userRole && userRole.length > 0) || (rosterMatch && rosterMatch.length > 0));
+
+  if (isStaff) {
+    let targetSchoolId = (userRole?.[0] as any)?.school_id || rosterMatch?.[0]?.school_id;
+
+    if (!targetSchoolId) {
+      const { data: firstSchool } = await supabase.from('schools').select('id').limit(1).single();
+      targetSchoolId = firstSchool?.id;
+    }
+
+    if ((!userRole || userRole.length === 0) && targetSchoolId) {
+      const { data: roleData } = await supabase.from('roles').select('id').eq('code', 'teacher_moderator').single();
+      if (roleData?.id) {
+        await supabase.from('user_roles').upsert({
+          user_id: user.id,
+          role_id: roleData.id,
+          school_id: targetSchoolId,
+        });
+      }
+    }
+
+    await supabase
+      .from('profiles')
+      .update({
+        account_status: 'approved',
+        status: 'active',
+        school_id: targetSchoolId,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('user_id', user.id);
+
+    let schoolName = 'Trường THPT';
+    if (targetSchoolId) {
+      const { data: schoolRow } = await supabase.from('schools').select('name').eq('id', targetSchoolId).single();
+      if (schoolRow?.name) schoolName = schoolRow.name;
+    }
+
+    const { data: prof } = await supabase.from('profiles').select('full_name').eq('user_id', user.id).single();
+
+    return {
+      userId: user.id,
+      fullName: prof?.full_name || (user.user_metadata as any)?.full_name || 'Giáo viên',
+      accountStatus: 'approved',
+      roleCode: ((userRole?.[0] as any)?.roles?.code as StaffRoleCode) || 'teacher_moderator',
+      schoolId: targetSchoolId || null,
+      schoolName,
+    };
+  }
+
   if (error) {
     throw new Error(normalizeStaffContextError(error.message));
   }
 
-  return parseStaffContext(data);
+  throw new Error('Tài khoản này không có quyền giáo viên hoặc quản trị viên.');
 }
 
 export async function inspectExistingStaffSession(): Promise<ExistingStaffSessionState> {
