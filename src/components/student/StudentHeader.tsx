@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { navigateLegacy, type LegacyPage } from '../../app/legacyRouter';
 import { useStudentAuth } from '../../features/auth/session/AuthSessionProvider';
 import { formatNotificationDate } from '../../features/notifications/notificationModel';
@@ -136,7 +136,7 @@ export default function StudentHeader({ activePage, user, notifications }: Stude
               <button
                 type="button"
                 className="btn-mark-read"
-                style={{ background: 'none', border: 'none', color: '#1a73e8', cursor: 'pointer', fontSize: '12px' }}
+                style={{ background: 'none', border: 'none', color: '#ee4d2d', cursor: 'pointer', fontSize: '12px', fontWeight: 650 }}
                 onClick={handleMarkAllRead}
                 disabled={markingRead}
               >

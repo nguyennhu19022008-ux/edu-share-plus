@@ -109,7 +109,7 @@ export function AdminOverview({ summary, posts, onRebuildStats }:{ summary:Admin
           <div className="admin-rate-footer"><span>Cập nhật: {summary.updatedAt}</span><button type="button" onClick={onRebuildStats}>Đồng bộ thống kê</button></div>
         </article>
         <article className="admin-insight-card admin-rank-card">
-          <div className="admin-card-heading"><h2>Top danh mục & lớp học tích cực</h2><span className="admin-card-note">LOCAL_UI_SAMPLE</span></div>
+          <div className="admin-card-heading"><h2>Top danh mục & lớp học tích cực</h2><span className="admin-card-note">Theo trường</span></div>
           <div className="admin-rank-grid">
             <AdminRankColumn title="Danh mục nhiều nhất" items={summary.topCategories} />
             <AdminRankColumn title="Top lớp sôi nổi" items={summary.topClasses} isClass />
