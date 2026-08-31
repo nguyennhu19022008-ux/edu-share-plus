@@ -14,6 +14,7 @@ import {
   ShieldIcon,
 } from './AdminVisuals';
 import RosterManagementPanel from './RosterManagementPanel';
+import { StaffManagementPanel } from './StaffManagementPanel';
 
 function money(value:number):string {
   if (!value) return '';
@@ -118,6 +119,7 @@ export function AdminOverview({ summary, posts, onRebuildStats }:{ summary:Admin
       </section>
       <AdminCharts posts={posts} />
       <RosterManagementPanel />
+      <StaffManagementPanel />
     </>
   );
 }
