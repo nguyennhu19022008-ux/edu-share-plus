@@ -17,12 +17,35 @@ export const LEGACY_PAGES = [
 
 export type LegacyPage = (typeof LEGACY_PAGES)[number];
 
+const PAGE_ALIASES: Record<string, LegacyPage> = {
+  login: 'loginStudent',
+  loginStudent: 'loginStudent',
+  signin: 'loginStudent',
+  register: 'registerStudent',
+  registerStudent: 'registerStudent',
+  signup: 'registerStudent',
+  loginTeacher: 'loginGV',
+  loginGV: 'loginGV',
+  teacherLogin: 'loginGV',
+  market: 'index',
+  marketplace: 'index',
+  index: 'index',
+  posts: 'myPosts',
+  myPosts: 'myPosts',
+  detail: 'detail',
+  myDetail: 'myDetail',
+  add: 'add',
+  edit: 'editPost',
+  editPost: 'editPost',
+  profile: 'profile',
+  admin: 'admin',
+  landing: 'landing',
+  home: 'landing',
+};
+
 export function getCurrentPage(): LegacyPage {
-  const page =
-    new URLSearchParams(window.location.search).get('page') || 'landing';
-  return LEGACY_PAGES.includes(page as LegacyPage)
-    ? (page as LegacyPage)
-    : 'landing';
+  const rawPage = new URLSearchParams(window.location.search).get('page') || 'landing';
+  return PAGE_ALIASES[rawPage] || (LEGACY_PAGES.includes(rawPage as LegacyPage) ? (rawPage as LegacyPage) : 'landing');
 }
 
 export function navigateLegacy(

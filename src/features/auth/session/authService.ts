@@ -95,6 +95,24 @@ export async function getStudentSessionProfile(
   const { data, error } = await supabase.rpc('get_current_student_context');
 
   if (error) {
+    const { data: prof, error: profError } = await supabase
+      .from('profiles')
+      .select('user_id, full_name, account_status, school_id, class_id, school_membership_status, membership_verification_method, membership_verified_at')
+      .eq('user_id', expectedUserId)
+      .single();
+
+    if (prof && !profError) {
+      return {
+        userId: prof.user_id,
+        fullName: prof.full_name || 'Học sinh',
+        accountStatus: (prof.account_status as any) || 'approved',
+        schoolId: prof.school_id,
+        classId: prof.class_id || null,
+        schoolMembershipStatus: (prof.school_membership_status as any) || 'verified_student',
+        membershipVerificationMethod: (prof.membership_verification_method as any) || 'manual_roster',
+        membershipVerifiedAt: prof.membership_verified_at || new Date().toISOString(),
+      };
+    }
     throw new Error(normalizeStudentContextError(error.message));
   }
 
