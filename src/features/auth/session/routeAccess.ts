@@ -2,10 +2,8 @@ import { LEGACY_PAGES, type LegacyPage } from '../../../app/legacyRouter';
 import { readSafeReturnTarget } from './routeAccessCore';
 
 const STUDENT_PROTECTED_PAGES = new Set<LegacyPage>([
-  'index',
   'add',
   'editPost',
-  'detail',
   'myPosts',
   'myDetail',
   'profile',
