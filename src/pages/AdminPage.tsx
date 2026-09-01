@@ -3,6 +3,7 @@ import { formatRosterMatchReason } from '../features/admin/accountReviewPresenta
 import { listAccountReviewQueue, reviewStudentAccount } from '../features/admin/accountReviewService';
 import type { AccountReviewDecision, AccountReviewQueueItem } from '../features/admin/accountReviewTypes';
 import { AdminOverview, AdminPageHeading, AdminTopbar } from '../features/admin/components/AdminShellSections';
+import { TeacherNotificationHub } from '../features/admin/components/TeacherNotificationHub';
 import {
   AdminModalMeta,
   AdminSwitch,
@@ -103,6 +104,7 @@ export default function AdminPage() {
   const [modalHidden, setModalHidden] = useState(false);
   const [modalComments, setModalComments] = useState<CommentStatus>('Mở');
   const [modalReason, setModalReason] = useState('');
+  const [showNotificationHub, setShowNotificationHub] = useState(true);
 
   const [notice, setNotice] = useState<Notice>({
     tone: 'ok',
@@ -416,16 +418,16 @@ export default function AdminPage() {
     <>
       <AdminTopbar
         alertCount={summary.pending + summary.reports + accountReviews.length}
-        onNotify={() =>
-          setNotice({
-            tone: 'ok',
-            text: `Có ${accountReviews.length} yêu cầu tài khoản và ${openReportsCount} báo cáo vi phạm đang chờ xử lý.`,
-          })
-        }
+        onNotify={() => setShowNotificationHub((prev) => !prev)}
       />
 
       <main className="admin-shell">
         <AdminPageHeading onRefresh={refresh} onExportPdf={() => setNotice({ tone: 'warn', text: 'Xuất PDF sẽ hỗ trợ ở phiên bản tiếp theo.' })} />
+
+        <TeacherNotificationHub
+          isOpen={showNotificationHub}
+          onClose={() => setShowNotificationHub(false)}
+        />
 
         {notice ? (
           <div className={`checkpoint-state admin-local-state ${notice.tone === 'ok' ? 'is-ok' : ''}`} role="status">
