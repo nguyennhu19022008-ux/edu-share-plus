@@ -109,22 +109,58 @@ export default function StudentHeader({ activePage, user, notifications }: Stude
         </button>
 
         <div className="nav-actions">
-          <button className="hello student-user-summary profile-trigger" type="button" title="Mở hồ sơ cá nhân" onClick={() => navigateLegacy('profile')}>
-            <span className={`avatar${resolvedUser.avatarUrl ? ' has-photo' : ''}`} style={resolvedUser.avatarUrl ? { backgroundImage:`url("${resolvedUser.avatarUrl}")` } : undefined}>{resolvedUser.avatarUrl ? '' : '?'}</span>
-            <span className="header-user-copy">
-              <strong className="header-user-name">{resolvedUser.name || 'Học sinh'}</strong>
-              <small className="header-user-email">{resolvedUser.email || ''}</small>
-            </span>
-          </button>
+          {!auth.session ? (
+            <button
+              className="btn primary student-login-header-btn"
+              type="button"
+              onClick={() => navigateLegacy('loginStudent')}
+              style={{ minHeight: '34px', padding: '0 14px', fontSize: '12.5px', borderRadius: '8px', fontWeight: 750 }}
+            >
+              Đăng nhập
+            </button>
+          ) : (
+            <>
+              <button className="hello student-user-summary profile-trigger" type="button" title="Mở hồ sơ cá nhân" onClick={() => navigateLegacy('profile')}>
+                <span className={`avatar${resolvedUser.avatarUrl ? ' has-photo' : ''}`} style={resolvedUser.avatarUrl ? { backgroundImage:`url("${resolvedUser.avatarUrl}")` } : undefined}>{resolvedUser.avatarUrl ? '' : '?'}</span>
+                <span className="header-user-copy">
+                  <strong className="header-user-name">{resolvedUser.name || 'Học sinh'}</strong>
+                  <small className="header-user-email">{resolvedUser.email || ''}</small>
+                </span>
+              </button>
 
-          <button className="nav-btn notify-btn student-notify-btn" type="button" title="Thông báo" aria-label="Thông báo" aria-expanded={notificationsOpen} onClick={() => setNotificationsOpen((value) => !value)}>
-            <span className="notify-badge" style={{ display:unreadCount ? 'inline-flex' : 'none' }}>{unreadCount || ''}</span>
-          </button>
+              <button className="nav-btn notify-btn student-notify-btn" type="button" title="Thông báo" aria-label="Thông báo" aria-expanded={notificationsOpen} onClick={() => setNotificationsOpen((value) => !value)}>
+                <span className="notify-badge" style={{ display:unreadCount ? 'inline-flex' : 'none' }}>{unreadCount || ''}</span>
+              </button>
+
+              <button
+                className="nav-btn student-logout-btn student-quick-logout-btn"
+                type="button"
+                title="Đăng xuất khỏi tài khoản"
+                disabled={loggingOut}
+                onClick={() => void handleLogout()}
+                style={{
+                  minHeight: '32px',
+                  padding: '4px 10px',
+                  fontSize: '11.5px',
+                  borderRadius: '8px',
+                  border: '1px solid #fee2e2',
+                  backgroundColor: '#fff1f2',
+                  color: '#e11d48',
+                  fontWeight: 750,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                }}
+              >
+                {loggingOut ? '...' : 'Đăng xuất'}
+              </button>
+            </>
+          )}
 
           <button className={`nav-btn student-nav-link profile-nav-btn${isProfilePage ? ' active' : ''}`} type="button" onClick={() => navigateLegacy('profile')}>Hồ sơ</button>
           <button className={`nav-btn student-nav-link${isHomePage ? ' active' : ''}`} type="button" onClick={() => navigateLegacy('index')}>Trang chủ</button>
           <button className={`nav-btn student-nav-link${isMyPostsPage ? ' active' : ''}`} type="button" onClick={() => navigateLegacy('myPosts')}>Bài của tôi</button>
-          <button className="nav-btn student-nav-link student-logout-btn" type="button" disabled={loggingOut} onClick={() => void handleLogout()}>{loggingOut ? 'Đang thoát...' : 'Đăng xuất'}</button>
         </div>
       </header>
 
