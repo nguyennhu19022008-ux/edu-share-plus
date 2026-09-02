@@ -1,4 +1,5 @@
 import { getSupabaseClient } from '../../../lib/supabase/client';
+import { getStudentConfirmRedirectUrl } from '../../../lib/supabase/siteUrl';
 import type { RegistrationSchool, StudentRegistrationInput } from './types';
 
 export async function listRegistrationSchools(): Promise<RegistrationSchool[]> {
@@ -15,15 +16,13 @@ export async function listRegistrationSchools(): Promise<RegistrationSchool[]> {
 
 export async function signUpStudent(input: StudentRegistrationInput) {
   const supabase = getSupabaseClient();
-  const redirectUrl = new URL('/', window.location.origin);
-  redirectUrl.searchParams.set('page', 'loginStudent');
-  redirectUrl.searchParams.set('confirmed', '1');
+  const emailRedirectTo = getStudentConfirmRedirectUrl();
 
   const { data, error } = await supabase.auth.signUp({
     email: input.email,
     password: input.password,
     options: {
-      emailRedirectTo: redirectUrl.toString(),
+      emailRedirectTo,
       data: {
         registration_intent: 'student_v2',
         full_name: input.fullName,

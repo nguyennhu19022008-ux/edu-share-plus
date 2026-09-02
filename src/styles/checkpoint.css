@@ -188,6 +188,7 @@ button, input, textarea, select { font: inherit; }
   box-shadow: 0 4px 16px rgba(0,0,0,0.06);
   font-weight: 600;
   color: #334155;
+  animation: pageFadeIn 0.3s ease-out;
 }
 .checkpoint-route-spinner {
   width: 20px;
@@ -200,3 +201,277 @@ button, input, textarea, select { font: inherit; }
 @keyframes routeSpin {
   to { transform: rotate(360deg); }
 }
+
+/* ==========================================================================
+   Smooth Micro-Interactions & 60fps Animation Suite for EDU SHARE+
+   ========================================================================== */
+
+@keyframes pageFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.ecom-page,
+.admin-shell,
+.landing-page,
+.auth-market-wrap,
+.profile-page,
+.detail-market-page,
+.market-page {
+  animation: pageFadeIn 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* 1. Smooth Elevation on Marketplace Cards */
+.market-grid article,
+.product-card,
+.mini-card,
+.admin-summary-card,
+.admin-moderation-card,
+.profile-card {
+  transition: transform 0.28s cubic-bezier(0.2, 0, 0.2, 1), box-shadow 0.28s ease, border-color 0.28s ease;
+}
+
+.market-grid article:hover,
+.product-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 32px rgba(15, 23, 42, 0.09);
+}
+
+.market-grid article img,
+.product-card img,
+.mini-card img {
+  transition: transform 0.5s cubic-bezier(0.2, 0, 0.2, 1);
+}
+
+.market-grid article:hover img,
+.product-card:hover img {
+  transform: scale(1.04);
+}
+
+/* 2. Button Micro-Interactions & Hover Glow */
+.btn,
+.btn.primary,
+.admin-table-primary,
+.admin-primary-btn,
+.auth-market-card button[type="submit"] {
+  transition: transform 0.16s cubic-bezier(0.2, 0, 0.2, 1), box-shadow 0.16s ease, filter 0.16s ease;
+  will-change: transform;
+}
+
+.btn.primary:hover,
+.admin-table-primary:hover,
+.auth-market-card button[type="submit"]:hover {
+  transform: translateY(-1.5px);
+  filter: brightness(1.06);
+  box-shadow: 0 6px 20px rgba(238, 77, 45, 0.28);
+}
+
+.btn:active,
+.btn.primary:active,
+.admin-table-primary:active,
+.auth-market-card button[type="submit"]:active {
+  transform: scale(0.97);
+}
+
+/* 3. Interactive Inputs with Smooth Glow */
+input:not([type="checkbox"]):not([type="radio"]):focus,
+textarea:focus,
+select:focus {
+  border-color: #ee4d2d !important;
+  box-shadow: 0 0 0 3.5px rgba(238, 77, 45, 0.12) !important;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* 4. Notification Pulse Animation */
+@keyframes badgePulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.12); }
+}
+
+.notify-badge {
+  animation: badgePulse 2.4s infinite ease-in-out;
+}
+
+/* ==========================================================================
+   Mobile & Tablet Responsive Suite (Phone & Tablet UI Optimization)
+   ========================================================================== */
+
+/* 1. Mobile Bottom Navigation Bar (Hidden on desktop, visible on <= 768px) */
+.mobile-bottom-nav {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  body {
+    padding-bottom: calc(68px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  .mobile-bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    height: 58px;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    background: rgba(255, 255, 255, 0.94);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid rgba(226, 232, 240, 0.85);
+    box-shadow: 0 -4px 20px rgba(15, 23, 42, 0.06);
+  }
+
+  .mobile-nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    background: transparent;
+    border: none;
+    color: #64748b;
+    padding: 6px 12px;
+    min-width: 60px;
+    min-height: 48px;
+    cursor: pointer;
+    transition: color 0.18s ease, transform 0.18s ease;
+    text-decoration: none;
+  }
+
+  .mobile-nav-item:active {
+    transform: scale(0.92);
+  }
+
+  .mobile-nav-item.active {
+    color: #ee4d2d;
+    font-weight: 750;
+  }
+
+  .mobile-nav-icon {
+    font-size: 19px;
+    line-height: 1;
+  }
+
+  .mobile-nav-label {
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  .mobile-nav-add {
+    margin-top: -16px;
+  }
+
+  .mobile-nav-icon-add {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #ee4d2d 0%, #ff6b4a 100%);
+    color: #ffffff;
+    font-size: 20px;
+    font-weight: 900;
+    box-shadow: 0 6px 16px rgba(238, 77, 45, 0.35);
+    border: 3px solid #ffffff;
+    transition: transform 0.2s cubic-bezier(0.2, 0, 0.2, 1);
+  }
+
+  .mobile-nav-add:hover .mobile-nav-icon-add {
+    transform: scale(1.08);
+  }
+
+  /* 2. Compact Header on Mobile (Hide redundant desktop nav buttons) */
+  .student-app-header .student-nav-link {
+    display: none !important;
+  }
+  
+  .student-app-header .student-user-summary .header-user-email {
+    display: none;
+  }
+
+  .student-app-header .brand small {
+    display: none;
+  }
+
+  /* 3. Marketplace Grid: Responsive 2-column layout on phones and tablets */
+  .market-stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+  }
+
+  .market-stat-card {
+    min-height: 76px !important;
+    padding: 12px 14px !important;
+  }
+
+  .market-stat-value {
+    font-size: 20px !important;
+  }
+
+  .market-stat-icon {
+    display: none !important;
+  }
+
+  .market-page .post-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+  }
+
+  .market-page .market-product-card {
+    min-height: 230px !important;
+  }
+
+  .market-product-card-body {
+    padding: 12px !important;
+  }
+
+  .market-product-title {
+    font-size: 13.5px !important;
+    min-height: 38px !important;
+    line-height: 1.35 !important;
+  }
+
+  /* 4. Form inputs prevent iOS auto-zoom (min font-size 16px) */
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+
+  /* 5. Smooth Touch Scroll Containers for Tables */
+  .admin-table-scroll,
+  .roster-preview-table {
+    -webkit-overflow-scrolling: touch;
+    overflow-x: auto;
+    border-radius: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .market-filter-card {
+    padding: 12px !important;
+  }
+
+  .market-search-bar {
+    flex-direction: column !important;
+    gap: 8px !important;
+  }
+
+  .market-search-bar button {
+    width: 100% !important;
+  }
+
+  .detail-market-page .detail-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+

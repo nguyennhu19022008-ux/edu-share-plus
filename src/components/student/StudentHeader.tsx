@@ -156,6 +156,46 @@ export default function StudentHeader({ activePage, user, notifications }: Stude
           )) : <div className="notify-empty">Chưa có thông báo mới.</div>}
         </div>
       </aside>
+
+      {/* Mobile Bottom Navigation Bar (Active on Mobile / Tablet <= 768px) */}
+      <nav className="mobile-bottom-nav" aria-label="Thanh điều hướng di động">
+        <button
+          type="button"
+          className={`mobile-nav-item${isHomePage ? ' active' : ''}`}
+          onClick={() => navigateLegacy('index')}
+        >
+          <span className="mobile-nav-icon">🏠</span>
+          <span className="mobile-nav-label">Chợ</span>
+        </button>
+
+        <button
+          type="button"
+          className="mobile-nav-item mobile-nav-add"
+          onClick={() => navigateLegacy('add')}
+          title="Đăng đồ dùng mới"
+        >
+          <span className="mobile-nav-icon-add">➕</span>
+          <span className="mobile-nav-label">Đăng bài</span>
+        </button>
+
+        <button
+          type="button"
+          className={`mobile-nav-item${isMyPostsPage ? ' active' : ''}`}
+          onClick={() => navigateLegacy('myPosts')}
+        >
+          <span className="mobile-nav-icon">📦</span>
+          <span className="mobile-nav-label">Bài của tôi</span>
+        </button>
+
+        <button
+          type="button"
+          className={`mobile-nav-item${isProfilePage ? ' active' : ''}`}
+          onClick={() => navigateLegacy('profile')}
+        >
+          <span className="mobile-nav-icon">👤</span>
+          <span className="mobile-nav-label">Hồ sơ</span>
+        </button>
+      </nav>
     </>
   );
 }

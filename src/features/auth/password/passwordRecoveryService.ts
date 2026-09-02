@@ -1,4 +1,5 @@
 import { getSupabaseClient } from '../../../lib/supabase/client';
+import { getPasswordResetRedirectUrl } from '../../../lib/supabase/siteUrl';
 
 export type PasswordPortal = 'student' | 'teacher';
 
@@ -22,12 +23,7 @@ export function readPasswordPortal(): PasswordPortal {
 }
 
 export function passwordRedirectUrl(portal: PasswordPortal): string {
-  const url = new URL(window.location.href);
-  url.search = '';
-  url.hash = '';
-  url.searchParams.set('page', 'updatePassword');
-  url.searchParams.set('portal', portal);
-  return url.toString();
+  return getPasswordResetRedirectUrl(portal);
 }
 
 function normalizeRecoveryRequestError(message: string): string {
