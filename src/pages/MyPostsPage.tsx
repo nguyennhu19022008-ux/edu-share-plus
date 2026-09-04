@@ -42,17 +42,7 @@ function canComplete(post: OwnerPostView): boolean {
   return post.lifecycleStatus === 'active' && post.moderationStatus === 'approved';
 }
 
-function formatPostTimestamp(dateStr: string): string {
-  const d = new Date(dateStr);
-  if (Number.isNaN(d.getTime())) return dateStr;
-  const pad = (n: number) => String(n).padStart(2, '0');
-  const day = pad(d.getDate());
-  const month = pad(d.getMonth() + 1);
-  const year = d.getFullYear();
-  const hours = pad(d.getHours());
-  const minutes = pad(d.getMinutes());
-  return `Đăng: ${day}/${month}/${year} ${hours}:${minutes}`;
-}
+import { formatPostDate as formatPostTimestamp } from '../lib/formatters';
 
 function getCardBadge(post: OwnerPostView): { className: string; label: string } {
   if (post.lifecycleStatus === 'withdrawn') {

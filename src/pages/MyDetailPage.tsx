@@ -36,15 +36,7 @@ function revealedMethodLabel(method:'email' | 'phone'):string {
   return method === 'email' ? 'Email' : 'Số điện thoại';
 }
 
-function formatHistoryTime(value:string):string {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat('vi-VN', {
-    timeZone:'Asia/Ho_Chi_Minh',
-    dateStyle:'short',
-    timeStyle:'short',
-  }).format(date);
-}
+import { formatDateTime as formatHistoryTime } from '../lib/formatters';
 
 export default function MyDetailPage() {
   const postId = getPostId();

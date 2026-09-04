@@ -26,6 +26,7 @@ import type {
 } from '../features/admin/postModerationTypes';
 import type { AdminDashboardSummary, AdminPost, AdminPostStatus, CommentStatus } from '../features/admin/types';
 import { useStudentAuth } from '../features/auth/session/AuthSessionProvider';
+import { formatVndCompact, normalizeSearchText } from '../lib/formatters';
 import { getSchoolImpactSummary } from '../features/transactions/transactionService';
 import type { SchoolImpactSummary } from '../features/transactions/transactionTypes';
 
@@ -33,19 +34,6 @@ const PAGE_SIZE = 6;
 
 type SortMode = 'new' | 'old' | 'reports';
 type Notice = { tone: 'ok' | 'warn'; text: string } | null;
-
-function money(value: number): string {
-  if (!value) return '';
-  return new Intl.NumberFormat('vi-VN').format(value) + 'đ';
-}
-
-function normalize(value: string): string {
-  return String(value || '')
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .trim();
-}
 
 function compactPages(totalPages: number, active: number): (number | '...')[] {
   if (totalPages <= 5) return Array.from({ length: totalPages }, (_, index) => index + 1);
@@ -292,13 +280,13 @@ export default function AdminPage() {
   );
 
   const filtered = useMemo(() => {
-    const kw = normalize(debouncedKeyword);
+    const kw = normalizeSearchText(debouncedKeyword);
     const list = posts.filter((post) => {
       const postStatus = mapStatusToAdmin(post.moderationStatus);
       if (status && postStatus !== status) return false;
       if (className && post.className !== className) return false;
       if (!kw) return true;
-      return normalize(
+      return normalizeSearchText(
         [post.title, post.ownerName, post.className, post.category, post.tradeType].join(' ')
       ).includes(kw);
     });
@@ -800,7 +788,7 @@ export default function AdminPage() {
                         <tr key={post.id} className={rowClass}>
                           <td className="admin-post-cell">
                             <strong>{post.title}</strong>
-                            <span>{[mapTradeType(post.tradeType), post.category, money(post.price)].filter(Boolean).join(' • ')}</span>
+                            <span>{[mapTradeType(post.tradeType), post.category, post.price ? formatVndCompact(post.price) : ''].filter(Boolean).join(' • ')}</span>
                           </td>
                           <td>
                             <span className="admin-class-chip">{post.className || 'Chưa có'}</span>

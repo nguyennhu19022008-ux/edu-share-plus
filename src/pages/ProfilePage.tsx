@@ -30,19 +30,10 @@ import { formatVnd } from '../features/transactions/impactCalculator';
 
 type MessageState = { tone:'ok' | 'error'; text:string } | null;
 
-function formatSavedPrice(value:number | null):string {
-  if (value === null || value === 0) return 'Miễn phí / thỏa thuận';
-  return `${new Intl.NumberFormat('vi-VN').format(value)} ₫`;
-}
+import { formatCurrency as formatSavedPrice, formatDateTime as formatSavedDateTime } from '../lib/formatters';
 
 function formatSavedDate(value:string):string {
-  const date = new Date(value);
-  if (!Number.isFinite(date.getTime())) return '';
-  return new Intl.DateTimeFormat('vi-VN', {
-    day:'2-digit',
-    month:'2-digit',
-    year:'numeric',
-  }).format(date);
+  return formatSavedDateTime(value, 'dateOnly', '');
 }
 
 function tradeLabel(value:SavedPostView['tradeType']):string {

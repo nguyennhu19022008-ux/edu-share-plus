@@ -1,4 +1,5 @@
 import type { ItemImpactEstimate, TradeType } from './transactionTypes';
+import { formatVndCompact } from '../../lib/formatters';
 
 export interface CategoryImpactBenchmark {
   categoryCode: string;
@@ -88,10 +89,11 @@ export function estimateItemImpact(
   return {
     financialSaved,
     wasteReducedKg,
-    description: `Tiết kiệm ước tính ${new Intl.NumberFormat('vi-VN').format(financialSaved)}đ và giảm ${wasteReducedKg.toFixed(2)} kg rác thải học đường.`,
+    description: `Tiết kiệm ước tính ${formatVndCompact(financialSaved)} và giảm ${wasteReducedKg.toFixed(2)} kg rác thải học đường.`,
   };
 }
 
 export function formatVnd(amount: number): string {
-  return new Intl.NumberFormat('vi-VN').format(amount) + 'đ';
+  return formatVndCompact(amount);
 }
+
