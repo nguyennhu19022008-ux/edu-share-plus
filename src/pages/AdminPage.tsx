@@ -132,7 +132,7 @@ export default function AdminPage() {
     setPostsLoading(true);
     setPostsError('');
     try {
-      const res = await listStaffPostsQueue({ limit: 100 });
+      const res = await listStaffPostsQueue({ limit: 2000 });
       setPosts(res.items);
     } catch (err) {
       setPosts([]);
@@ -373,6 +373,31 @@ export default function AdminPage() {
 
   const completedPostsCount = posts.filter((p) => p.lifecycleStatus === 'completed').length;
 
+  const topCategories = useMemo(() => {
+    const map = new Map<string, number>();
+    posts.forEach((p) => {
+      const name = p.category || 'Khác';
+      map.set(name, (map.get(name) || 0) + 1);
+    });
+    return [...map.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([name, count]) => ({ name, count }));
+  }, [posts]);
+
+  const topClasses = useMemo(() => {
+    const map = new Map<string, number>();
+    posts.forEach((p) => {
+      if (p.className) {
+        map.set(p.className, (map.get(p.className) || 0) + 1);
+      }
+    });
+    return [...map.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([name, count]) => ({ name, count }));
+  }, [posts]);
+
   const summary: AdminDashboardSummary = {
     totalPosts: posts.length,
     done: completedPostsCount,
@@ -381,8 +406,8 @@ export default function AdminPage() {
     approvalRate: posts.length ? Math.round((posts.filter((p) => p.moderationStatus === 'approved').length / posts.length) * 100) : 100,
     completionRate: posts.length ? Math.round((completedPostsCount / posts.length) * 100) : 0,
     reportRate: posts.length ? Math.round((openReportsCount / posts.length) * 100) : 0,
-    topCategories: [],
-    topClasses: [],
+    topCategories,
+    topClasses,
     financialSaved: impactSummary?.financialSaved ?? (completedPostsCount * 50000),
     wasteReducedKg: impactSummary?.wasteReducedKg ?? Number((completedPostsCount * 0.45).toFixed(2)),
     updatedAt: new Date().toISOString(),
