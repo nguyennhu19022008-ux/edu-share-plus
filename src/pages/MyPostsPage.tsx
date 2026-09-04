@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { navigateLegacy } from '../app/legacyRouter';
 import StudentHeader from '../components/student/StudentHeader';
 import { useStudentAuth } from '../features/auth/session/AuthSessionProvider';
@@ -117,6 +117,7 @@ export default function MyPostsPage() {
   const [moderationStatus, setModerationStatus] = useState<'' | OwnerModerationStatus>('');
   const [lifecycleStatus, setLifecycleStatus] = useState<'' | OwnerLifecycleStatus>('');
   const [page, setPage] = useState(1);
+  const listRef = useRef<HTMLElement>(null);
   const [result, setResult] = useState<OwnerPostListResult>(EMPTY_RESULT);
   const [counts, setCounts] = useState<OwnerSummaryCounts>(EMPTY_COUNTS);
   const [loading, setLoading] = useState(true);
@@ -371,7 +372,7 @@ export default function MyPostsPage() {
         </section>
 
         {/* 3. Filter & Controls Card */}
-        <section className="owner-controls-card">
+        <section ref={listRef} className="owner-controls-card">
           <div className="owner-controls-heading">
             <div>
               <span className="owner-controls-eyebrow">QUẢN LÝ BÀI ĐĂNG</span>
@@ -682,7 +683,10 @@ export default function MyPostsPage() {
               className="btn gray"
               type="button"
               disabled={page <= 1 || loading}
-              onClick={() => setPage((value) => Math.max(1, value - 1))}
+              onClick={() => {
+                setPage((value) => Math.max(1, value - 1));
+                listRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }}
             >
               ← Trang trước
             </button>
@@ -693,7 +697,10 @@ export default function MyPostsPage() {
               className="btn gray"
               type="button"
               disabled={page >= result.totalPages || loading}
-              onClick={() => setPage((value) => value + 1)}
+              onClick={() => {
+                setPage((value) => value + 1);
+                listRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }}
             >
               Trang sau →
             </button>

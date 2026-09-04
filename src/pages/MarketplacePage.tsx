@@ -170,8 +170,12 @@ export default function MarketplacePage() {
 
   const changePage = (target:number) => {
     setPage(target);
-    try { window.scrollTo({ top:0,behavior:'smooth' }); }
-    catch { window.scrollTo(0,0); }
+    if (filtersRef.current) {
+      filtersRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else {
+      try { window.scrollTo({ top: 380, behavior: 'smooth' }); }
+      catch { window.scrollTo(0, 380); }
+    }
   };
 
   return (
