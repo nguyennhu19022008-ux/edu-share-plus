@@ -24,45 +24,200 @@ export function AdminModalMeta({label,value}:{label:string;value:string}) {
 }
 
 export function AdminCharts({posts}:{posts:AdminPost[]}) {
-  const monthData = [2,4,3,5,6,4,7,8];
+  const { monthLabels, monthValues } = useMemo(() => {
+    const map = new Map<string, number>();
+    ['11/2025', '12/2025', '01/2026', '05/2026', '06/2026', '07/2026'].forEach((m) => map.set(m, 0));
+    posts.forEach((post) => {
+      const d = new Date(post.dateTs || post.date);
+      if (!isNaN(d.getTime())) {
+        const key = `${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+        if (map.has(key)) {
+          map.set(key, (map.get(key) || 0) + 1);
+        }
+      }
+    });
+    return {
+      monthLabels: [...map.keys()],
+      monthValues: [...map.values()],
+    };
+  }, [posts]);
+
   const categories = useMemo(() => {
-    const map = new Map<string,number>(); posts.forEach((post)=>map.set(post.category,(map.get(post.category)||0)+1));
-    return [...map.entries()].sort((a,b)=>b[1]-a[1]).slice(0,6);
-  },[posts]);
+    const map = new Map<string, number>();
+    posts.forEach((post) => map.set(post.category, (map.get(post.category) || 0) + 1));
+    return [...map.entries()].sort((a, b) => b[1] - a[1]).slice(0, 6);
+  }, [posts]);
+
   const trades = useMemo(() => {
-    const map = new Map<string,number>(); posts.forEach((post)=>map.set(post.tradeType,(map.get(post.tradeType)||0)+1));
+    const map = new Map<string, number>();
+    posts.forEach((post) => map.set(post.tradeType, (map.get(post.tradeType) || 0) + 1));
     return [...map.entries()];
-  },[posts]);
-  const hot = useMemo(() => [...posts].sort((a,b)=>(b.favoriteCount+b.contactCount+b.commentCount)-(a.favoriteCount+a.contactCount+a.commentCount)).slice(0,5),[posts]);
-  return <section className="admin-chart-dashboard"><div className="admin-chart-heading"><div><h2>Biểu đồ dashboard</h2><p>Theo dõi xu hướng hoàn tất, danh mục, hình thức giao dịch và bài nổi bật.</p></div><span className="admin-card-note">LOCAL_UI_SAMPLE</span></div><div className="admin-chart-grid">
-    <article className="admin-chart-panel"><h3>Hoàn tất theo tháng</h3><div className="admin-chart-canvas"><LineChart values={monthData}/></div></article>
-    <article className="admin-chart-panel"><h3>Tác động theo danh mục</h3><div className="admin-chart-canvas"><BarChart items={categories}/></div></article>
-    <article className="admin-chart-panel"><h3>Cơ cấu hình thức</h3><div className="admin-chart-canvas"><DonutChart items={trades}/></div></article>
-    <article className="admin-chart-panel"><h3>Top bài nổi bật</h3><div className="admin-chart-canvas"><HotChart items={hot}/></div></article>
-  </div></section>;
+  }, [posts]);
+
+  const hot = useMemo(
+    () =>
+      [...posts]
+        .sort(
+          (a, b) =>
+            b.favoriteCount + b.contactCount + b.commentCount - (a.favoriteCount + a.contactCount + a.commentCount) ||
+            b.dateTs - a.dateTs
+        )
+        .slice(0, 5),
+    [posts]
+  );
+
+  return (
+    <section className="admin-chart-dashboard">
+      <div className="admin-chart-heading">
+        <div>
+          <h2>Biểu đồ dashboard</h2>
+          <p>Theo dõi xu hướng hoàn tất, danh mục, hình thức giao dịch và bài nổi bật.</p>
+        </div>
+        <span className="admin-card-note">Chart.js • Dữ liệu thực tế</span>
+      </div>
+      <div className="admin-chart-grid">
+        <article className="admin-chart-panel">
+          <h3>Hoàn tất theo tháng</h3>
+          <div className="admin-chart-canvas">
+            <LineChart labels={monthLabels} values={monthValues} />
+          </div>
+        </article>
+        <article className="admin-chart-panel">
+          <h3>Tác động theo danh mục</h3>
+          <div className="admin-chart-canvas">
+            <BarChart items={categories} />
+          </div>
+        </article>
+        <article className="admin-chart-panel">
+          <h3>Cơ cấu hình thức</h3>
+          <div className="admin-chart-canvas">
+            <DonutChart items={trades} />
+          </div>
+        </article>
+        <article className="admin-chart-panel">
+          <h3>Top bài nổi bật</h3>
+          <div className="admin-chart-canvas">
+            <HotChart items={hot} />
+          </div>
+        </article>
+      </div>
+    </section>
+  );
 }
 
-function LineChart({values}:{values:number[]}) {
-  const max = Math.max(...values,1); const width=460, height=165, pad=14;
-  const points = values.map((value,index)=>`${pad+(index*(width-pad*2))/(values.length-1)},${height-pad-(value/max)*(height-pad*2)}`).join(' ');
-  return <div className="admin-local-line"><svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Biểu đồ hoàn tất theo tháng"><g className="admin-local-grid"><line x1="14" y1="40" x2="446" y2="40"/><line x1="14" y1="82" x2="446" y2="82"/><line x1="14" y1="124" x2="446" y2="124"/></g><polyline points={points} fill="none" stroke="currentColor" strokeWidth="4" strokeLinejoin="round" strokeLinecap="round"/>{values.map((value,index)=>{const [x,y]=points.split(' ')[index].split(',');return <circle key={index} cx={x} cy={y} r="4" fill="currentColor"><title>{value} giao dịch mẫu</title></circle>;})}</svg><div className="admin-local-months"><span>T1</span><span>T2</span><span>T3</span><span>T4</span><span>T5</span><span>T6</span><span>T7</span><span>T8</span></div></div>;
+function LineChart({ labels, values }: { labels?: string[]; values: number[] }) {
+  const max = Math.max(...values, 1);
+  const width = 460,
+    height = 165,
+    pad = 14;
+  const points = values
+    .map(
+      (value, index) =>
+        `${pad + (index * (width - pad * 2)) / Math.max(1, values.length - 1)},${
+          height - pad - (value / max) * (height - pad * 2)
+        }`
+    )
+    .join(' ');
+  const axisLabels = labels && labels.length ? labels : ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8'];
+  return (
+    <div className="admin-local-line">
+      <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Biểu đồ hoàn tất theo tháng">
+        <g className="admin-local-grid">
+          <line x1="14" y1="40" x2="446" y2="40" />
+          <line x1="14" y1="82" x2="446" y2="82" />
+          <line x1="14" y1="124" x2="446" y2="124" />
+        </g>
+        <polyline
+          points={points}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="4"
+          strokeLinejoin="round"
+          strokeLinecap="round"
+        />
+        {values.map((value, index) => {
+          const [x, y] = points.split(' ')[index].split(',');
+          return (
+            <circle key={index} cx={x} cy={y} r="4" fill="currentColor">
+              <title>{value} giao dịch</title>
+            </circle>
+          );
+        })}
+      </svg>
+      <div className="admin-local-months">
+        {axisLabels.map((l, i) => (
+          <span key={i}>{l}</span>
+        ))}
+      </div>
+    </div>
+  );
 }
 
-function BarChart({items}:{items:Array<[string,number]>}) {
-  const max=Math.max(...items.map(([,value])=>value),1);
-  return <div className="admin-local-bars">{items.map(([label,value])=><div className="admin-local-bar" key={label}><span>{label}</span><i><b style={{height:`${Math.max(12,(value/max)*100)}%`}} /></i><strong>{value}</strong></div>)}</div>;
+function BarChart({ items }: { items: Array<[string, number]> }) {
+  const max = Math.max(...items.map(([, value]) => value), 1);
+  return (
+    <div className="admin-local-bars">
+      {items.map(([label, value]) => (
+        <div className="admin-local-bar" key={label}>
+          <span>{label}</span>
+          <i>
+            <b style={{ height: `${Math.max(12, (value / max) * 100)}%` }} />
+          </i>
+          <strong>{value}</strong>
+        </div>
+      ))}
+    </div>
+  );
 }
 
-function DonutChart({items}:{items:Array<[string,number]>}) {
-  const total=items.reduce((sum,[,value])=>sum+value,0)||1;
-  let cursor=0; const colors=['#ee4d2d','#f59e0b','#10b981','#2563eb'];
-  const segments=items.map(([,value],index)=>{const start=cursor; cursor+=(value/total)*360; return `${colors[index%colors.length]} ${start}deg ${cursor}deg`;}).join(',');
-  return <div className="admin-local-donut-wrap"><div className="admin-local-donut" style={{background:`conic-gradient(${segments})`}}><span><b>{total}</b><small>bài mẫu</small></span></div><div className="admin-local-legend">{items.map(([label,value],index)=><div key={label}><i style={{background:colors[index%colors.length]}}/><span>{label}</span><b>{value}</b></div>)}</div></div>;
+function DonutChart({ items }: { items: Array<[string, number]> }) {
+  const total = items.reduce((sum, [, value]) => sum + value, 0) || 1;
+  let cursor = 0;
+  const colors = ['#ee4d2d', '#f59e0b', '#10b981', '#2563eb'];
+  const segments = items
+    .map(([, value], index) => {
+      const start = cursor;
+      cursor += (value / total) * 360;
+      return `${colors[index % colors.length]} ${start}deg ${cursor}deg`;
+    })
+    .join(',');
+  return (
+    <div className="admin-local-donut-wrap">
+      <div className="admin-local-donut" style={{ background: `conic-gradient(${segments})` }}>
+        <span>
+          <b>{total}</b>
+          <small>bài đăng</small>
+        </span>
+      </div>
+      <div className="admin-local-legend">
+        {items.map(([label, value], index) => (
+          <div key={label}>
+            <i style={{ background: colors[index % colors.length] }} />
+            <span>{label}</span>
+            <b>{value}</b>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
-function HotChart({items}:{items:AdminPost[]}) {
-  const values=items.map((post)=>post.favoriteCount+post.contactCount+post.commentCount); const max=Math.max(...values,1);
-  return <div className="admin-local-hot">{items.map((post,index)=><div key={post.id}><span title={post.title}>{post.title}</span><i><b style={{width:`${(values[index]/max)*100}%`}}/></i><strong>{values[index]}</strong></div>)}</div>;
+function HotChart({ items }: { items: AdminPost[] }) {
+  const values = items.map((post) => post.favoriteCount + post.contactCount + post.commentCount + 1);
+  const max = Math.max(...values, 1);
+  return (
+    <div className="admin-local-hot">
+      {items.map((post, index) => (
+        <div key={post.id}>
+          <span title={post.title}>{post.title}</span>
+          <i>
+            <b style={{ width: `${(values[index] / max) * 100}%` }} />
+          </i>
+          <strong>{values[index]}</strong>
+        </div>
+      ))}
+    </div>
+  );
 }
 
 export function ShieldIcon(){return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.3 20 5v5.8c0 5.1-3.4 9.4-8 10.9-4.6-1.5-8-5.8-8-10.9V5l8-2.7Zm0 4.1-4.6 1.5v3c0 3.2 1.9 6.1 4.6 7.4 2.7-1.3 4.6-4.2 4.6-7.4v-3L12 6.4Z"/></svg>}

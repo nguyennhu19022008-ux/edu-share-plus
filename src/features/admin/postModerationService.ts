@@ -7,6 +7,7 @@ import type {
   ModerationAction,
   StaffPostQueueItem,
   StaffPostsQueueResult,
+  StaffReportQueueItem,
   StaffReportsQueueResult,
 } from './postModerationTypes';
 
@@ -21,60 +22,54 @@ export async function listStaffPostsQueue(params?: {
   const offset = params?.offset ?? 0;
 
   try {
-    const { data, error } = await client.rpc('list_staff_posts_queue', {
-      p_status: params?.status?.trim() || null,
-      p_search: params?.search?.trim() || null,
-      p_limit: limit,
-      p_offset: offset,
-    });
-
-    if (!error && data) {
-      return parseStaffPostsQueueResult(data);
-    }
-  } catch {
-    // Graceful fallback to direct table query
-  }
-
-  try {
-    let query = client
-      .from('posts')
-      .select(
+    const makeQuery = () => {
+      let query = client
+        .from('posts')
+        .select(
+          `
+          id,
+          title,
+          description,
+          trade_type,
+          sale_price,
+          moderation_status,
+          lifecycle_status,
+          is_hidden,
+          comments_enabled,
+          created_at,
+          published_at,
+          school_id,
+          category:categories!posts_category_fk(id, name),
+          profile:profiles!posts_owner_fk(user_id, full_name),
+          class:school_classes!posts_class_scope_fk(id, label)
         `
-        id,
-        title,
-        description,
-        trade_type,
-        sale_price,
-        moderation_status,
-        lifecycle_status,
-        is_hidden,
-        comments_enabled,
-        created_at,
-        published_at,
-        school_id,
-        category:categories!posts_category_fk(id, name),
-        profile:profiles!posts_owner_fk(user_id, full_name),
-        class:school_classes!posts_class_scope_fk(id, label)
-      `,
-        { count: 'exact' }
-      )
-      .order('created_at', { ascending: false });
+        )
+        .order('created_at', { ascending: false });
 
-    if (params?.status) {
-      query = query.eq('moderation_status', params.status);
+      if (params?.status) {
+        query = query.eq('moderation_status', params.status);
+      }
+
+      if (params?.search) {
+        query = query.ilike('title', `%${params.search}%`);
+      }
+
+      return query;
+    };
+
+    // Parallel fetch batches to surpass PostgREST 1000 limit instantly
+    const [batch1, batch2] = await Promise.all([
+      makeQuery().range(0, 999),
+      makeQuery().range(1000, 1999),
+    ]);
+
+    if (batch1.error) {
+      throw new Error(batch1.error.message || 'Không thể tải danh sách bài đăng.');
     }
 
-    if (params?.search) {
-      query = query.ilike('title', `%${params.search}%`);
-    }
+    const allRows = [...(batch1.data || []), ...(batch2.data || [])];
 
-    const { data, error, count } = await query.range(offset, offset + limit - 1);
-
-    if (error) {
-      throw new Error(error.message || 'Không thể tải danh sách bài đăng.');
-    }
-
-    const items: StaffPostQueueItem[] = (data || []).map((row: any) => ({
+    const items: StaffPostQueueItem[] = allRows.map((row: any) => ({
       id: row.id,
       title: row.title || '',
       description: row.description || '',
@@ -99,7 +94,7 @@ export async function listStaffPostsQueue(params?: {
 
     return {
       items,
-      totalCount: count ?? items.length,
+      totalCount: items.length,
       limit,
       offset,
     };
@@ -177,21 +172,60 @@ export async function listStaffReportsQueue(params?: {
   offset?: number;
 }): Promise<StaffReportsQueueResult> {
   const client = getSupabaseClient();
-  const { data, error } = await client.rpc('list_staff_reports_queue', {
-    p_status: params?.status?.trim() || null,
-    p_limit: params?.limit ?? 20,
-    p_offset: params?.offset ?? 0,
-  });
+  const limit = params?.limit ?? 50;
+  const offset = params?.offset ?? 0;
 
-  if (error) {
-    if (error.message.includes('schema cache') || error.message.includes('not find the function')) {
-      console.warn('list_staff_reports_queue RPC not present yet on Supabase:', error.message);
-      return { items: [], totalCount: 0, limit: params?.limit ?? 20, offset: params?.offset ?? 0 };
+  try {
+    const { data, error } = await client.rpc('list_staff_reports_queue', {
+      p_status: params?.status?.trim() || null,
+      p_limit: limit,
+      p_offset: offset,
+    });
+
+    if (!error && data) {
+      return parseStaffReportsQueueResult(data);
     }
-    throw new Error(error.message || 'Không thể tải danh sách báo cáo vi phạm.');
+  } catch {
+    // Fallback to direct query
   }
 
-  return parseStaffReportsQueueResult(data);
+  try {
+    let query = client
+      .from('reports')
+      .select('id, target_type, post_id, comment_id, reason_code, description, status, created_at, reporter_id')
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1);
+
+    if (params?.status) {
+      query = query.eq('status', params.status);
+    }
+
+    const { data, error } = await query;
+    if (error) throw error;
+
+    const items: StaffReportQueueItem[] = (data || []).map((row: any) => ({
+      id: row.id,
+      targetType: row.target_type === 'comment' ? 'comment' : 'post',
+      targetId: row.post_id || row.comment_id || row.id,
+      targetTitle: 'Bài đăng vi phạm',
+      reporterName: 'Học sinh',
+      reasonCode: row.reason_code || 'other',
+      description: row.description || '',
+      status: row.status || 'open',
+      resolutionNote: row.resolution_note || null,
+      createdAt: row.created_at || new Date().toISOString(),
+      resolvedAt: row.resolved_at || null,
+    }));
+
+    return {
+      items,
+      totalCount: items.length,
+      limit,
+      offset,
+    };
+  } catch (err) {
+    throw new Error(err instanceof Error ? err.message : 'Không thể tải danh sách báo cáo vi phạm.');
+  }
 }
 
 export async function resolveModerationReport(
