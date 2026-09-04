@@ -1,4 +1,5 @@
 import { getSupabaseClient } from '../../lib/supabase/client';
+import { ClientCache } from '../../lib/cache/clientCache';
 import {
   buildOwnerPostMutationArgs,
   parseOwnerPostRow,
@@ -195,6 +196,10 @@ export async function getMyPost(postId:string):Promise<OwnerPostDetail | null> {
 
 export async function loadOwnerPostReferenceOptions():Promise<OwnerPostReferenceOptions> {
   const { supabase, user } = await requireCurrentUser();
+  const cacheKey = `owner_post_ref_${user.id}`;
+  const cached = ClientCache.get<OwnerPostReferenceOptions>(cacheKey);
+  if (cached) return cached;
+
   const { data:context, error:contextError } = await supabase.rpc('get_current_student_context');
   if (contextError || !context || typeof context !== 'object' || Array.isArray(context)) throw safeReadError();
   const contextRow = context as Record<string, unknown>;
@@ -220,7 +225,7 @@ export async function loadOwnerPostReferenceOptions():Promise<OwnerPostReference
   if (typeof privateResult.data?.contact_email === 'string' && privateResult.data.contact_email.trim()) contactMethods.push('email');
   if (typeof privateResult.data?.phone === 'string' && privateResult.data.phone.trim()) contactMethods.push('phone');
 
-  return {
+  const options: OwnerPostReferenceOptions = {
     categories,
     currentClassId,
     currentClassName:typeof classResult.data?.label === 'string' ? classResult.data.label : null,
@@ -228,6 +233,9 @@ export async function loadOwnerPostReferenceOptions():Promise<OwnerPostReference
     visibilityScopes:schoolScope === 'network' ? ['inherit','school','network'] : ['inherit','school'],
     contactMethods,
   };
+
+  ClientCache.set(cacheKey, options, 10 * 60 * 1000);
+  return options;
 }
 
 export async function createMyPost(input:OwnerPostCreateInput):Promise<OwnerWriteResponse> {

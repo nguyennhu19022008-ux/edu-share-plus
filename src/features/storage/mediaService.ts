@@ -1,4 +1,5 @@
 import { getSupabaseClient } from '../../lib/supabase/client';
+import { compressImageFile } from './imageCompressor';
 import {
   validateAvatarFile,
   validatePostMediaFiles,
@@ -63,11 +64,13 @@ async function reserveUploadFinalize(
   file:File,
   postId:string | null,
 ):Promise<ReservedMedia> {
+  const optimizedFile = await compressImageFile(file);
+
   const supabase = getSupabaseClient();
   const { data:reservedRaw, error:reserveError } = await supabase.rpc('reserve_my_file', {
     p_purpose:purpose,
-    p_mime_type:file.type,
-    p_size_bytes:file.size,
+    p_mime_type:optimizedFile.type,
+    p_size_bytes:optimizedFile.size,
     p_post_id:purpose === 'post_media' ? postId : null,
   });
   if (reserveError) throw safeUploadError();
@@ -80,9 +83,9 @@ async function reserveUploadFinalize(
   }
 
   const bucket = supabase.storage.from(reserved.bucket);
-  const { error:uploadError } = await bucket.upload(reserved.path, file, {
+  const { error:uploadError } = await bucket.upload(reserved.path, optimizedFile, {
     upsert:false,
-    contentType:file.type,
+    contentType:optimizedFile.type,
   });
   if (uploadError) {
     await cleanupUnboundObject(reserved);

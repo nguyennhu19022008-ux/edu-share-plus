@@ -96,10 +96,16 @@ export default function AdminPage() {
   const [reportsError, setReportsError] = useState('');
 
   const [keyword, setKeyword] = useState('');
+  const [debouncedKeyword, setDebouncedKeyword] = useState('');
   const [status, setStatus] = useState<'' | AdminPostStatus>('');
   const [className, setClassName] = useState('');
   const [sort, setSort] = useState<SortMode>('new');
   const [page, setPage] = useState(1);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedKeyword(keyword), 200);
+    return () => window.clearTimeout(timer);
+  }, [keyword]);
 
   const [modalPost, setModalPost] = useState<StaffPostQueueItem | null>(null);
   const [modalStatus, setModalStatus] = useState<AdminPostStatus>('Đang mở');
@@ -253,7 +259,7 @@ export default function AdminPage() {
 
   useEffect(() => {
     setPage(1);
-  }, [keyword, status, className, sort]);
+  }, [debouncedKeyword, status, className, sort]);
 
   useEffect(() => {
     if (!auth.authReady) return;
@@ -286,7 +292,7 @@ export default function AdminPage() {
   );
 
   const filtered = useMemo(() => {
-    const kw = normalize(keyword);
+    const kw = normalize(debouncedKeyword);
     const list = posts.filter((post) => {
       const postStatus = mapStatusToAdmin(post.moderationStatus);
       if (status && postStatus !== status) return false;
@@ -303,7 +309,7 @@ export default function AdminPage() {
       if (sort === 'reports') return b.reportCount - a.reportCount || dateB - dateA;
       return dateB - dateA;
     });
-  }, [posts, keyword, status, className, sort]);
+  }, [posts, debouncedKeyword, status, className, sort]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);

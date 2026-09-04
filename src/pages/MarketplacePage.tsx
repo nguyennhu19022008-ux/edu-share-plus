@@ -3,6 +3,7 @@ import { navigateLegacy } from '../app/legacyRouter';
 import StudentHeader from '../components/student/StudentHeader';
 import { useStudentAuth } from '../features/auth/session/AuthSessionProvider';
 import { listMySavedPosts, setPostSaved } from '../features/interactions/interactionService';
+import { SkeletonMarketplaceGrid } from '../components/common/Skeleton';
 import { MarketplacePostCard, MarketStatIcon } from '../features/marketplace/components/MarketplaceCards';
 import MarketplacePagination from '../features/marketplace/components/MarketplacePagination';
 import { deriveMarketplacePageState } from '../features/marketplace/marketplacePageModel';
@@ -244,7 +245,7 @@ export default function MarketplacePage() {
         </div>
 
         <section className="post-grid" aria-busy={loading}>
-          {loading ? <div className="state">Đang tải bài đăng từ EDU SHARE+...</div> : null}
+          {loading ? <SkeletonMarketplaceGrid count={6} /> : null}
           {!loading && error ? <div className="state"><p>{error}</p><button className="btn primary" type="button" onClick={()=>setRetryKey((value)=>value+1)}>Thử lại</button></div> : null}
           {!loading && !error && view.posts.length ? view.posts.map((post)=><MarketplacePostCard key={post.id} post={post} saved={savedIds.has(post.id)} onToggleSaved={()=>void handleToggleSaved(post.id)}/>) : null}
           {!loading && !error && !view.posts.length ? <div className="state">Chưa có bài đăng phù hợp.</div> : null}
