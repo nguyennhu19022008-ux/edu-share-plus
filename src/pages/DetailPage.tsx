@@ -98,6 +98,17 @@ export default function DetailPage() {
   const [contactBusy, setContactBusy] = useState(false);
   const [revealedContact, setRevealedContact] = useState<ContactRevealView | null>(null);
   const [interactionError, setInteractionError] = useState('');
+  const [reportModal, setReportModal] = useState<{
+    isOpen: boolean;
+    targetType: ReportTargetType;
+    targetId: string;
+    targetTitle?: string;
+  }>({
+    isOpen: false,
+    targetType: 'post',
+    targetId: '',
+    targetTitle: '',
+  });
 
   useEffect(() => {
     let active = true;
@@ -254,18 +265,6 @@ export default function DetailPage() {
       setContactBusy(false);
     }
   };
-
-  const [reportModal, setReportModal] = useState<{
-    isOpen: boolean;
-    targetType: ReportTargetType;
-    targetId: string;
-    targetTitle?: string;
-  }>({
-    isOpen: false,
-    targetType: 'post',
-    targetId: '',
-    targetTitle: '',
-  });
 
   const openReportPost = () => {
     setReportModal({
