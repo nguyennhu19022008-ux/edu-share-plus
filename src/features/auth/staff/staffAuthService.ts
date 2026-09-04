@@ -123,45 +123,17 @@ export async function getCurrentStaffContext(): Promise<StaffContext> {
     )
   );
 
-  // 2. Check if pre-authorized in roster_entries or if email was assigned in admin panel
-  const { data: rosterMatch } = await supabase
-    .from('roster_entries')
-    .select('school_id')
-    .eq('normalized_email', userEmail)
-    .limit(1);
+  if (existingStaffRole) {
+    let targetSchoolId = existingStaffRole.school_id;
 
-  const isPreauthorizedStaff = Boolean(rosterMatch && rosterMatch.length > 0);
-
-  if (existingStaffRole || isPreauthorizedStaff) {
-    let targetSchoolId =
-      existingStaffRole?.school_id ||
-      rosterMatch?.[0]?.school_id;
+    if (!targetSchoolId) {
+      const { data: profRow } = await supabase.from('profiles').select('school_id').eq('user_id', user.id).single();
+      targetSchoolId = profRow?.school_id;
+    }
 
     if (!targetSchoolId) {
       const { data: firstSchool } = await supabase.from('schools').select('id').limit(1).single();
       targetSchoolId = firstSchool?.id;
-    }
-
-    // If user didn't have staff role in user_roles (e.g. only had 'student'), grant teacher_moderator role!
-    if (!existingStaffRole && targetSchoolId) {
-      const { data: roleData } = await supabase
-        .from('roles')
-        .select('id, name, code')
-        .eq('code', 'teacher_moderator')
-        .single();
-
-      if (roleData?.id) {
-        await supabase.from('user_roles').upsert({
-          user_id: user.id,
-          role_id: roleData.id,
-          school_id: targetSchoolId,
-        });
-        existingStaffRole = {
-          role_id: roleData.id,
-          school_id: targetSchoolId,
-          roles: { code: 'teacher_moderator', name: 'Giáo viên kiểm duyệt' },
-        };
-      }
     }
 
     // Update profile to approved status

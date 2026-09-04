@@ -24,8 +24,33 @@ export function AdminModalMeta({label,value}:{label:string;value:string}) {
 
 export function AdminCharts({posts}:{posts:AdminPost[]}) {
   const { monthLabels, monthValues } = useMemo(() => {
+    const postMonths = new Set<string>();
+    posts.forEach((post) => {
+      const d = new Date(post.dateTs || post.date);
+      if (!isNaN(d.getTime())) {
+        const key = `${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+        postMonths.add(key);
+      }
+    });
+
+    if (postMonths.size === 0) {
+      const now = new Date();
+      for (let i = 5; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const key = `${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+        postMonths.add(key);
+      }
+    }
+
+    const sortedMonths = Array.from(postMonths).sort((a, b) => {
+      const [mA, yA] = a.split('/').map(Number);
+      const [mB, yB] = b.split('/').map(Number);
+      return yA !== yB ? yA - yB : mA - mB;
+    });
+
     const map = new Map<string, number>();
-    ['11/2025', '12/2025', '01/2026', '05/2026', '06/2026', '07/2026'].forEach((m) => map.set(m, 0));
+    sortedMonths.forEach((m) => map.set(m, 0));
+
     posts.forEach((post) => {
       const d = new Date(post.dateTs || post.date);
       if (!isNaN(d.getTime())) {
@@ -35,6 +60,7 @@ export function AdminCharts({posts}:{posts:AdminPost[]}) {
         }
       }
     });
+
     return {
       monthLabels: [...map.keys()],
       monthValues: [...map.values()],

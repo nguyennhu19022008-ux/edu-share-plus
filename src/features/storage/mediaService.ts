@@ -290,24 +290,26 @@ export async function getMyAvatarSignedUrl(avatarFileId:string | null):Promise<s
   const id = avatarFileId?.trim() ?? '';
   if (!id) return '';
 
-  const supabase = getSupabaseClient();
-  const { data, error } = await supabase
-    .from('file_objects')
-    .select('bucket,storage_path,purpose,binding_status,deleted_at')
-    .eq('id', id)
-    .maybeSingle();
-  if (error) throw safeReadError();
-  if (!data
-    || data.purpose !== 'avatar'
-    || data.binding_status !== 'bound'
-    || data.deleted_at !== null
-    || typeof data.bucket !== 'string'
-    || typeof data.storage_path !== 'string') {
+  try {
+    const supabase = getSupabaseClient();
+    const { data, error } = await supabase
+      .from('file_objects')
+      .select('bucket,storage_path,purpose,binding_status,deleted_at')
+      .eq('id', id)
+      .maybeSingle();
+    if (error || !data) return '';
+    if (
+      data.purpose !== 'avatar'
+      || data.binding_status !== 'bound'
+      || data.deleted_at !== null
+      || typeof data.bucket !== 'string'
+      || typeof data.storage_path !== 'string'
+    ) {
+      return '';
+    }
+
+    return await createPrivateSignedUrl(data.bucket, data.storage_path);
+  } catch {
     return '';
   }
-
-  const bucket = supabase.storage.from(data.bucket);
-  const { data:signed, error:signedError } = await bucket.createSignedUrl(data.storage_path, SIGNED_URL_SECONDS);
-  if (signedError || !signed?.signedUrl) throw safeReadError();
-  return signed.signedUrl;
 }

@@ -1,4 +1,4 @@
-﻿import type { ItemImpactEstimate, TradeType } from './transactionTypes';
+import type { ItemImpactEstimate, TradeType } from './transactionTypes';
 
 export interface CategoryImpactBenchmark {
   categoryCode: string;
@@ -79,7 +79,7 @@ export function estimateItemImpact(
   let financialSaved = benchmark.averageRetailPrice;
   const wasteReducedKg = benchmark.defaultWeightKg;
 
-  if (tradeType === 'sale' && salePrice > 0) {
+  if ((tradeType === 'sale' || tradeType === 'low_price_sale') && salePrice > 0) {
     financialSaved = Math.max(0, benchmark.averageRetailPrice - salePrice);
   } else if (tradeType === 'loan') {
     financialSaved = Math.round(benchmark.averageRetailPrice / 2);
