@@ -29,6 +29,7 @@ export type OwnerPostListQuery = {
   keyword?:string;
   moderationStatus?:'' | OwnerModerationStatus;
   lifecycleStatus?:'' | OwnerLifecycleStatus;
+  sort?:'newest' | 'oldest' | 'price_asc' | 'price_desc';
   page:number;
   pageSize:number;
 };

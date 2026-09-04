@@ -47,6 +47,58 @@ async function requireCurrentUser() {
   return { supabase, user };
 }
 
+export type OwnerSummaryCounts = {
+  total:number;
+  active:number;
+  completed:number;
+  needsAction:number;
+  pending:number;
+  rejected:number;
+  withdrawn:number;
+};
+
+export async function getMyPostSummaryCounts():Promise<OwnerSummaryCounts> {
+  const { supabase, user } = await requireCurrentUser();
+  const { data, error } = await supabase
+    .from('posts')
+    .select('moderation_status,lifecycle_status')
+    .eq('owner_id', user.id);
+
+  if (error || !data) {
+    return { total:0, active:0, completed:0, needsAction:0, pending:0, rejected:0, withdrawn:0 };
+  }
+
+  let active = 0;
+  let completed = 0;
+  let pending = 0;
+  let rejected = 0;
+  let withdrawn = 0;
+
+  for (const row of data as Array<{ moderation_status?:string; lifecycle_status?:string }>) {
+    if (row.lifecycle_status === 'completed') {
+      completed++;
+    } else if (row.lifecycle_status === 'withdrawn') {
+      withdrawn++;
+    } else if (row.moderation_status === 'pending') {
+      pending++;
+    } else if (row.moderation_status === 'rejected') {
+      rejected++;
+    } else if (row.lifecycle_status === 'active' && row.moderation_status === 'approved') {
+      active++;
+    }
+  }
+
+  return {
+    total:data.length,
+    active,
+    completed,
+    needsAction:pending + rejected,
+    pending,
+    rejected,
+    withdrawn,
+  };
+}
+
 export async function listMyPosts(query:OwnerPostListQuery):Promise<OwnerPostListResult> {
   const { supabase, user } = await requireCurrentUser();
   const page = Math.max(1, Math.trunc(query.page || 1));
@@ -64,9 +116,17 @@ export async function listMyPosts(query:OwnerPostListQuery):Promise<OwnerPostLis
   const keyword = query.keyword?.trim();
   if (keyword) request = request.textSearch('search_tsv', keyword, { type:'websearch', config:'simple' });
 
-  const { data, error, count } = await request
-    .order('created_at', { ascending:false })
-    .range(from, to);
+  if (query.sort === 'oldest') {
+    request = request.order('created_at', { ascending:true });
+  } else if (query.sort === 'price_asc') {
+    request = request.order('sale_price', { ascending:true, nullsFirst:false });
+  } else if (query.sort === 'price_desc') {
+    request = request.order('sale_price', { ascending:false, nullsFirst:false });
+  } else {
+    request = request.order('created_at', { ascending:false });
+  }
+
+  const { data, error, count } = await request.range(from, to);
   if (error) throw safeReadError();
 
   try {

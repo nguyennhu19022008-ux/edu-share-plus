@@ -42,6 +42,9 @@ export function AuthSessionProvider({ children }: PropsWithChildren) {
     // Fetch initial session immediately on load
     void supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
+      if (data.session) {
+        setProfileLoading(true);
+      }
       setAuthReady(true);
     }).catch(() => {
       setAuthReady(true);
@@ -56,9 +59,14 @@ export function AuthSessionProvider({ children }: PropsWithChildren) {
 
       if (event === 'SIGNED_OUT') {
         clearPasswordRecoveryMarker();
+        setProfile(null);
+        setProfileLoading(false);
       }
 
       setSession(nextSession);
+      if (nextSession) {
+        setProfileLoading(true);
+      }
       setAuthReady(true);
     });
 
