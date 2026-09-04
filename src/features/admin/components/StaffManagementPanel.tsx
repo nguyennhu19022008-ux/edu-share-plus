@@ -1,4 +1,4 @@
-﻿import { type FormEvent, useEffect, useState } from 'react';
+import { type FormEvent, useEffect, useState } from 'react';
 import {
   assignSchoolStaff,
   listSchoolStaff,
@@ -89,7 +89,7 @@ export function StaffManagementPanel() {
       <div className="card" style={{ padding: '22px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
           <div>
-            <h2 style={{ margin: 0, fontSize: '18px', color: '#0f172a' }}>➕ Cấp quyền Giáo viên / Quản trị viên mới</h2>
+            <h2 style={{ margin: 0, fontSize: '18px', color: '#0f172a' }}>Cấp quyền Giáo viên / Quản trị viên mới</h2>
             <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#64748b' }}>
               Nhập email tài khoản giáo viên để cấp quyền kiểm duyệt ngay lập tức (không cần chạy lệnh SQL).
             </p>
@@ -119,8 +119,8 @@ export function StaffManagementPanel() {
               onChange={(e) => setInputRole(e.target.value as any)}
               style={{ height: '40px', padding: '0 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
             >
-              <option value="teacher_moderator">👨‍🏫 Giáo viên kiểm duyệt (teacher_moderator)</option>
-              <option value="school_admin">🛡️ Quản trị viên trường (school_admin)</option>
+              <option value="teacher_moderator">Giáo viên kiểm duyệt (teacher_moderator)</option>
+              <option value="school_admin">Quản trị viên trường (school_admin)</option>
             </select>
           </label>
 
@@ -138,13 +138,13 @@ export function StaffManagementPanel() {
       <div className="card" style={{ padding: '22px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
           <div>
-            <h2 style={{ margin: 0, fontSize: '18px', color: '#0f172a' }}>📋 Danh sách Cán bộ & Giáo viên của trường</h2>
+            <h2 style={{ margin: 0, fontSize: '18px', color: '#0f172a' }}>Danh sách Cán bộ & Giáo viên của trường</h2>
             <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#64748b' }}>
               Danh sách các thầy cô đang có quyền duyệt bài, xác minh danh tính học sinh và xử lý báo cáo vi phạm.
             </p>
           </div>
           <button type="button" className="btn gray" onClick={() => void loadData()} disabled={loading}>
-            {loading ? 'Đang tải…' : '🔄 Làm mới'}
+            {loading ? 'Đang tải…' : 'Làm mới'}
           </button>
         </div>
 

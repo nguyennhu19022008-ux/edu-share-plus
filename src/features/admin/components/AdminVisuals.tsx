@@ -11,8 +11,7 @@ export function AdminRate({label,value,tone}:{label:string;value:number;tone:'gr
 }
 
 export function AdminRankColumn({title,items,isClass=false}:{title:string;items:Array<{name:string;count:number}>;isClass?:boolean}) {
-  const medals = ['🥇','🥈','🥉'];
-  return <div className="admin-rank-column"><h3>{title}</h3><div className="admin-rank-list">{items.length ? items.slice(0,4).map((item,index)=><div key={item.name} className={`admin-rank-row${isClass&&index===0?' featured':''}`}><span>{isClass&&index<3?`${medals[index]} `:`${index+1}. `}{item.name}</span><b>{item.count}{isClass?' lượt':' món'}</b></div>) : <div className="admin-rank-empty">Chưa có dữ liệu.</div>}</div></div>;
+  return <div className="admin-rank-column"><h3>{title}</h3><div className="admin-rank-list">{items.length ? items.slice(0,5).map((item,index)=><div key={item.name} className={`admin-rank-row${isClass&&index===0?' featured':''}`}><span>{`${index+1}. `}{item.name}</span><b>{item.count}{isClass?' lượt':' món'}</b></div>) : <div className="admin-rank-empty">Chưa có dữ liệu.</div>}</div></div>;
 }
 
 export function AdminSwitch({checked,disabled,label,onChange}:{checked:boolean;disabled:boolean;label:string;onChange:(checked:boolean)=>void}) {

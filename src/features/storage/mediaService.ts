@@ -98,11 +98,26 @@ async function reserveUploadFinalize(
   return reserved;
 }
 
+const signedUrlCache = new Map<string, { url: string; expiresAt: number }>();
+const CACHE_TTL_MS = 240 * 1000; // 4 minutes (signed URLs expire at 5 minutes)
+
 async function createPrivateSignedUrl(bucketName:string, path:string):Promise<string> {
+  const cacheKey = `${bucketName}:${path}`;
+  const cached = signedUrlCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.url;
+  }
+
   const supabase = getSupabaseClient();
   const bucket = supabase.storage.from(bucketName);
-  const { data, error } = await bucket.createSignedUrl(path, 300);
+  const { data, error } = await bucket.createSignedUrl(path, SIGNED_URL_SECONDS);
   if (error || !data?.signedUrl) throw safeReadError();
+
+  signedUrlCache.set(cacheKey, {
+    url: data.signedUrl,
+    expiresAt: Date.now() + CACHE_TTL_MS,
+  });
+
   return data.signedUrl;
 }
 
@@ -184,35 +199,39 @@ export async function listPostMedia(postId:string):Promise<SignedMedia[]> {
     .order('sort_order', { ascending:true });
   if (error) throw safeReadError();
 
-  const signed:SignedMedia[] = [];
-  for (const raw of data ?? []) {
+  const validEntries = (data ?? []).filter((raw: any) => {
     if (!isRecord(raw) || typeof raw.file_id !== 'string' || typeof raw.sort_order !== 'number' || typeof raw.is_primary !== 'boolean') {
-      continue;
+      return false;
     }
     const file = raw.file;
-    if (!isRecord(file)
-      || typeof file.bucket !== 'string'
-      || typeof file.storage_path !== 'string'
-      || file.binding_status !== 'bound'
-      || file.deleted_at !== null) {
-      continue;
-    }
-    try {
-      const signedUrl = await createPrivateSignedUrl(file.bucket, file.storage_path);
-      signed.push({
-        fileId:raw.file_id,
-        bucket:file.bucket,
-        path:file.storage_path,
-        altText:typeof raw.alt_text === 'string' ? raw.alt_text : null,
-        sortOrder:raw.sort_order,
-        isPrimary:raw.is_primary,
-        signedUrl,
-      });
-    } catch {
-      // One inaccessible/expired object must not cause the UI to invent a URL or hide other valid media.
-    }
-  }
-  return signed;
+    return isRecord(file)
+      && typeof file.bucket === 'string'
+      && typeof file.storage_path === 'string'
+      && file.binding_status === 'bound'
+      && file.deleted_at === null;
+  });
+
+  const results = await Promise.all(
+    validEntries.map(async (raw: any) => {
+      const file = raw.file as { bucket: string; storage_path: string };
+      try {
+        const signedUrl = await createPrivateSignedUrl(file.bucket, file.storage_path);
+        return {
+          fileId: raw.file_id,
+          bucket: file.bucket,
+          path: file.storage_path,
+          altText: typeof raw.alt_text === 'string' ? raw.alt_text : null,
+          sortOrder: raw.sort_order,
+          isPrimary: raw.is_primary,
+          signedUrl,
+        } as SignedMedia;
+      } catch {
+        return null;
+      }
+    })
+  );
+
+  return results.filter((item): item is SignedMedia => item !== null);
 }
 
 export async function removeMyPostMedia(postId:string, media:SignedMedia):Promise<void> {

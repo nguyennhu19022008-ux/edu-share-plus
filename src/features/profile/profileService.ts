@@ -94,23 +94,35 @@ function passwordChangeError(message: string): Error {
 
 export async function getMyProfile(): Promise<StudentProfileView> {
   const supabase = getSupabaseClient();
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
+  const { data: sessionData } = await supabase.auth.getSession();
+  let user = sessionData.session?.user;
 
-  if (userError) throw profileReadError(userError.message);
   if (!user) {
-    throw new Error('Phiên đăng nhập không còn hợp lệ. Vui lòng đăng nhập lại.');
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+    if (userError) throw profileReadError(userError.message);
+    if (!userData.user) {
+      throw new Error('Phiên đăng nhập không còn hợp lệ. Vui lòng đăng nhập lại.');
+    }
+    user = userData.user;
   }
 
-  const { data: rawProfile } = await supabase
-    .from('profiles')
-    .select(
-      'full_name,class_id,avatar_file_id,show_name,show_class,reputation_score_cache,reputation_label_cache,created_at,updated_at',
-    )
-    .eq('user_id', user.id)
-    .maybeSingle();
+  const [profileResult, privateProfileResult] = await Promise.all([
+    supabase
+      .from('profiles')
+      .select(
+        'full_name,class_id,avatar_file_id,show_name,show_class,reputation_score_cache,reputation_label_cache,created_at,updated_at,class:school_classes(label)',
+      )
+      .eq('user_id', user.id)
+      .maybeSingle(),
+    supabase
+      .from('profile_private')
+      .select('contact_email,phone,show_email,show_phone,face_file_id,updated_at')
+      .eq('user_id', user.id)
+      .maybeSingle(),
+  ]);
+
+  const rawProfile = profileResult.data as any;
+  const rawPrivateProfile = privateProfileResult.data as any;
 
   const profile = {
     full_name: typeof rawProfile?.full_name === 'string' ? rawProfile.full_name : ((user.user_metadata as any)?.full_name || 'Người dùng Edu Share+'),
@@ -124,12 +136,6 @@ export async function getMyProfile(): Promise<StudentProfileView> {
     updated_at: rawProfile?.updated_at || new Date().toISOString(),
   };
 
-  const { data: rawPrivateProfile } = await supabase
-    .from('profile_private')
-    .select('contact_email,phone,show_email,show_phone,face_file_id,updated_at')
-    .eq('user_id', user.id)
-    .maybeSingle();
-
   const privateProfile = {
     contact_email: typeof rawPrivateProfile?.contact_email === 'string' ? rawPrivateProfile.contact_email : (user.email || ''),
     phone: typeof rawPrivateProfile?.phone === 'string' ? rawPrivateProfile.phone : '',
@@ -139,8 +145,8 @@ export async function getMyProfile(): Promise<StudentProfileView> {
     updated_at: rawPrivateProfile?.updated_at || new Date().toISOString(),
   };
 
-  let classLabel: string | null = null;
-  if (profile.class_id) {
+  let classLabel: string | null = rawProfile?.class?.label || null;
+  if (!classLabel && profile.class_id) {
     const { data: schoolClass } = await supabase
       .from('school_classes')
       .select('label')

@@ -90,8 +90,14 @@ function parseSafely<T>(parse:() => T, fallback:() => Error):T {
 export async function setPostSaved(postId:string, saved:boolean):Promise<void> {
   const normalizedId = requiredId(postId, 'INTERACTION_POST_ID_REQUIRED');
   const supabase = getSupabaseClient();
-  const { data:{ user }, error:userError } = await supabase.auth.getUser();
-  if (userError || !user) throw favoriteError();
+  const { data: sessionData } = await supabase.auth.getSession();
+  let user = sessionData.session?.user;
+
+  if (!user) {
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+    if (userError || !userData.user) throw favoriteError();
+    user = userData.user;
+  }
 
   if (saved) {
     const { error } = await supabase

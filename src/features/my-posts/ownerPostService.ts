@@ -42,8 +42,15 @@ function safeWriteError():Error {
 
 async function requireCurrentUser() {
   const supabase = getSupabaseClient();
-  const { data:{ user }, error } = await supabase.auth.getUser();
-  if (error || !user) throw safeReadError();
+  const { data: sessionData } = await supabase.auth.getSession();
+  let user = sessionData.session?.user;
+
+  if (!user) {
+    const { data: userData, error } = await supabase.auth.getUser();
+    if (error || !userData.user) throw safeReadError();
+    user = userData.user;
+  }
+
   return { supabase, user };
 }
 

@@ -87,69 +87,82 @@ export async function signInStudent(
   return data.session;
 }
 
+const inFlightProfilePromises = new Map<string, Promise<StudentSessionProfile>>();
+
 export async function getStudentSessionProfile(
   expectedUserId: string,
 ): Promise<StudentSessionProfile> {
-  const supabase = getSupabaseClient();
+  if (inFlightProfilePromises.has(expectedUserId)) {
+    return inFlightProfilePromises.get(expectedUserId)!;
+  }
 
-  const { data, error } = await supabase.rpc('get_current_student_context');
+  const promise = (async () => {
+    const supabase = getSupabaseClient();
 
-  if (error) {
-    const { data: prof, error: profError } = await supabase
-      .from('profiles')
-      .select('user_id, full_name, account_status, school_id, class_id, school_membership_status, membership_verification_method, membership_verified_at')
-      .eq('user_id', expectedUserId)
-      .single();
+    const { data, error } = await supabase.rpc('get_current_student_context');
 
-    if (prof && !profError) {
-      return {
-        userId: prof.user_id,
-        fullName: prof.full_name || 'Học sinh',
-        accountStatus: (prof.account_status as any) || 'approved',
-        schoolId: prof.school_id,
-        classId: prof.class_id || null,
-        schoolMembershipStatus: (prof.school_membership_status as any) || 'verified_student',
-        membershipVerificationMethod: (prof.membership_verification_method as any) || 'manual_roster',
-        membershipVerifiedAt: prof.membership_verified_at || new Date().toISOString(),
-      };
+    if (error) {
+      const { data: prof, error: profError } = await supabase
+        .from('profiles')
+        .select('user_id, full_name, account_status, school_id, class_id, school_membership_status, membership_verification_method, membership_verified_at')
+        .eq('user_id', expectedUserId)
+        .single();
+
+      if (prof && !profError) {
+        return {
+          userId: prof.user_id,
+          fullName: prof.full_name || 'Học sinh',
+          accountStatus: (prof.account_status as any) || 'approved',
+          schoolId: prof.school_id,
+          classId: prof.class_id || null,
+          schoolMembershipStatus: (prof.school_membership_status as any) || 'verified_student',
+          membershipVerificationMethod: (prof.membership_verification_method as any) || 'manual_roster',
+          membershipVerifiedAt: prof.membership_verified_at || new Date().toISOString(),
+        };
+      }
+      throw new Error(normalizeStudentContextError(error.message));
     }
-    throw new Error(normalizeStudentContextError(error.message));
-  }
 
-  if (!data || typeof data !== 'object') {
-    throw new Error(
-      'Không nhận được ngữ cảnh học sinh hợp lệ từ hệ thống phân quyền.',
-    );
-  }
+    if (!data || typeof data !== 'object') {
+      throw new Error(
+        'Không nhận được ngữ cảnh học sinh hợp lệ từ hệ thống phân quyền.',
+      );
+    }
 
-  const context = data as StudentContextRpc;
+    const context = data as StudentContextRpc;
 
-  if (!context.user_id || context.user_id !== expectedUserId) {
-    throw new Error(
-      'Ngữ cảnh học sinh không khớp với phiên Authentication hiện tại.',
-    );
-  }
+    if (!context.user_id || context.user_id !== expectedUserId) {
+      throw new Error(
+        'Ngữ cảnh học sinh không khớp với phiên Authentication hiện tại.',
+      );
+    }
 
-  if (
-    !context.school_membership_status
-    || !context.membership_verification_method
-    || !context.membership_verified_at
-  ) {
-    throw new Error(
-      'Ngữ cảnh học sinh thiếu thông tin xác minh tư cách thành viên trường.',
-    );
-  }
+    if (
+      !context.school_membership_status
+      || !context.membership_verification_method
+      || !context.membership_verified_at
+    ) {
+      throw new Error(
+        'Ngữ cảnh học sinh thiếu thông tin xác minh tư cách thành viên trường.',
+      );
+    }
 
-  return {
-    userId: context.user_id,
-    fullName: context.full_name ?? '',
-    accountStatus: context.account_status,
-    schoolId: context.school_id,
-    classId: context.class_id ?? null,
-    schoolMembershipStatus: context.school_membership_status,
-    membershipVerificationMethod: context.membership_verification_method,
-    membershipVerifiedAt: context.membership_verified_at,
-  };
+    return {
+      userId: context.user_id,
+      fullName: context.full_name ?? '',
+      accountStatus: context.account_status,
+      schoolId: context.school_id,
+      classId: context.class_id ?? null,
+      schoolMembershipStatus: context.school_membership_status,
+      membershipVerificationMethod: context.membership_verification_method,
+      membershipVerifiedAt: context.membership_verified_at,
+    };
+  })().finally(() => {
+    inFlightProfilePromises.delete(expectedUserId);
+  });
+
+  inFlightProfilePromises.set(expectedUserId, promise);
+  return promise;
 }
 
 export async function signOutStudent(): Promise<void> {

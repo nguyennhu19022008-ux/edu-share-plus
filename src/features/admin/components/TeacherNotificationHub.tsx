@@ -1,4 +1,5 @@
-﻿import { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
+import { BellIcon } from './AdminVisuals';
 import {
   listSchoolStaffNotifications,
   markAllStaffNotificationsAsRead,
@@ -75,7 +76,7 @@ export function TeacherNotificationHub({
         <div className="admin-moderation-title-row">
           <div>
             <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <span>🔔</span>
+              <span style={{ display: 'inline-flex', width: 20, height: 20, color: '#ee4d2d' }}><BellIcon /></span>
               <span>Trung tâm Thông báo Giáo viên & Quản trị</span>
               {unreadCount > 0 && (
                 <span

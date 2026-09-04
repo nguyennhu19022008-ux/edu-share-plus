@@ -112,6 +112,7 @@ export default function MyPostsPage() {
   const [profile, setProfile] = useState<StudentProfileView | null>(null);
   const [activeTab, setActiveTab] = useState<TabKey>('all');
   const [keyword, setKeyword] = useState('');
+  const [debouncedKeyword, setDebouncedKeyword] = useState('');
   const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'price_asc' | 'price_desc'>('newest');
   const [moderationStatus, setModerationStatus] = useState<'' | OwnerModerationStatus>('');
   const [lifecycleStatus, setLifecycleStatus] = useState<'' | OwnerLifecycleStatus>('');
@@ -123,6 +124,11 @@ export default function MyPostsPage() {
   const [notice, setNotice] = useState('');
   const [reloadVersion, setReloadVersion] = useState(0);
   const [busyId, setBusyId] = useState('');
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedKeyword(keyword.trim()), 250);
+    return () => window.clearTimeout(timer);
+  }, [keyword]);
 
   useEffect(() => {
     let cancelled = false;
@@ -158,7 +164,7 @@ export default function MyPostsPage() {
     setError('');
 
     void listMyPosts({
-      keyword,
+      keyword: debouncedKeyword,
       moderationStatus,
       lifecycleStatus,
       sort: sortBy,
@@ -178,7 +184,7 @@ export default function MyPostsPage() {
     return () => {
       cancelled = true;
     };
-  }, [keyword, lifecycleStatus, moderationStatus, page, reloadVersion, sortBy]);
+  }, [debouncedKeyword, lifecycleStatus, moderationStatus, page, reloadVersion, sortBy]);
 
   const reload = (message?: string) => {
     if (message) setNotice(message);
