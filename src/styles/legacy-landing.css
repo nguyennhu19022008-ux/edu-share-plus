@@ -711,6 +711,47 @@
     .landing-v2-product-grid{grid-template-columns:1fr 1fr}
     .landing-v2-product-card:nth-child(n){display:block}
   }
+  @media(max-width:820px), (pointer: coarse){
+    .landing-bouncy-letter,
+    .landing-zoom-desc,
+    .landing-stagger-item,
+    .landing-from-left,
+    .landing-from-right,
+    .landing-beam-runner,
+    .landing-v2-promo,
+    .landing-v2-hero-card,
+    .landing-v2-promo-card,
+    .landing-v2-process-card article,
+    .landing-v2-product-card,
+    .landing-v2-community-stats article,
+    .reveal-section {
+      animation: none !important;
+      transform: none !important;
+      opacity: 1 !important;
+      transition: none !important;
+    }
+
+    .landing-beam-wrap {
+      display: none !important;
+    }
+
+    .landing-bouncy-heading {
+      display: inline-flex !important;
+    }
+
+    .landing-bouncy-letter {
+      display: inline-block !important;
+      transform: none !important;
+      animation: none !important;
+    }
+
+    .landing-v2-product-card:hover,
+    .landing-v2-process-card article:hover,
+    .landing-v2-promo-card:hover,
+    .landing-v2-btn:hover {
+      transform: none !important;
+    }
+  }
   @media(max-width:620px){
     .landing-v2-promo{font-size:10px;line-height:1.45}
     .landing-v2-nav-inner{width:calc(100% - 18px);gap:9px;padding:9px 0 10px}
