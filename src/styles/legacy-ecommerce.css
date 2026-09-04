@@ -654,3 +654,50 @@ input,select,textarea{border:1px solid #ddd;border-radius:8px;padding:11px 12px;
   animation: ecomSlideInLeft 650ms cubic-bezier(0.16, 1, 0.3, 1) 150ms both;
 }
 
+/* =========================================================
+   Mobile Performance: Tắt chuyển động CHỈ ở Đăng nhập và Landing
+   (Các trang sau khi đăng nhập vẫn giữ nguyên hiệu ứng mượt mà)
+   ========================================================= */
+@media (max-width: 820px), (pointer: coarse) {
+  /* Auth / Login Page on Mobile */
+  .auth-market-card,
+  .auth-logo,
+  .auth-beam-runner,
+  .auth-bouncy-letter,
+  .auth-desc,
+  .auth-from-left,
+  .auth-from-right,
+  .auth-kicker,
+  .auth-card,
+  .auth-market-wrap {
+    animation: none !important;
+    transform: none !important;
+    opacity: 1 !important;
+    transition: none !important;
+  }
+
+  .auth-beam-wrap {
+    display: none !important;
+  }
+
+  .auth-bouncy-heading {
+    display: block !important;
+  }
+
+  .auth-bouncy-letter {
+    display: inline !important;
+    transform: none !important;
+  }
+
+  /* Landing Page on Mobile */
+  .landing-ecom-hero,
+  .process-grid article,
+  .landing-card,
+  .landing-page {
+    animation: none !important;
+    transform: none !important;
+    opacity: 1 !important;
+  }
+}
+
+

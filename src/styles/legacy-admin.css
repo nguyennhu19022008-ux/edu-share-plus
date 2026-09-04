@@ -552,4 +552,6 @@ body.admin-redesign-body.admin-modal-open{overflow:hidden}
 .admin-post-table tbody tr:nth-child(7) { animation-delay: 280ms; }
 .admin-post-table tbody tr:nth-child(8) { animation-delay: 320ms; }
 .admin-post-table tbody tr:nth-child(9) { animation-delay: 360ms; }
-.admin-post-table tbody tr:nth-child(10) { animation-delay: 400ms; }
+.admin-post-table tbody tr:nth-child(10) { animation-delay: 400ms; }
+
+

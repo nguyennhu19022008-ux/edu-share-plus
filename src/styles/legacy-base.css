@@ -295,6 +295,7 @@
   .post-card,.card,.panel,.auth-card,.metric-card,.table-wrap{will-change:transform;contain:layout paint}
 
   @media(max-width:820px){
+    .auth-card, .landing-card, .landing-body::after{animation:none!important;transform:none!important}
     body{font-size:14px}
     .app-header{align-items:flex-start;flex-direction:column;padding:12px}.brand{font-size:17px}.brand-mark{width:36px;height:36px}.nav-actions{width:100%;justify-content:flex-start}.hello{max-width:100%;order:-1}.role{display:none}.nav-btn{padding:9px 11px}
     .container{padding:15px 12px 30px}.toolbar,.grid-2,.landing-actions,.market-toolbar{grid-template-columns:1fr}.toolbar.flex{align-items:stretch}.toolbar-left{width:100%;flex-direction:column}.toolbar-left>*{width:100%;min-width:0}.page-head{flex-direction:column}.page-head h1,.page-head h2{font-size:25px}
