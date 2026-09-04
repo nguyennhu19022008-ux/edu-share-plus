@@ -269,7 +269,7 @@ export default function MyDetailPage() {
 
             {detail.rejectionReason ? <div className="reason-box"><b>Lý do từ chối gần nhất: </b>{detail.rejectionReason}</div> : null}
 
-            <section className="card">
+            <section className="card owner-sub-card">
               <h3>Chính sách và liên hệ</h3>
               <p><b>Phạm vi:</b> {post.visibilityScope}</p>
               <p><b>Kênh liên hệ đã chọn:</b> {contactLabel(post.preferredContactMethod)}</p>
@@ -278,7 +278,7 @@ export default function MyDetailPage() {
             </section>
 
             {isSale ? (
-              <section className="card">
+              <section className="card owner-sub-card">
                 <h3>Dữ liệu bán giá rẻ</h3>
                 <div className="grid-2">
                   <p><b>Giá bán:</b> {post.salePriceLabel}</p>
@@ -362,8 +362,10 @@ export default function MyDetailPage() {
               ) : (
                 <div className="state">Chưa có dữ liệu tương tác khả dụng.</div>
               )}
-              <p className="form-note">Chỉ hiển thị danh tính đã được backend áp dụng quyền riêng tư. Giá trị liên hệ của người xem không được trả về ở đây.</p>
-              <p className="form-note">Báo cáo và thông báo vẫn thuộc Phase 5H; trang này không hiển thị số liệu giả cho các tính năng đó.</p>
+              <div className="owner-side-notes">
+                <p className="form-note">Chỉ hiển thị danh tính đã được backend áp dụng quyền riêng tư. Giá trị liên hệ của người xem không được trả về ở đây.</p>
+                <p className="form-note">Báo cáo và thông báo vẫn thuộc Phase 5H; trang này không hiển thị số liệu giả cho các tính năng đó.</p>
+              </div>
             </section>
           </aside>
         </section>

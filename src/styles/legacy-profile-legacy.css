@@ -48,11 +48,11 @@
 .save-btn.saved { background:#fff1f2; border-color:#fecdd3; color:#be123c; }
 .owner-line { display:flex; gap:10px; flex-wrap:wrap; align-items:center; justify-content:space-between; }
 .reputation-chip { display:inline-flex; align-items:center; border:1px solid #dbeafe; background:#eff6ff; color:#1d4ed8; padding:4px 8px; border-radius:999px; font-weight:800; font-size:12px; }
-.privacy-note { margin-top:14px; padding:12px 14px; border:1px solid #bfdbfe; background:#eff6ff; border-radius:16px; color:#334155; }
+.privacy-note { margin-top:16px; padding:16px 18px; border:1px solid #bfdbfe; background:#eff6ff; border-radius:16px; color:#334155; line-height:1.55; }
 .profile-grid-v24 { align-items:start; }
 .reputation-box b { color:#4f46e5; }
 .mini-stat-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin-top:14px; width:100%; }
-.mini-stat { border:1px solid #e2e8f0; border-radius:16px; background:#fff; padding:11px 12px; }
+.mini-stat { border:1px solid #e2e8f0; border-radius:16px; background:#fff; padding:14px 16px; }
 .mini-stat b { display:block; color:#0f172a; font-size:20px; }
 .mini-stat span { display:block; color:#64748b; font-weight:800; font-size:12px; margin-top:2px; }
 .privacy-switch { display:flex; gap:12px; align-items:flex-start; padding:12px 0; border-bottom:1px solid #edf2f7; cursor:pointer; }
@@ -62,7 +62,7 @@
 .privacy-switch b { color:#0f172a; }
 .privacy-switch small { color:#64748b; font-weight:600; line-height:1.35; }
 .saved-list { display:grid; gap:10px; }
-.saved-item { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:8px 12px; align-items:center; border:1px solid #e2e8f0; border-radius:16px; background:#fff; padding:12px; }
+.saved-item { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:8px 12px; align-items:center; border:1px solid #e2e8f0; border-radius:16px; background:#fff; padding:14px 16px; }
 .saved-item b { color:#0f172a; }
 .saved-item span, .saved-item small { color:#64748b; font-weight:700; }
 .saved-item.unread-mini { border-color:#bfdbfe; background:#eff6ff; }
@@ -517,10 +517,11 @@ th {
   min-width: 0;
   background: #fff;
   border: 1px solid #dbeafe;
-  border-radius: 18px;
-  padding: 14px;
+  border-radius: 16px;
+  padding: 18px 18px 16px;
   box-shadow: 0 10px 24px rgba(15, 23, 42, .06);
   overflow: hidden;
+  line-height: 1.45;
 }
 
 .v26-mini-title {

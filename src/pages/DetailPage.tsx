@@ -326,7 +326,7 @@ export default function DetailPage() {
 
         <section>
           <div className="detail-layout">
-            <section className="card" style={{ padding:18 }}>
+            <section className="card">
               <div className="tags">
                 <span className="tag">{post.tradeType}</span>
                 <span className="tag cat">{post.category}</span>
