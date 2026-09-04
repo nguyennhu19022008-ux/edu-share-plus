@@ -185,9 +185,26 @@ export default function TeacherLoginPage() {
 
       <main className="auth-market-wrap">
         <section className="auth-market-card">
+          <div className="auth-beam-wrap" aria-hidden="true">
+            <svg className="auth-beam-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
+              <rect className="auth-beam-runner" x="1" y="1" width="98" height="98" rx="4" pathLength="100" />
+            </svg>
+          </div>
+
           <div className="auth-kicker teacher">Cổng giáo viên</div>
 
-          <h1>Đăng nhập giáo viên</h1>
+          <h1 className="auth-bouncy-heading" aria-label="Đăng nhập giáo viên">
+            {Array.from('Đăng nhập giáo viên').map((char, index) => (
+              <span
+                key={index}
+                className="auth-bouncy-letter"
+                style={{ animationDelay: `${420 + index * 36}ms` }}
+                aria-hidden="true"
+              >
+                {char === ' ' ? '\u00A0' : char}
+              </span>
+            ))}
+          </h1>
 
           <p className="auth-desc">
             Dùng tài khoản giáo viên để kiểm duyệt bài, xử lý báo cáo và xem
@@ -195,11 +212,25 @@ export default function TeacherLoginPage() {
           </p>
 
           <form className="ecom-form" onSubmit={submit}>
-            <div className="field">
+            <div className="field auth-stagger-item auth-stagger-1 auth-from-left">
               <label className="req">Email giáo viên</label>
 
               <div className="input-icon">
-                <span>✉</span>
+                <svg
+                  className="auth-input-svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <rect width="20" height="16" x="2" y="4" rx="2" />
+                  <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+                </svg>
                 <input
                   name="email"
                   type="email"
@@ -215,7 +246,7 @@ export default function TeacherLoginPage() {
               </div>
             </div>
 
-            <div className="field">
+            <div className="field auth-stagger-item auth-stagger-2 auth-from-right">
               <div className="label-row">
                 <label className="req">Mật khẩu quản trị</label>
 
@@ -231,7 +262,21 @@ export default function TeacherLoginPage() {
               </div>
 
               <div className="input-icon">
-                <span>◆</span>
+                <svg
+                  className="auth-input-svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                </svg>
                 <input
                   name="password"
                   type="password"
@@ -247,13 +292,13 @@ export default function TeacherLoginPage() {
               </div>
             </div>
 
-            <div className="auth-info teacher-info">
+            <div className="auth-info teacher-info auth-stagger-item auth-stagger-3 auth-from-left">
               Khu vực này dành riêng cho giáo viên và ban quản trị. Các thao
               tác kiểm duyệt được ghi vào nhật ký hệ thống.
             </div>
 
             <button
-              className="btn primary full"
+              className="btn primary full auth-stagger-item auth-stagger-4 auth-from-right"
               type="submit"
               disabled={
                 submitting || sessionState === 'checking' || hasExistingSession
