@@ -791,32 +791,17 @@
 }
 
 /* =========================================================
-   Card Entrance Animations (2-way slide & scale-up pop in)
+   Card Entrance Animations (Consistent Left-to-Right Sequential)
    ========================================================= */
 
-@keyframes cardEntranceLeft {
+@keyframes slideInFromLeft {
   0% {
     opacity: 0;
-    transform: translateX(-24px) scale(0.94);
+    transform: translateX(-36px) scale(0.93);
   }
-  60% {
-    opacity: 0.9;
-    transform: translateX(4px) scale(1.01);
-  }
-  100% {
-    opacity: 1;
-    transform: translateX(0) scale(1);
-  }
-}
-
-@keyframes cardEntranceRight {
-  0% {
-    opacity: 0;
-    transform: translateX(24px) scale(0.94);
-  }
-  60% {
-    opacity: 0.9;
-    transform: translateX(-4px) scale(1.01);
+  65% {
+    opacity: 0.96;
+    transform: translateX(3px) scale(1.008);
   }
   100% {
     opacity: 1;
@@ -827,54 +812,44 @@
 @keyframes statCardPopIn {
   0% {
     opacity: 0;
-    transform: translateY(16px) scale(0.90);
+    transform: translateX(-24px) scale(0.92);
   }
   70% {
-    opacity: 0.95;
-    transform: translateY(-3px) scale(1.03);
+    opacity: 0.98;
+    transform: translateX(2px) scale(1.015);
   }
   100% {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: translateX(0) scale(1);
   }
 }
 
-/* Apply entrance animations to Marketplace cards */
+/* Apply left-to-right entrance animations to Marketplace cards */
 .post-grid .market-product-card {
-  animation-duration: 480ms;
-  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
-  animation-fill-mode: both;
+  animation: slideInFromLeft 650ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
-.post-grid .market-product-card:nth-child(odd) {
-  animation-name: cardEntranceLeft;
-}
+.post-grid .market-product-card:nth-child(1) { animation-delay: 60ms; }
+.post-grid .market-product-card:nth-child(2) { animation-delay: 120ms; }
+.post-grid .market-product-card:nth-child(3) { animation-delay: 180ms; }
+.post-grid .market-product-card:nth-child(4) { animation-delay: 240ms; }
+.post-grid .market-product-card:nth-child(5) { animation-delay: 300ms; }
+.post-grid .market-product-card:nth-child(6) { animation-delay: 360ms; }
+.post-grid .market-product-card:nth-child(7) { animation-delay: 420ms; }
+.post-grid .market-product-card:nth-child(8) { animation-delay: 480ms; }
+.post-grid .market-product-card:nth-child(9) { animation-delay: 540ms; }
+.post-grid .market-product-card:nth-child(10) { animation-delay: 600ms; }
+.post-grid .market-product-card:nth-child(11) { animation-delay: 660ms; }
+.post-grid .market-product-card:nth-child(12) { animation-delay: 720ms; }
 
-.post-grid .market-product-card:nth-child(even) {
-  animation-name: cardEntranceRight;
-}
-
-.post-grid .market-product-card:nth-child(1) { animation-delay: 50ms; }
-.post-grid .market-product-card:nth-child(2) { animation-delay: 100ms; }
-.post-grid .market-product-card:nth-child(3) { animation-delay: 150ms; }
-.post-grid .market-product-card:nth-child(4) { animation-delay: 200ms; }
-.post-grid .market-product-card:nth-child(5) { animation-delay: 250ms; }
-.post-grid .market-product-card:nth-child(6) { animation-delay: 300ms; }
-.post-grid .market-product-card:nth-child(7) { animation-delay: 350ms; }
-.post-grid .market-product-card:nth-child(8) { animation-delay: 400ms; }
-.post-grid .market-product-card:nth-child(9) { animation-delay: 450ms; }
-.post-grid .market-product-card:nth-child(10) { animation-delay: 500ms; }
-.post-grid .market-product-card:nth-child(11) { animation-delay: 550ms; }
-.post-grid .market-product-card:nth-child(12) { animation-delay: 600ms; }
-
-/* Apply pop-in to Stat cards */
+/* Apply left-to-right sequential pop-in to Stat cards */
 .market-stat-grid .market-stat-card {
-  animation: statCardPopIn 450ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: statCardPopIn 600ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
-.market-stat-grid .market-stat-card:nth-child(1) { animation-delay: 40ms; }
-.market-stat-grid .market-stat-card:nth-child(2) { animation-delay: 90ms; }
-.market-stat-grid .market-stat-card:nth-child(3) { animation-delay: 140ms; }
-.market-stat-grid .market-stat-card:nth-child(4) { animation-delay: 190ms; }
+.market-stat-grid .market-stat-card:nth-child(1) { animation-delay: 50ms; }
+.market-stat-grid .market-stat-card:nth-child(2) { animation-delay: 110ms; }
+.market-stat-grid .market-stat-card:nth-child(3) { animation-delay: 170ms; }
+.market-stat-grid .market-stat-card:nth-child(4) { animation-delay: 230ms; }
 
 /* Interactive Hover Lift & Glow */
 .market-product-card {

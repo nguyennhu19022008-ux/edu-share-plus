@@ -297,8 +297,109 @@ input,select,textarea{border:1px solid #ddd;border-radius:8px;padding:11px 12px;
 /* Forms */
 .ecom-form-card{padding:25px;border-top:3px solid #ee4d2d}.form-guide{grid-template-columns:repeat(3,1fr);margin-bottom:22px}.guide-item{border:1px solid #fed7aa;background:#fff7ed;border-radius:8px}.guide-item i{display:grid;place-items:center;width:22px;height:22px;border-radius:50%;background:#ee4d2d;color:#fff;font-style:normal;font-size:10px}.guide-item b{color:#7c2d12}.upload-zone{padding:18px;border:1px dashed #f3a28f;border-radius:8px;background:#fffaf8}.reason-box{border-radius:8px;border-left:4px solid #ee4d2d}
 
-/* Detail, owner, profile, admin */
-.breadcrumb{display:flex;gap:8px;align-items:center;color:#9ca3af;margin-bottom:14px}.breadcrumb button{border:0;background:none;color:#ee4d2d;font-weight:700}.ecom-section-panel{margin-top:16px;padding:18px}.detail-layout,.post-detail{border-radius:10px}.linkbtn{color:#ee4d2d!important}.linkbtn.danger{color:#dc2626!important}.comment-item{border-radius:8px}.owner-post-grid{grid-template-columns:repeat(auto-fill,minmax(330px,1fr))}.owner-post-card{border-top:3px solid #ee4d2d}.owner-actions .btn{border-radius:7px}.contact-log-item{border-radius:8px}.contact-log-item .btn.primary{background:#ee4d2d}.profile-shell{border-top:3px solid #ee4d2d}.profile-hero,.profile-card,.owner-section{border-radius:9px}.admin-hero{display:flex;justify-content:space-between;align-items:center;padding:30px;border-radius:12px;color:#fff;background:linear-gradient(125deg,#b91c1c,#ee4d2d 55%,#f59e0b);box-shadow:0 6px 22px rgba(238,77,45,.22)}.admin-hero h1{font-size:34px;margin:5px 0}.admin-hero p{margin:0;opacity:.9}.admin-hero .eyebrow{color:#fff8}.admin-hero-actions{display:flex;gap:8px}.admin-list-heading{margin-top:26px}.admin-content{margin-top:14px}.admin-toolbar{border-top:3px solid #ee4d2d}.table-wrap{border-radius:8px}.table-wrap th{background:#fff7f4;color:#7c2d12}.table-wrap tr:hover td{background:#fffaf8}.col-control{border-radius:6px}.report-badge{background:#fff1f2;color:#be123c}.v26-chart-section,.admin-advanced{border-top:3px solid #f59e0b}
+/* Universal Left-to-Right Entrance Animations across all pages */
+@keyframes ecomSlideInLeft {
+  0% {
+    opacity: 0;
+    transform: translateX(-36px) scale(0.94);
+  }
+  65% {
+    opacity: 0.96;
+    transform: translateX(3px) scale(1.008);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
 
-@media(max-width:900px){.landing-ecom-hero,.market-hero,.safety-section{grid-template-columns:1fr}.process-grid{grid-template-columns:repeat(2,1fr)}.hero-copy{padding:34px 24px}.hero-copy h1{font-size:39px}.landing-nav-links a{display:none}.admin-hero{align-items:flex-start;flex-direction:column;gap:18px}.form-guide{grid-template-columns:1fr}.app-header{padding:9px 12px}.hello [data-user-name],.hello .role{display:none}}
-@media(max-width:600px){.landing-market{padding:14px 10px}.hero-copy h1{font-size:33px}.hero-actions,.auth-bottom,.ecom-page-title,.listing-title,.admin-list-heading{align-items:stretch;flex-direction:column}.process-grid{grid-template-columns:1fr}.landing-search,.hero-search{flex-direction:column;gap:7px}.landing-search input,.hero-search input,.landing-search .btn,.hero-search .btn{border-radius:8px}.grid-2{grid-template-columns:1fr}.nav-actions{gap:2px}.nav-btn{padding:8px}.brand small{display:none}.admin-hero h1{font-size:28px}}
+/* Detail Page */
+.detail-layout .card {
+  animation: ecomSlideInLeft 650ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.detail-media-gallery img {
+  animation: ecomSlideInLeft 600ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.detail-media-gallery img:nth-child(1) { animation-delay: 80ms; }
+.detail-media-gallery img:nth-child(2) { animation-delay: 160ms; }
+.detail-media-gallery img:nth-child(3) { animation-delay: 240ms; }
+.detail-media-gallery img:nth-child(4) { animation-delay: 320ms; }
+
+.contact-card,
+.ecom-section-panel {
+  animation: ecomSlideInLeft 650ms cubic-bezier(0.16, 1, 0.3, 1) 120ms both;
+}
+
+.comment-item {
+  animation: ecomSlideInLeft 550ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.comment-item:nth-child(1) { animation-delay: 60ms; }
+.comment-item:nth-child(2) { animation-delay: 120ms; }
+.comment-item:nth-child(3) { animation-delay: 180ms; }
+.comment-item:nth-child(4) { animation-delay: 240ms; }
+.comment-item:nth-child(5) { animation-delay: 300ms; }
+
+.mini-grid .mini-card {
+  animation: ecomSlideInLeft 600ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.mini-grid .mini-card:nth-child(1) { animation-delay: 60ms; }
+.mini-grid .mini-card:nth-child(2) { animation-delay: 130ms; }
+.mini-grid .mini-card:nth-child(3) { animation-delay: 200ms; }
+.mini-grid .mini-card:nth-child(4) { animation-delay: 270ms; }
+
+/* My Posts Page */
+.owner-post-grid .owner-post-card {
+  animation: ecomSlideInLeft 650ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.owner-post-grid .owner-post-card:nth-child(1) { animation-delay: 60ms; }
+.owner-post-grid .owner-post-card:nth-child(2) { animation-delay: 120ms; }
+.owner-post-grid .owner-post-card:nth-child(3) { animation-delay: 180ms; }
+.owner-post-grid .owner-post-card:nth-child(4) { animation-delay: 240ms; }
+.owner-post-grid .owner-post-card:nth-child(5) { animation-delay: 300ms; }
+.owner-post-grid .owner-post-card:nth-child(6) { animation-delay: 360ms; }
+.owner-post-grid .owner-post-card:nth-child(7) { animation-delay: 420ms; }
+.owner-post-grid .owner-post-card:nth-child(8) { animation-delay: 480ms; }
+
+/* My Detail Page */
+.owner-section,
+.contact-log-item {
+  animation: ecomSlideInLeft 600ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.contact-log-item:nth-child(1) { animation-delay: 70ms; }
+.contact-log-item:nth-child(2) { animation-delay: 140ms; }
+.contact-log-item:nth-child(3) { animation-delay: 210ms; }
+.contact-log-item:nth-child(4) { animation-delay: 280ms; }
+
+/* Profile Page */
+.profile-hero {
+  animation: ecomSlideInLeft 650ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.profile-card,
+.profile-shell {
+  animation: ecomSlideInLeft 650ms cubic-bezier(0.16, 1, 0.3, 1) 100ms both;
+}
+
+/* Add / Edit Post Pages */
+.ecom-form-card {
+  animation: ecomSlideInLeft 650ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.guide-item:nth-child(1) { animation: ecomSlideInLeft 550ms cubic-bezier(0.16, 1, 0.3, 1) 60ms both; }
+.guide-item:nth-child(2) { animation: ecomSlideInLeft 550ms cubic-bezier(0.16, 1, 0.3, 1) 130ms both; }
+.guide-item:nth-child(3) { animation: ecomSlideInLeft 550ms cubic-bezier(0.16, 1, 0.3, 1) 200ms both; }
+
+/* Landing Page */
+.landing-ecom-hero {
+  animation: ecomSlideInLeft 700ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.process-grid article {
+  animation: ecomSlideInLeft 600ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.process-grid article:nth-child(1) { animation-delay: 60ms; }
+.process-grid article:nth-child(2) { animation-delay: 130ms; }
+.process-grid article:nth-child(3) { animation-delay: 200ms; }
+.process-grid article:nth-child(4) { animation-delay: 270ms; }
+
+.safety-section {
+  animation: ecomSlideInLeft 650ms cubic-bezier(0.16, 1, 0.3, 1) 150ms both;
+}
+
