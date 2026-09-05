@@ -1,0 +1,1 @@
+﻿-- Fix: Add missing rejection_reason column to posts table`nalter table public.posts add column if not exists rejection_reason text;`n

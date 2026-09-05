@@ -117,53 +117,23 @@ export async function moderatePost(
   }
 
   const client = getSupabaseClient();
-  try {
-    const { data, error } = await client.rpc('moderate_post', {
-      p_post_id: postId.trim(),
-      p_action: action,
-      p_reason: reason?.trim() || null,
-    });
+  const { data, error } = await client.rpc('moderate_post', {
+    p_post_id: postId.trim(),
+    p_action: action,
+    p_reason: reason?.trim() || null,
+  });
 
-    if (!error && data) {
-      return data as { postId: string; action: string; moderatedAt: string };
+  if (error) {
+    throw new Error(error.message || 'Không thể thực hiện kiểm duyệt bài viết lúc này.');
+  }
+
+  return (
+    (data as { postId: string; action: string; moderatedAt: string }) || {
+      postId: postId.trim(),
+      action,
+      moderatedAt: new Date().toISOString(),
     }
-  } catch {
-    // Graceful direct fallback
-  }
-
-  const updates: Record<string, unknown> = {
-    updated_at: new Date().toISOString(),
-  };
-
-  if (action === 'approve') {
-    updates.moderation_status = 'approved';
-    updates.published_at = new Date().toISOString();
-  } else if (action === 'reject') {
-    updates.moderation_status = 'rejected';
-  } else if (action === 'force_hide') {
-    updates.is_hidden = true;
-  } else if (action === 'force_show') {
-    updates.is_hidden = false;
-  } else if (action === 'disable_comments') {
-    updates.comments_enabled = false;
-  } else if (action === 'enable_comments') {
-    updates.comments_enabled = true;
-  }
-
-  const { error: updateError } = await client
-    .from('posts')
-    .update(updates)
-    .eq('id', postId.trim());
-
-  if (updateError) {
-    console.warn('Direct update warning:', updateError.message);
-  }
-
-  return {
-    postId: postId.trim(),
-    action,
-    moderatedAt: new Date().toISOString(),
-  };
+  );
 }
 
 export async function listStaffReportsQueue(params?: {
