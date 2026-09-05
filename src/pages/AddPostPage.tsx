@@ -154,10 +154,10 @@ export default function AddPostPage() {
       return;
     }
 
-    if (isSale && (!salePrice || !originalPurchasePrice || !conditionGrade)) {
+    if (isSale && !salePrice) {
       setSubmitState({
         tone:'error',
-        message:'Bán giá rẻ cần giá bán, giá mua ban đầu và tình trạng món đồ.',
+        message:'Bán giá rẻ cần nhập giá bán mong muốn.',
       });
       return;
     }
@@ -310,31 +310,33 @@ export default function AddPostPage() {
 
             {isSale ? (
               <section className="card ecom-form-card">
-                <h2>Thông tin bán giá rẻ & Trợ lý Định giá</h2>
-                <p className="form-note">Hệ thống gợi ý mức giá trần và khoảng giá hỗ trợ học sinh nhằm tránh đội giá đồ dùng học đường.</p>
+                <h2>Thông tin bán giá rẻ & Gợi ý tham khảo</h2>
+                <p className="form-note">Học sinh được chủ động định giá món đồ theo nhu cầu thực tế.</p>
 
                 {priceEstimate ? (
-                  <div style={{ margin: '12px 0 16px', padding: '14px 16px', borderRadius: '12px', background: '#eff6ff', border: '1px solid #bfdbfe' }}>
+                  <div style={{ margin: '12px 0 16px', padding: '14px 16px', borderRadius: '12px', background: '#f8fafc', border: '1px solid #e2e8f0' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                      <strong style={{ color: '#1e40af', fontSize: '13px' }}>💡 Trợ lý Định giá Thông minh (Price Estimator V1):</strong>
-                      <span style={{ fontSize: '11.5px', fontWeight: 800, color: '#1d4ed8' }}>
-                        Trần tối đa: {new Intl.NumberFormat('vi-VN').format(priceEstimate.maxCeilingPrice)}đ
+                      <strong style={{ color: '#0f172a', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <circle cx="12" cy="12" r="10" />
+                          <path d="M12 16v-4" />
+                          <path d="M12 8h.01" />
+                        </svg>
+                        Gợi ý mức giá tham khảo:
+                      </strong>
+                      <span style={{ fontSize: '12px', fontWeight: 700, color: '#2563eb' }}>
+                        {new Intl.NumberFormat('vi-VN').format(priceEstimate.suggestedMinPrice)}đ - {new Intl.NumberFormat('vi-VN').format(priceEstimate.suggestedMaxPrice)}đ
                       </span>
                     </div>
-                    <p style={{ margin: 0, fontSize: '12px', color: '#1e3a8a', lineHeight: 1.5 }}>
-                      {priceEstimate.adviceMessage}
+                    <p style={{ margin: 0, fontSize: '12px', color: '#475569', lineHeight: 1.5 }}>
+                      {priceEstimate.adviceMessage} (Bạn có thể tự do đặt giá phù hợp theo ý muốn).
                     </p>
-                    {!priceValidation.isValid && (
-                      <div style={{ marginTop: '10px', padding: '8px 12px', borderRadius: '8px', background: '#fffbeb', border: '1px solid #fde68a', color: '#b45309', fontSize: '11.5px', fontWeight: 600 }}>
-                        ⚠️ {priceValidation.warningMessage}
-                      </div>
-                    )}
                   </div>
                 ) : null}
 
                 <div className="grid-2">
                   <div className="field">
-                    <label className="req" htmlFor="add-sale-price">Giá bán mong muốn</label>
+                    <label className="req" htmlFor="add-sale-price">Giá bán mong muốn (VNĐ)</label>
                     <input
                       id="add-sale-price"
                       name="salePrice"
@@ -345,22 +347,20 @@ export default function AddPostPage() {
                     />
                   </div>
                   <div className="field">
-                    <label className="req" htmlFor="add-original-price">Giá mua ban đầu (Giá gốc)</label>
+                    <label htmlFor="add-original-price">Giá mua ban đầu (Giá gốc - Tùy chọn)</label>
                     <input
                       id="add-original-price"
                       name="originalPurchasePrice"
                       inputMode="numeric"
-                      required
-                      placeholder="Ví dụ: 180000"
+                      placeholder="Ví dụ: 180000 (nếu nhớ)"
                       onChange={(e) => setFormOriginalPrice(Number(e.target.value) || 0)}
                     />
                   </div>
                   <div className="field">
-                    <label className="req" htmlFor="add-condition">Tình trạng</label>
+                    <label htmlFor="add-condition">Tình trạng</label>
                     <select
                       id="add-condition"
                       name="conditionGrade"
-                      required
                       defaultValue="good_85"
                       onChange={(e) => setFormCondition(e.target.value as ItemCondition)}
                     >

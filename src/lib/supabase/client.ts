@@ -18,8 +18,12 @@ export function getSupabaseClient(): SupabaseClient {
   const supabaseUrl = getEnv('VITE_SUPABASE_URL');
   const publishableKey = getEnv('VITE_SUPABASE_PUBLISHABLE_KEY');
 
+  // Use sessionStorage to isolate tabs so that teacher and student can be logged in concurrently in different tabs
+  const storage = typeof window !== 'undefined' ? window.sessionStorage : undefined;
+
   browserClient = createClient(supabaseUrl, publishableKey, {
     auth: {
+      storage,
       persistSession: true,
       autoRefreshToken: true,
       detectSessionInUrl: true,

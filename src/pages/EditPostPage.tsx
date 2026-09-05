@@ -234,8 +234,8 @@ export default function EditPostPage() {
       setMessage({ tone:'error', text:'Vui lòng nhập danh mục, tiêu đề và mô tả hợp lệ.' });
       return;
     }
-    if (isSale && (!salePrice || !originalPurchasePrice || !conditionGrade)) {
-      setMessage({ tone:'error', text:'Bán giá rẻ cần giá bán, giá mua ban đầu và tình trạng món đồ.' });
+    if (isSale && !salePrice) {
+      setMessage({ tone:'error', text:'Bán giá rẻ cần nhập giá bán mong muốn.' });
       return;
     }
 
@@ -346,12 +346,12 @@ export default function EditPostPage() {
               <section className="card ecom-form-card">
                 <h2>Thông tin bán giá rẻ</h2>
                 <div className="grid-2">
-                  <div className="field"><label className="req" htmlFor="edit-sale-price">Giá bán</label><input id="edit-sale-price" name="salePrice" inputMode="numeric" required defaultValue={post.salePrice ?? ''} /></div>
-                  <div className="field"><label className="req" htmlFor="edit-original-price">Giá mua ban đầu</label><input id="edit-original-price" name="originalPurchasePrice" inputMode="numeric" required defaultValue={post.originalPurchasePrice ?? ''} /></div>
+                  <div className="field"><label className="req" htmlFor="edit-sale-price">Giá bán (VNĐ)</label><input id="edit-sale-price" name="salePrice" inputMode="numeric" required defaultValue={post.salePrice ?? ''} /></div>
+                  <div className="field"><label htmlFor="edit-original-price">Giá mua ban đầu (Giá gốc - Tùy chọn)</label><input id="edit-original-price" name="originalPurchasePrice" inputMode="numeric" defaultValue={post.originalPurchasePrice ?? ''} placeholder="Tùy chọn" /></div>
                   <div className="field">
-                    <label className="req" htmlFor="edit-condition">Tình trạng</label>
-                    <select id="edit-condition" name="conditionGrade" required value={conditionGrade} onChange={(event) => setConditionGrade(event.target.value as OwnerConditionGrade)}>
-                      <option value="" disabled>Chọn tình trạng</option>
+                    <label htmlFor="edit-condition">Tình trạng</label>
+                    <select id="edit-condition" name="conditionGrade" value={conditionGrade} onChange={(event) => setConditionGrade(event.target.value as OwnerConditionGrade)}>
+                      <option value="">Chọn tình trạng (tùy chọn)</option>
                       {CONDITION_OPTIONS.map((item) => <option value={item.value} key={item.value}>{item.label}</option>)}
                     </select>
                   </div>

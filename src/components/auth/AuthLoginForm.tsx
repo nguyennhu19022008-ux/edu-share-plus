@@ -98,13 +98,6 @@ export function AuthLoginForm({ role }: AuthLoginFormProps) {
       );
       return;
     }
-
-    if (auth.session) {
-      setSuccess(false);
-      setMessage(
-        'Trình duyệt đang có một phiên đăng nhập Supabase. Để đăng nhập lại bằng email/mật khẩu hoặc kiểm tra sai mật khẩu, hãy đăng xuất phiên hiện tại trước.'
-      );
-    }
   }, [
     isTeacher,
     auth.authReady,
@@ -129,15 +122,6 @@ export function AuthLoginForm({ role }: AuthLoginFormProps) {
           setSuccess(true);
           setMessage('Phiên giáo viên đã được xác minh. Đang mở trang quản trị...');
           navigateLegacy('admin');
-          return;
-        }
-
-        if (state.kind === 'non_staff') {
-          setTeacherSessionState('non_staff');
-          setSuccess(false);
-          setMessage(
-            'Trình duyệt đang có một phiên không thuộc cổng giáo viên. Hãy đăng xuất phiên hiện tại trước khi đăng nhập bằng tài khoản giáo viên.'
-          );
           return;
         }
 
@@ -209,16 +193,6 @@ export function AuthLoginForm({ role }: AuthLoginFormProps) {
     event.preventDefault();
     if (submitting) return;
 
-    if (hasExistingSession) {
-      setSuccess(false);
-      setMessage(
-        isTeacher
-          ? 'Trình duyệt đang có một phiên đăng nhập. Hãy đăng xuất phiên hiện tại trước khi thử tài khoản khác.'
-          : 'Bạn đang có một phiên đăng nhập từ trước. Hãy bấm “Đăng xuất phiên hiện tại” rồi thử đăng nhập lại.'
-      );
-      return;
-    }
-
     const form = new FormData(event.currentTarget);
     const email = String(form.get('email') ?? '').trim();
     const password = String(form.get('password') ?? '');
@@ -228,6 +202,12 @@ export function AuthLoginForm({ role }: AuthLoginFormProps) {
     setMessage('');
 
     if (isTeacher) {
+      try {
+        await signOutStaff();
+      } catch {
+        // Proceed with sign in
+      }
+
       try {
         const { context } = await signInStaff({ email, password });
         setTeacherSessionState('staff');
@@ -256,6 +236,13 @@ export function AuthLoginForm({ role }: AuthLoginFormProps) {
       }
     } else {
       try {
+        if (auth.session) {
+          try {
+            await auth.signOut();
+          } catch {
+            // Proceed with sign in
+          }
+        }
         const session = await signInStudent({ email, password });
         let profile;
 
@@ -371,7 +358,7 @@ export function AuthLoginForm({ role }: AuthLoginFormProps) {
                   autoComplete="username"
                   placeholder={isTeacher ? 'giaovien@school.edu.vn' : 'Nhập email học sinh'}
                   disabled={
-                    submitting || (isTeacher && teacherSessionState === 'checking') || hasExistingSession
+                    submitting || (isTeacher && teacherSessionState === 'checking')
                   }
                 />
               </div>
@@ -413,7 +400,7 @@ export function AuthLoginForm({ role }: AuthLoginFormProps) {
                   autoComplete="current-password"
                   placeholder={isTeacher ? 'Nhập mật khẩu quản trị' : 'Nhập mật khẩu'}
                   disabled={
-                    submitting || (isTeacher && teacherSessionState === 'checking') || hasExistingSession
+                    submitting || (isTeacher && teacherSessionState === 'checking')
                   }
                 />
               </div>
@@ -431,7 +418,7 @@ export function AuthLoginForm({ role }: AuthLoginFormProps) {
               className="btn primary full auth-stagger-item auth-stagger-4 auth-from-right"
               type="submit"
               disabled={
-                submitting || (isTeacher && teacherSessionState === 'checking') || hasExistingSession
+                submitting || (isTeacher && teacherSessionState === 'checking')
               }
             >
               {submitting
@@ -440,11 +427,9 @@ export function AuthLoginForm({ role }: AuthLoginFormProps) {
                   : 'ĐANG ĐĂNG NHẬP...'
                 : isTeacher && teacherSessionState === 'checking'
                   ? 'ĐANG KIỂM TRA PHIÊN...'
-                  : hasExistingSession
-                    ? 'ĐANG CÓ PHIÊN ĐĂNG NHẬP'
-                    : isTeacher
-                      ? 'VÀO TRANG QUẢN TRỊ'
-                      : 'ĐĂNG NHẬP'}
+                  : isTeacher
+                    ? 'VÀO TRANG QUẢN TRỊ'
+                    : 'ĐĂNG NHẬP'}
             </button>
 
             {message && (
