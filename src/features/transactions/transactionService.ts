@@ -1,5 +1,4 @@
-﻿import { getSupabaseClient } from '../../lib/supabase/client';
-import { estimateItemImpact } from './impactCalculator';
+import { getSupabaseClient } from '../../lib/supabase/client';
 import type {
   CompleteTransactionInput,
   CompleteTransactionResult,
@@ -25,42 +24,16 @@ export async function completePostTransaction(
   });
 
   if (error) {
-    if (error.message.includes('Could not find the function') || error.message.includes('schema cache')) {
-      // Fallback: direct table updates when RPC schema cache is refreshing
-      const { data: postData } = await supabase
-        .from('posts')
-        .select('*, categories(code, name)')
-        .eq('id', input.postId)
-        .single();
-
-      if (!postData) throw new Error('Không tìm thấy bài đăng.');
-
-      const categoryCode = postData.categories?.code || 'book';
-      const impact = estimateItemImpact(categoryCode, postData.trade_type, postData.sale_price || 0);
-
-      await supabase
-        .from('posts')
-        .update({ lifecycle_status: 'completed', updated_at: new Date().toISOString() })
-        .eq('id', input.postId);
-
-      return {
-        transactionId: 'tx-' + Date.now(),
-        postId: input.postId,
-        financialSaved: impact.financialSaved,
-        wasteReducedKg: impact.wasteReducedKg,
-        status: 'completed',
-      };
-    }
-    throw new Error(`Không thể hoàn tất giao dịch: ${error.message}`);
+    throw new Error(error.message || 'Không thể hoàn tất giao dịch lúc này.');
   }
 
-  const res = data as any;
+  const res = data as Record<string, unknown>;
   return {
-    transactionId: res.transaction_id,
-    postId: res.post_id,
+    transactionId: String(res.transaction_id || ''),
+    postId: String(res.post_id || input.postId),
     financialSaved: Number(res.financial_saved) || 0,
     wasteReducedKg: Number(res.waste_reduced_kg) || 0,
-    status: res.status || 'completed',
+    status: String(res.status || 'completed'),
   };
 }
 

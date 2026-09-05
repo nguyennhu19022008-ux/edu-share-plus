@@ -150,7 +150,18 @@ export default function MyDetailPage() {
         feedback: feedback.trim() || null,
       });
       setCompleteModalOpen(false);
-      reload(`🎉 Tuyệt vời! Giao dịch đã hoàn tất thành công. Ước tính bạn đã giúp tiết kiệm ${formatVnd(res.financialSaved)} và giảm ${res.wasteReducedKg} kg rác thải học đường!`);
+      setDetail((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          post: {
+            ...prev.post,
+            lifecycleStatus: 'completed',
+            lifecycleLabel: 'Đã hoàn tất',
+          },
+        };
+      });
+      reload(`Giao dịch đã hoàn tất thành công. Ước tính bạn đã giúp tiết kiệm ${formatVnd(res.financialSaved)} và giảm ${res.wasteReducedKg} kg rác thải học đường!`);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Không thể hoàn tất giao dịch.');
     } finally {
@@ -296,7 +307,11 @@ export default function MyDetailPage() {
                     disabled={busy}
                     onClick={() => setCompleteModalOpen(true)}
                   >
-                    ✨ Hoàn tất & Ghi nhận tác động
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px', verticalAlign: '-2px' }} aria-hidden="true">
+                      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                      <polyline points="22 4 12 14.01 9 11.01" />
+                    </svg>
+                    Hoàn tất & Ghi nhận tác động
                   </button>
                 ) : null}
                 {canEdit ? <button className="btn danger" type="button" disabled={busy} onClick={() => void runLifecycle('withdraw')}>Thu hồi bài</button> : null}
@@ -392,7 +407,13 @@ export default function MyDetailPage() {
             </div>
             <div className="admin-modal-body" style={{ display: 'grid', gap: '14px' }}>
               <div style={{ padding: '14px', borderRadius: '12px', background: '#f0fdf4', border: '1px solid #bbf7d0', color: '#166534' }}>
-                <strong style={{ display: 'block', fontSize: '14px', marginBottom: '6px' }}>🌱 Tác động Xanh dự kiến:</strong>
+                <strong style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', marginBottom: '6px' }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z" />
+                    <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12" />
+                  </svg>
+                  Tác động Xanh dự kiến:
+                </strong>
                 <p style={{ margin: 0, fontSize: '13px', lineHeight: 1.5 }}>
                   {estimateItemImpact(post.categoryName, post.tradeType, post.salePrice ?? 0).description}
                 </p>
@@ -429,11 +450,18 @@ export default function MyDetailPage() {
                         borderRadius: '8px',
                         border: rating === star ? '2px solid #ea580c' : '1px solid #d1d5db',
                         background: rating === star ? '#fff7ed' : '#fff',
-                        fontWeight: rating === star ? 800 : 500,
+                        fontWeight: rating === star ? 700 : 500,
                         cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '5px',
                       }}
+                      aria-label={`${star} sao`}
                     >
-                      {star} ⭐
+                      <span>{star}</span>
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill={rating >= star ? '#ea580c' : 'none'} stroke="#ea580c" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                      </svg>
                     </button>
                   ))}
                 </div>
