@@ -96,8 +96,8 @@ export function AdminOverview({ summary, posts, onRebuildStats }:{ summary:Admin
         <AdminSummaryCard label="Đã hoàn thành" value={summary.done} note="Giao dịch đã hoàn tất" tone="green" icon="✓" />
         <AdminSummaryCard label="Chờ duyệt" value={summary.pending} note={summary.pending ? 'Cần xử lý' : 'Không có bài chờ'} tone="amber" icon="◷" />
         <AdminSummaryCard label="Báo cáo" value={summary.reports} note={summary.reports ? 'Cần kiểm tra' : 'Không có báo cáo mới'} tone="red" icon="!" />
-        <AdminSummaryCard label="Tiết kiệm học sinh" value={money(summary.financialSaved) || '0đ'} note="Chi phí tái sử dụng ước tính" tone="mint" icon="₫" />
-        <AdminSummaryCard label="Giảm rác thải" value={`${summary.wasteReducedKg} kg`} note="Tác động từ giao dịch hoàn tất" tone="cyan" icon="↗" />
+        <AdminSummaryCard label="Giá trị tiết kiệm ước tính" value={money(summary.financialSaved) || '0đ'} note="Mô hình ước tính theo giá bán lẻ chuẩn" tone="mint" icon="₫" />
+        <AdminSummaryCard label="Tài nguyên tái sử dụng ước tính" value={`${summary.wasteReducedKg} kg`} note="Quy đổi theo khối lượng quy chuẩn đồ dùng" tone="cyan" icon="↗" />
       </section>
       <section className="admin-insights-grid">
         <article className="admin-insight-card admin-rate-card">

@@ -1,3 +1,22 @@
+/**
+ * EDU SHARE+ — Environmental & Financial Impact Estimation Model
+ *
+ * Phương pháp luận & Cơ sở khoa học:
+ * 1. Nguồn Benchmark:
+ *    - Khối lượng trung bình (defaultWeightKg): Quy chuẩn theo khối lượng thực tế các loại ấn phẩm,
+ *      sách giáo khoa, sách tham khảo và máy tính bỏ túi được phát hành chính thức.
+ *    - Giá bán lẻ trung bình (averageRetailPrice): Tham chiếu theo mức giá niêm yết của các Nhà xuất bản Giáo dục
+ *      và đại lý thiết bị học đường tại thời điểm nghiên cứu.
+ * 2. Công thức tính toán (Ước tính):
+ *    - Tặng (give): Tiết kiệm = Giá bán lẻ trung bình; Rác thải học đường giảm = Khối lượng đồ dùng.
+ *    - Cho mượn (loan): Tiết kiệm = 50% Giá bán lẻ trung bình; Rác thải học đường giảm = Khối lượng đồ dùng.
+ *    - Bán giá rẻ (sale): Tiết kiệm = Max(0, Giá bán lẻ trung bình - Giá bán thực tế).
+ * 3. Giới hạn sai số & Giả định:
+ *    - Chỉ số phản ánh "Giá trị tiết kiệm ước tính" và "Khối lượng tài nguyên tái sử dụng ước tính",
+ *      không phải số liệu đo đạc thực nghiệm tuyệt đối.
+ *    - Phiên bản mô hình: v1.1-2026.
+ */
+
 import type { ItemImpactEstimate, TradeType } from './transactionTypes';
 import { formatVndCompact } from '../../lib/formatters';
 

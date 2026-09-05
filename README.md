@@ -1,18 +1,20 @@
 # EDU SHARE+ Rebuild
 
-Current checkpoint: **Phase 5A — Foundation Stabilization**.
+Current checkpoint: **Phase 7 — Codebase Optimization, Mobile UX & Scientific Evaluation (PASS)**.
 
-EDU SHARE+ is being rebuilt on React, Vite, TypeScript, Git/GitHub and Supabase. The former Google Apps Script / Google Sheets generation is frozen as historical/research reference; its operational accounts, posts, comments, favorites and notifications are **not migrated** into the new Supabase system.
+EDU SHARE+ is built on React 19, Vite, TypeScript, Git/GitHub, PWA, and Supabase. The platform operates 100% on real Supabase backend services (Auth, PostgreSQL RLS, RPCs, and Private Signed Storage), with all runtime mocks completely removed.
 
 ## Current status
 
-See:
+- **Phase 1–4**: Authentication, Double-Portal Role Separation, School Roster Trust Layer (**PASS**).
+- **Phase 5 (5A–5J)**: Core Marketplace, Private Signed Media, Profile, Owner Post Lifecycle, Moderation & Full Mock Removal (**PASS**).
+- **Phase 6 (6A–6D)**: Transactions, Impact Estimation, Price Estimator, Reputation Engine, Explainable Recommendations (**PASS**).
+- **Phase 7**: Mobile Animation/Spacing Refinement, Codebase Consolidation & Deduplication, Scientific Integrity & PII Protection (**PASS**).
 
+Detailed documentation:
 - `docs/00_CURRENT_PROJECT_STATUS.md`
 - `docs/ROADMAP.md`
 - `docs/00_PHASE_STATUS.md` for historical checkpoints
-
-The real Supabase Auth and teacher account-review flows are already connected. Marketplace/profile/owner-post/post-moderation areas are still being migrated away from mock/local runtime repositories.
 
 ## Run local
 

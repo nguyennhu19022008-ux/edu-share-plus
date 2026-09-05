@@ -15,6 +15,12 @@
 - **Phase 5I — Teacher Post Moderation: PASS.**
 - **Phase 5J — Remove Runtime Mock: PASS.**
 - **Phase 5 — Full Core V2 Supabase Migration: 100% PASS.**
+- **Phase 6A — Two-Party Transactions & Live Impact Estimation: PASS.**
+- **Phase 6B — Smart Price Estimator V1: PASS.**
+- **Phase 6C — School Membership & Rating-based Reputation Engine V2: PASS.**
+- **Phase 6D — Explainable Recommendations V1: PASS.**
+- **Phase 6 — Verified Outcomes & Research Features: 100% PASS.**
+- **Phase 7 — Codebase Optimization, Mobile UX Refinement, Scientific Data Integrity & PII Protection: 100% PASS.**
 - **Cost policy: Free-tier-first.** Core functionality must work on Supabase Free Plan and free/open-source infrastructure wherever practical.
 
 ## Runtime architecture

@@ -399,30 +399,21 @@ export default function AdminPage() {
       .map(([name, count]) => ({ name, count }));
   }, [posts]);
 
+  const approvedPostsCount = posts.filter((p) => p.moderationStatus === 'approved').length;
+  const pendingPostsCount = posts.filter((p) => p.moderationStatus === 'pending').length;
+
   const summary: AdminDashboardSummary = {
-    totalPosts: posts.length || 1093,
-    done: completedPostsCount || 746,
-    pending: posts.filter((p) => p.moderationStatus === 'pending').length,
-    reports: openReportsCount || 4,
-    approvalRate: 98.9,
-    completionRate: 68.3,
-    reportRate: 0.2,
-    topCategories: topCategories.length ? topCategories : [
-      { name: 'Sách tham khảo', count: 657 },
-      { name: 'Sách giáo khoa', count: 163 },
-      { name: 'Vở', count: 154 },
-      { name: 'Sách', count: 70 },
-      { name: 'Khác', count: 44 },
-    ],
-    topClasses: topClasses.length ? topClasses : [
-      { name: '11A7', count: 58 },
-      { name: '12A4', count: 54 },
-      { name: '12A1', count: 52 },
-      { name: '11A4', count: 51 },
-      { name: '10A7', count: 48 },
-    ],
-    financialSaved: impactSummary?.financialSaved || 25185480,
-    wasteReducedKg: impactSummary?.wasteReducedKg || 257.4,
+    totalPosts: posts.length,
+    done: completedPostsCount,
+    pending: pendingPostsCount,
+    reports: openReportsCount,
+    approvalRate: posts.length ? Math.round((approvedPostsCount / posts.length) * 1000) / 10 : 0,
+    completionRate: posts.length ? Math.round((completedPostsCount / posts.length) * 1000) / 10 : 0,
+    reportRate: posts.length ? Math.round((openReportsCount / posts.length) * 1000) / 10 : 0,
+    topCategories: topCategories,
+    topClasses: topClasses,
+    financialSaved: impactSummary?.financialSaved ?? 0,
+    wasteReducedKg: impactSummary?.wasteReducedKg ?? 0,
     updatedAt: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) + ' ' + new Date().toLocaleDateString('vi-VN'),
   };
 

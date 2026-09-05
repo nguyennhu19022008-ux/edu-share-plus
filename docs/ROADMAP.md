@@ -20,6 +20,7 @@
 - **6C Reputation V2 — PASS** — data-driven trust and reputation score calculated from verified school membership, successful completed exchanges, peer feedback ratings, and clean moderation records.
 - **6D Explainable Recommendation V1 — PASS** — transparent recommendation engine tailored to student grade level, subject syllabus, and school-specific hot items with clear natural-language explanation badges.
 
-## Phase 7 — Quality and evaluation
-
-Performance optimization, mobile UX refinement, and KHKT experimental evaluation follow once the operational Core V2 produces reliable real-world data.
+## Phase 7 — Quality, Optimization & Scientific Evaluation
+- **7A Mobile UX & Performance — PASS** — disabled heavy animation sequences on mobile devices (`max-width: 820px`, coarse pointer) for Landing & Auth portals; balanced card padding & edge-spacing; implemented smooth scrolling to feed header upon pagination.
+- **7B Codebase Consolidation & Deduplication — PASS** — centralized string/currency/date normalization in `src/lib/formatters.ts`; unified Student & Teacher login flows into reusable `AuthLoginForm`; eliminated redundant dead code files.
+- **7C Scientific Data Integrity & PII Protection — PASS** — removed hardcoded fallback metrics from Admin Dashboard to ensure 100% honest reporting; standardized estimated environmental/financial impact terminology; eliminated real student PII from migrations in favor of synthetic demonstration datasets.

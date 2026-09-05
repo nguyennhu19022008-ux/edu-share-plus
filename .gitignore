@@ -12,3 +12,10 @@ migration-private/
 *.tsbuildinfo
 .*-test.mjs
 
+# Sensitive Seed & Migration PII
+*seed_legacy*
+seed_parts/
+*.xlsx
+*.csv
+
+
