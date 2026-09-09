@@ -1,4 +1,6 @@
-﻿export interface ImageCompressOptions {
+import { normalizeImageMime } from './mediaModel';
+
+export interface ImageCompressOptions {
   maxWidth?: number;
   maxHeight?: number;
   quality?: number;
@@ -9,19 +11,30 @@ const DEFAULT_MAX_WIDTH = 1440;
 const DEFAULT_MAX_HEIGHT = 1440;
 const DEFAULT_QUALITY = 0.82;
 
+function ensureFileMime(file: File, mime: string): File {
+  if (file.type === mime) return file;
+  return new File([file], file.name, {
+    type: mime,
+    lastModified: file.lastModified,
+  });
+}
+
 /**
  * Compresses an image file on the client before upload using HTML5 Canvas.
  * Automatically downscales oversized photos and converts to WebP/JPEG to save bandwidth and storage.
- * If compression fails or produces a larger file, returns the original file safely.
+ * If compression fails or produces a larger file, returns the original file safely with a normalized MIME.
  */
 export async function compressImageFile(
   file: File,
   options: ImageCompressOptions = {}
 ): Promise<File> {
+  const normalizedMime = normalizeImageMime(file.type, file.name);
+
   // If not an image or SVG/GIF, return as-is
-  if (!file.type.startsWith('image/') || file.type === 'image/svg+xml' || file.type === 'image/gif') {
+  if (!normalizedMime.startsWith('image/') || normalizedMime === 'image/svg+xml' || normalizedMime === 'image/gif') {
     return file;
   }
+
 
   const maxWidth = options.maxWidth || DEFAULT_MAX_WIDTH;
   const maxHeight = options.maxHeight || DEFAULT_MAX_HEIGHT;
@@ -48,7 +61,7 @@ export async function compressImageFile(
     // If dimensions did not change and file is already tiny (< 200KB), return original
     if (targetWidth === origWidth && targetHeight === origHeight && file.size < 200 * 1024) {
       if (typeof (bitmap as any).close === 'function') (bitmap as any).close();
-      return file;
+      return ensureFileMime(file, normalizedMime);
     }
 
     const canvas = document.createElement('canvas');
@@ -58,7 +71,7 @@ export async function compressImageFile(
     const ctx = canvas.getContext('2d', { alpha: targetMime === 'image/webp' });
     if (!ctx) {
       if (typeof (bitmap as any).close === 'function') (bitmap as any).close();
-      return file;
+      return ensureFileMime(file, normalizedMime);
     }
 
     ctx.drawImage(bitmap as CanvasImageSource, 0, 0, targetWidth, targetHeight);
@@ -69,12 +82,12 @@ export async function compressImageFile(
     });
 
     if (!blob || blob.size === 0) {
-      return file;
+      return ensureFileMime(file, normalizedMime);
     }
 
     // Only use compressed result if it is actually smaller than the original
     if (blob.size >= file.size) {
-      return file;
+      return ensureFileMime(file, normalizedMime);
     }
 
     const extension = targetMime === 'image/webp' ? '.webp' : '.jpg';
@@ -87,7 +100,7 @@ export async function compressImageFile(
     });
   } catch {
     // Graceful fallback to original file if canvas/bitmap fails
-    return file;
+    return ensureFileMime(file, normalizedMime);
   }
 }
 

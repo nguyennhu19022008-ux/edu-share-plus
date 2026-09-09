@@ -1,4 +1,4 @@
-import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from 'react';
+import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { navigateLegacy } from '../app/legacyRouter';
 import StudentHeader from '../components/student/StudentHeader';
 import type {
@@ -12,9 +12,10 @@ import {
   loadOwnerPostReferenceOptions,
   type OwnerPostReferenceOptions,
 } from '../features/my-posts/ownerPostService';
-import { validatePostMediaFiles } from '../features/storage/mediaModel';
+import { POST_MEDIA_MAX_FILES, validatePostMediaFiles } from '../features/storage/mediaModel';
 import { uploadPostMedia } from '../features/storage/mediaService';
 import { estimateSchoolPrice, validateInputPrice, type ItemCondition } from '../features/estimator/priceEstimator';
+import { createPreviewUrl, revokePreviewUrl } from '../components/media/previewHelper';
 
 const TRADE_OPTIONS:Array<{ value:OwnerTradeType; label:string }> = [
   { value:'lend', label:'Cho mượn' },
@@ -112,18 +113,49 @@ export default function AddPostPage() {
     };
   }, [optionsVersion]);
 
-  const onMediaChange = (event:ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(event.currentTarget.files ?? []);
-    const validationError = validatePostMediaFiles(files);
-    if (validationError) {
-      setSelectedFiles([]);
-      setMediaError(validationError);
-      event.currentTarget.value = '';
+  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isDragOver, setIsDragOver] = useState(false);
+
+  useEffect(() => {
+    const urls = selectedFiles.map((f) => createPreviewUrl(f));
+    setPreviewUrls(urls);
+    return () => {
+      urls.forEach((url) => revokePreviewUrl(url));
+    };
+  }, [selectedFiles]);
+
+
+  const handleFilesAdded = (incomingFiles: File[]) => {
+    if (!incomingFiles.length) return;
+    const combined = [...selectedFiles, ...incomingFiles];
+    if (combined.length > POST_MEDIA_MAX_FILES) {
+      setMediaError(`Mỗi bài đăng được gắn tối đa 5 ảnh. Bạn đã chọn tổng cộng ${combined.length} ảnh.`);
       return;
     }
-    setSelectedFiles(files);
+    const validationError = validatePostMediaFiles(combined);
+    if (validationError) {
+      setMediaError(validationError);
+      return;
+    }
+    setSelectedFiles(combined);
     setMediaError('');
   };
+
+  const onMediaChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.currentTarget.files ?? []);
+    handleFilesAdded(files);
+    event.currentTarget.value = '';
+  };
+
+  const removeSelectedFile = (indexToRemove: number) => {
+    setSelectedFiles((prev) => prev.filter((_, idx) => idx !== indexToRemove));
+    setMediaError('');
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
 
   const onSubmit = async (event:FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -378,16 +410,102 @@ export default function AddPostPage() {
               </section>
             ) : null}
 
-            <div className="field upload-zone">
-              <label htmlFor="add-media"><b>Ảnh minh họa</b></label>
-              <input id="add-media" type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={onMediaChange} />
-              <div className="form-note">Tối đa 5 ảnh, mỗi ảnh không quá 5 MiB. Chỉ JPEG, PNG hoặc WebP. Ảnh được lưu trong bucket private.</div>
-              {selectedFiles.length ? (
-                <ul>
-                  {selectedFiles.map((file) => <li key={`${file.name}-${file.size}`}>{file.name} • {(file.size / 1024 / 1024).toFixed(2)} MiB</li>)}
-                </ul>
+            <div className="field">
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                <label htmlFor="add-media" style={{ margin: 0 }}>
+                  <b>Ảnh minh họa món đồ</b>
+                </label>
+                <span className={`upload-count-pill${selectedFiles.length >= POST_MEDIA_MAX_FILES ? ' full' : ''}`}>
+                  {selectedFiles.length}/{POST_MEDIA_MAX_FILES} ảnh
+                </span>
+              </div>
+
+              <div
+                className={`upload-zone-modern${isDragOver ? ' dragover' : ''}`}
+                onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
+                onDragLeave={() => setIsDragOver(false)}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setIsDragOver(false);
+                  const files = Array.from(e.dataTransfer.files || []);
+                  handleFilesAdded(files);
+                }}
+              >
+                <input
+                  id="add-media"
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  multiple
+                  disabled={selectedFiles.length >= POST_MEDIA_MAX_FILES || submitting}
+                  onChange={onMediaChange}
+                  style={{ display: 'none' }}
+                />
+
+                <div className="upload-dropzone-inner">
+                  <div className="upload-icon-circle" aria-hidden="true">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                      <polyline points="17 8 12 3 7 8" />
+                      <line x1="12" y1="3" x2="12" y2="15" />
+                    </svg>
+                  </div>
+                  <div>
+                    <button
+                      type="button"
+                      className="upload-action-btn"
+                      disabled={selectedFiles.length >= POST_MEDIA_MAX_FILES || submitting}
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <line x1="12" y1="5" x2="12" y2="19" />
+                        <line x1="5" y1="12" x2="19" y2="12" />
+                      </svg>
+                      {selectedFiles.length >= POST_MEDIA_MAX_FILES ? 'Đã chọn đủ 5 ảnh' : 'Chọn ảnh từ thiết bị'}
+                    </button>
+                  </div>
+                  <p style={{ margin: 0, fontSize: 12, color: '#64748b' }}>
+                    Kéo thả hoặc nhấn để chọn • Tối đa 5 ảnh, mỗi ảnh không quá 5 MiB (JPEG, PNG, WebP).
+                  </p>
+                </div>
+              </div>
+
+              {selectedFiles.length > 0 ? (
+                <div className="upload-thumbs-grid" aria-label="Danh sách ảnh đã chọn">
+                  {selectedFiles.map((file, index) => (
+                    <div className="upload-thumb-card" key={`${file.name}-${index}`}>
+                      <div className="upload-thumb-media">
+                        <img
+                          src={previewUrls[index]}
+                          alt={`Xem trước ảnh ${index + 1}`}
+                          loading="lazy"
+                        />
+                        {index === 0 ? (
+                          <span className="upload-thumb-cover-tag">Ảnh bìa</span>
+                        ) : null}
+                        <button
+                          type="button"
+                          className="upload-thumb-remove-btn"
+                          title="Gỡ ảnh này"
+                          aria-label={`Gỡ ảnh ${file.name}`}
+                          onClick={() => removeSelectedFile(index)}
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                            <line x1="18" y1="6" x2="6" y2="18" />
+                            <line x1="6" y1="6" x2="18" y2="18" />
+                          </svg>
+                        </button>
+                      </div>
+                      <div className="upload-thumb-footer">
+                        <span className="upload-thumb-name" title={file.name}>{file.name}</span>
+                        <span className="upload-thumb-size">{(file.size / 1024 / 1024).toFixed(2)} MiB</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               ) : null}
-              {mediaError ? <div className="state error" role="alert">{mediaError}</div> : null}
+
+              {mediaError ? <div className="state error" role="alert" style={{ marginTop: 10 }}>{mediaError}</div> : null}
             </div>
 
             <button type="submit" className="btn primary full" disabled={submitting || !canSubmit}>

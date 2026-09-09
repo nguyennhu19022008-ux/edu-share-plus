@@ -278,7 +278,7 @@
   table{width:100%;border-collapse:separate;border-spacing:0;min-width:980px}th,td{padding:12px 11px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top;font-size:13px}th{background:linear-gradient(180deg,#f8fafc,#f1f5f9);color:#334155;font-weight:950;position:sticky;top:0;z-index:1}tbody tr{transition:background var(--transition)}tbody tr:hover{background:#f8fbff}.title-cell{font-weight:950}
   .report-badge{display:inline-grid;place-items:center;min-width:42px;height:34px;border-radius:13px;background:#fff7ed;color:#c2410c;border:1px solid #fed7aa;font-size:17px;font-weight:950}.report-zero{background:#f8fafc;color:#64748b;border-color:#e2e8f0}.switchline{display:flex;align-items:center;gap:8px;white-space:nowrap}.switchline input{width:auto}.col-control{min-width:142px}.privacy{font-size:11px;color:#64748b;margin-top:5px}
 
-  .upload-preview{display:none;width:160px;height:112px;object-fit:cover;border-radius:16px;border:1px solid var(--line);margin-top:9px;box-shadow:var(--shadow-soft)}
+  .upload-preview{display:block;width:100%;height:120px;object-fit:cover;border-radius:12px;border:1px solid var(--line);box-shadow:var(--shadow-xs);transition:transform var(--transition)}
   .contact-card{border:1px solid #fed7aa;background:linear-gradient(135deg,#fff7ed,#fffaf4);border-radius:18px;padding:20px 22px;margin-top:16px;box-shadow:var(--shadow-xs);line-height:1.55}
   .login-actions{display:grid;gap:12px}.landing-actions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
 

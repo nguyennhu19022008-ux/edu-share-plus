@@ -101,7 +101,48 @@ graph TD
 
 > *Ghi chép theo dòng thời gian nghịch đảo (thay đổi mới nhất nằm ở trên cùng).*
 
+### 📅 Ngày 09/09/2026: Kiểm thử, Sửa lỗi & Nâng cấp Toàn diện Tính năng Đăng ảnh & Lưu trữ ảnh (Image Upload & Storage)
+- **Nội dung:**
+  - **Khắc phục lỗi MIME Type trên thiết bị di động (`src/features/storage/mediaModel.ts`):**
+    - Bổ sung hàm `normalizeImageMime`: Chuẩn hóa `image/jpg`, `image/pjpeg` về `image/jpeg`, xử lý không phân biệt hoa thường (`IMAGE/JPEG`), và tự động suy đoán MIME type từ phần mở rộng tệp khi trình duyệt mobile hoặc ứng dụng chọn tệp trả về kiểu MIME rỗng (`''`) hoặc `application/octet-stream`.
+    - Bổ sung `isSupportedImageMime` và cập nhật `validatePostMediaFiles`, `extensionForMime`.
+  - **Tối ưu hóa nén ảnh an toàn (`src/features/storage/imageCompressor.ts`):**
+    - Áp dụng chuẩn hóa MIME trước khi đưa vào Canvas, đảm bảo tệp kết quả (kể cả khi giữ nguyên file gốc vì dung lượng nhỏ hơn) luôn có MIME chuẩn (`image/jpeg`, `image/png`, `image/webp`), ngăn chặn triệt để lỗi từ chối của thủ tục RPC `reserve_my_file` trên Supabase.
+  - **Sửa dứt điểm lỗi CSS ẩn ảnh (`src/styles/legacy-base.css`):**
+    - Khắc phục thuộc tính `.upload-preview { display: none; }` khiến các ảnh đã tải lên trước đó bị ẩn hoàn toàn khi người dùng truy cập trang chỉnh sửa `EditPostPage.tsx`.
+  - **Giao diện Tải ảnh & Xem trước Trực quan (`AddPostPage.tsx` & `EditPostPage.tsx`):**
+    - Bổ sung khu vực tải ảnh hiện đại (`.upload-zone-modern`) hỗ trợ kéo thả (drag & drop), biểu tượng tải lên SVG Lucide.
+    - Hiển thị lưới hình thu nhỏ (thumbnail) trực quan với `createPreviewUrl` và tự động thu hồi bộ nhớ (revoke) an toàn.
+    - Huy hiệu nổi bật **"Ảnh bìa"** tự động gắn vào ảnh đầu tiên (ảnh đại diện khi duyệt danh mục).
+    - Nút gỡ từng ảnh độc lập (Lucide X icon) giúp người dùng dễ dàng xóa bỏ ảnh chụp mờ/lỗi mà không phải chọn lại từ đầu.
+    - Huy hiệu đếm số lượng ảnh thời gian thực (`Đã chọn: X/5 ảnh`) và hiển thị dung lượng từng tệp theo chuẩn MiB.
+  - **Trình xem ảnh tương tác & Lightbox phóng to (`src/components/media/PostMediaGallery.tsx`):**
+    - Tích hợp thư viện ảnh vào cả `DetailPage.tsx` và `MyDetailPage.tsx`: Hiển thị ảnh chính chất lượng cao với tỷ lệ khung hình chuẩn, hàng thumbnail bấm để đổi ảnh góc nhìn khác.
+    - Chế độ xem toàn màn hình (Lightbox Modal) với nền mờ cao cấp, hỗ trợ điều hướng bằng phím mũi tên trái/phải và phím ESC để đóng.
+  - **Tuân thủ UI/UX Rules:** Biểu tượng 100% SVG Vector (Lucide), tương phản chuẩn WCAG AA (≥ 4.5:1), responsive 375px / 768px / 1024px / 1440px, thiết kế sạch (Anti-AI-slop).
+  - **Kiểm thử & Biên dịch:**
+    - Cập nhật `tests/mediaModel.test.ts` (6/6 pass).
+    - Toàn bộ 27/27 test suites đạt 100% PASS.
+    - `npm run build` (`tsc -b && vite build`) hoàn tất trong 2.35s với 0 lỗi, 0 cảnh báo.
+- **File tác động:**
+  - `src/features/storage/mediaModel.ts`
+  - `src/features/storage/imageCompressor.ts`
+  - `src/styles/legacy-base.css`
+  - `src/styles/legacy-ecommerce.css`
+  - `src/components/media/previewHelper.ts`
+  - `src/components/media/ImageUploadField.tsx`
+  - `src/components/media/PostMediaGallery.tsx`
+  - `src/pages/AddPostPage.tsx`
+  - `src/pages/EditPostPage.tsx`
+  - `src/pages/DetailPage.tsx`
+  - `src/pages/MyDetailPage.tsx`
+  - `tests/mediaModel.test.ts`
+  - `TIENDOCONGVIEC.md`
+
+---
+
 ### 📅 Ngày 09/09/2026: Thêm & Cấu hình Ủy quyền Giáo viên THPT Nguyễn Du (phuongpp_thpt_nguyendu)
+
 - **Nội dung:**
   - Thêm tài khoản giáo viên `phuongpp_thpt_nguyendu@bariavungtau.edu.vn` vào danh sách giáo viên ủy quyền sẵn (`PREAUTHORIZED_TEACHER_WHITELIST`) liên kết với trường THPT Nguyễn Du (`THPT_NGUYEN_DU`, ID `312b93db-c901-4691-91ac-860a88da3581`).
   - Tự động nhận diện và kích hoạt vai trò `teacher_moderator` và `approved` khi tài khoản đăng nhập cổng Giáo viên (`?page=loginTeacher`).

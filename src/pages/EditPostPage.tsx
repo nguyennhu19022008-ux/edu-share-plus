@@ -1,4 +1,4 @@
-import { ChangeEvent, FormEvent, useEffect, useState } from 'react';
+import { ChangeEvent, FormEvent, useEffect, useRef, useState } from 'react';
 import { navigateLegacy } from '../app/legacyRouter';
 import StudentHeader from '../components/student/StudentHeader';
 import type {
@@ -14,12 +14,14 @@ import {
   updateMyPost,
   type OwnerPostReferenceOptions,
 } from '../features/my-posts/ownerPostService';
-import { validatePostMediaFiles, type SignedMedia } from '../features/storage/mediaModel';
+import { POST_MEDIA_MAX_FILES, validatePostMediaFiles, type SignedMedia } from '../features/storage/mediaModel';
 import {
   listPostMedia,
   removeMyPostMedia,
   uploadPostMedia,
 } from '../features/storage/mediaService';
+import { createPreviewUrl, revokePreviewUrl } from '../components/media/previewHelper';
+
 
 const TRADE_OPTIONS:Array<{ value:OwnerTradeType; label:string }> = [
   { value:'lend', label:'Cho mượn' },
@@ -175,18 +177,50 @@ export default function EditPostPage() {
   const canEdit = post.lifecycleStatus === 'active';
   const isSale = tradeType === 'low_price_sale';
 
-  const onMediaChange = (event:ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(event.currentTarget.files ?? []);
-    const validationError = validatePostMediaFiles(files, media.length);
-    if (validationError) {
-      setSelectedFiles([]);
-      setMediaError(validationError);
-      event.currentTarget.value = '';
+  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isDragOver, setIsDragOver] = useState(false);
+
+  useEffect(() => {
+    const urls = selectedFiles.map((f) => createPreviewUrl(f));
+    setPreviewUrls(urls);
+    return () => {
+      urls.forEach((url) => revokePreviewUrl(url));
+    };
+  }, [selectedFiles]);
+
+
+  const handleFilesAdded = (incomingFiles: File[]) => {
+    if (!incomingFiles.length) return;
+    const combined = [...selectedFiles, ...incomingFiles];
+    const totalCount = media.length + combined.length;
+    if (totalCount > POST_MEDIA_MAX_FILES) {
+      setMediaError(`Mỗi bài đăng được gắn tối đa 5 ảnh. Bài hiện có ${media.length} ảnh và bạn đã chọn thêm ${combined.length} ảnh.`);
       return;
     }
-    setSelectedFiles(files);
+    const validationError = validatePostMediaFiles(combined, media.length);
+    if (validationError) {
+      setMediaError(validationError);
+      return;
+    }
+    setSelectedFiles(combined);
     setMediaError('');
   };
+
+  const onMediaChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.currentTarget.files ?? []);
+    handleFilesAdded(files);
+    event.currentTarget.value = '';
+  };
+
+  const removeSelectedFile = (indexToRemove: number) => {
+    setSelectedFiles((prev) => prev.filter((_, idx) => idx !== indexToRemove));
+    setMediaError('');
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
 
   const onRemoveMedia = async (item:SignedMedia) => {
     if (!canEdit || removingFileId || submitting) return;
@@ -366,34 +400,155 @@ export default function EditPostPage() {
               </section>
             ) : null}
 
-            <div className="field upload-zone">
-              <label htmlFor="edit-media"><b>Ảnh minh họa private</b></label>
-              {media.length ? (
-                <div className="owner-post-grid">
-                  {media.map((item) => (
-                    <article className="card" key={item.fileId}>
-                      <img className="upload-preview" src={item.signedUrl} alt={item.altText ?? 'Ảnh bài đăng'} loading="lazy" decoding="async" />
-                      <button className="btn danger small" type="button" disabled={removingFileId === item.fileId || submitting} onClick={() => void onRemoveMedia(item)}>
-                        {removingFileId === item.fileId ? 'Đang gỡ…' : 'Gỡ ảnh'}
-                      </button>
-                    </article>
-                  ))}
-                </div>
-              ) : <div className="form-note">Bài hiện chưa có ảnh.</div>}
+            <div className="field">
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                <label htmlFor="edit-media" style={{ margin: 0 }}>
+                  <b>Ảnh minh họa bài đăng</b>
+                </label>
+                <span className={`upload-count-pill${media.length + selectedFiles.length >= POST_MEDIA_MAX_FILES ? ' full' : ''}`}>
+                  {media.length + selectedFiles.length}/{POST_MEDIA_MAX_FILES} ảnh
+                </span>
+              </div>
 
-              <input
-                id="edit-media"
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                multiple
-                disabled={media.length >= 5 || submitting}
-                onChange={onMediaChange}
-              />
-              <div className="form-note">Đang có {media.length}/5 ảnh. Ảnh mới chỉ được upload sau khi nội dung bài lưu thành công.</div>
-              {selectedFiles.length ? (
-                <ul>{selectedFiles.map((file) => <li key={`${file.name}-${file.size}`}>{file.name} • {(file.size / 1024 / 1024).toFixed(2)} MiB</li>)}</ul>
+              {media.length ? (
+                <div style={{ marginBottom: 16 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: '#334155', marginBottom: 8 }}>Ảnh hiện có trên bài đăng:</div>
+                  <div className="upload-thumbs-grid">
+                    {media.map((item, index) => (
+                      <div className="upload-thumb-card" key={item.fileId}>
+                        <div className="upload-thumb-media">
+                          <img
+                            src={item.signedUrl}
+                            alt={item.altText ?? `Ảnh bài đăng ${index + 1}`}
+                            loading="lazy"
+                            decoding="async"
+                          />
+                          {index === 0 ? (
+                            <span className="upload-thumb-cover-tag">Ảnh bìa</span>
+                          ) : null}
+                          <button
+                            className="upload-thumb-remove-btn"
+                            type="button"
+                            title="Gỡ ảnh này khỏi bài đăng"
+                            aria-label="Gỡ ảnh này"
+                            disabled={removingFileId === item.fileId || submitting || !canEdit}
+                            onClick={() => void onRemoveMedia(item)}
+                          >
+                            {removingFileId === item.fileId ? (
+                              <span style={{ fontSize: 10 }}>…</span>
+                            ) : (
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                <line x1="18" y1="6" x2="6" y2="18" />
+                                <line x1="6" y1="6" x2="18" y2="18" />
+                              </svg>
+                            )}
+                          </button>
+                        </div>
+                        <div className="upload-thumb-footer">
+                          <span className="upload-thumb-name">Ảnh {item.sortOrder + 1}</span>
+                          <span className="upload-thumb-size" style={{ color: '#16a34a' }}>Đã lưu</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="form-note" style={{ marginBottom: 12 }}>Bài đăng hiện chưa có ảnh nào.</div>
+              )}
+
+              {media.length + selectedFiles.length < POST_MEDIA_MAX_FILES ? (
+                <div
+                  className={`upload-zone-modern${isDragOver ? ' dragover' : ''}`}
+                  onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
+                  onDragLeave={() => setIsDragOver(false)}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setIsDragOver(false);
+                    const files = Array.from(e.dataTransfer.files || []);
+                    handleFilesAdded(files);
+                  }}
+                >
+                  <input
+                    id="edit-media"
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    multiple
+                    disabled={media.length + selectedFiles.length >= POST_MEDIA_MAX_FILES || submitting || !canEdit}
+                    onChange={onMediaChange}
+                    style={{ display: 'none' }}
+                  />
+
+                  <div className="upload-dropzone-inner">
+                    <div className="upload-icon-circle" aria-hidden="true">
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="17 8 12 3 7 8" />
+                        <line x1="12" y1="3" x2="12" y2="15" />
+                      </svg>
+                    </div>
+                    <div>
+                      <button
+                        type="button"
+                        className="upload-action-btn"
+                        disabled={submitting || !canEdit}
+                        onClick={() => fileInputRef.current?.click()}
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <line x1="12" y1="5" x2="12" y2="19" />
+                          <line x1="5" y1="12" x2="19" y2="12" />
+                        </svg>
+                        Chọn thêm ảnh từ thiết bị
+                      </button>
+                    </div>
+                    <p style={{ margin: 0, fontSize: 12, color: '#64748b' }}>
+                      Có thể thêm tối đa {POST_MEDIA_MAX_FILES - (media.length + selectedFiles.length)} ảnh nữa (JPEG, PNG, WebP tối đa 5 MiB/ảnh).
+                    </p>
+                  </div>
+                </div>
               ) : null}
-              {mediaError ? <div className="state error" role="alert">{mediaError}</div> : null}
+
+              {selectedFiles.length > 0 ? (
+                <div style={{ marginTop: 16 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: '#2563eb', marginBottom: 8 }}>Ảnh mới chọn (sẽ tải lên khi lưu):</div>
+                  <div className="upload-thumbs-grid" aria-label="Danh sách ảnh mới chọn">
+                    {selectedFiles.map((file, index) => (
+                      <div className="upload-thumb-card" key={`${file.name}-${index}`}>
+                        <div className="upload-thumb-media">
+                          <img
+                            src={previewUrls[index]}
+                            alt={`Xem trước ảnh mới ${index + 1}`}
+                            loading="lazy"
+                          />
+                          {media.length === 0 && index === 0 ? (
+                            <span className="upload-thumb-cover-tag">Ảnh bìa</span>
+                          ) : (
+                            <span className="upload-thumb-cover-tag" style={{ background: '#059669' }}>Mới</span>
+                          )}
+                          <button
+                            type="button"
+                            className="upload-thumb-remove-btn"
+                            title="Gỡ ảnh này"
+                            aria-label={`Gỡ ảnh ${file.name}`}
+                            onClick={() => removeSelectedFile(index)}
+                          >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                              <line x1="18" y1="6" x2="6" y2="18" />
+                              <line x1="6" y1="6" x2="18" y2="18" />
+                            </svg>
+                          </button>
+                        </div>
+                        <div className="upload-thumb-footer">
+                          <span className="upload-thumb-name" title={file.name}>{file.name}</span>
+                          <span className="upload-thumb-size">{(file.size / 1024 / 1024).toFixed(2)} MiB</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
+              {mediaError ? <div className="state error" role="alert" style={{ marginTop: 10 }}>{mediaError}</div> : null}
             </div>
 
             <div className="btn-row">

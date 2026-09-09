@@ -38,8 +38,40 @@ export type MediaFileLike = {
   size:number;
 };
 
+/**
+ * Normalizes browser-reported MIME types across mobile browsers and file pickers.
+ * Handles: 'image/jpg' -> 'image/jpeg', 'image/pjpeg' -> 'image/jpeg',
+ * case insensitivity ('IMAGE/JPEG'), and fallback to file extension when MIME is empty/generic.
+ */
+export function normalizeImageMime(type?: string | null, fileName?: string | null): string {
+  const cleanType = (type || '').trim().toLowerCase();
+  if (cleanType === 'image/jpeg' || cleanType === 'image/jpg' || cleanType === 'image/pjpeg') {
+    return 'image/jpeg';
+  }
+  if (cleanType === 'image/png') {
+    return 'image/png';
+  }
+  if (cleanType === 'image/webp') {
+    return 'image/webp';
+  }
+
+  // If MIME type is missing or generic octet-stream, infer from filename extension
+  if (!cleanType || cleanType === 'application/octet-stream' || cleanType === 'binary/octet-stream') {
+    const ext = (fileName || '').split('.').pop()?.toLowerCase();
+    if (ext === 'jpg' || ext === 'jpeg') return 'image/jpeg';
+    if (ext === 'png') return 'image/png';
+    if (ext === 'webp') return 'image/webp';
+  }
+
+  return cleanType;
+}
+
 function supportedMime(type:string):type is StoredImageMime {
   return Object.prototype.hasOwnProperty.call(STORED_IMAGE_EXTENSIONS, type);
+}
+
+export function isSupportedImageMime(type?: string | null, fileName?: string | null): boolean {
+  return supportedMime(normalizeImageMime(type, fileName));
 }
 
 function validateImageFile(
@@ -47,7 +79,8 @@ function validateImageFile(
   maxBytes:number,
   maxLabel:string,
 ):string | null {
-  if (!supportedMime(file.type)) {
+  const normalizedMime = normalizeImageMime(file.type, file.name);
+  if (!supportedMime(normalizedMime)) {
     return 'Chỉ hỗ trợ ảnh JPEG, PNG hoặc WebP. Hãy chuyển đổi HEIC/HEIF hoặc định dạng khác trước khi tải lên.';
   }
 
@@ -86,9 +119,11 @@ export function validateAvatarFile(file:MediaFileLike):string | null {
   return validateImageFile(file, AVATAR_MAX_BYTES, '3 MiB');
 }
 
-export function extensionForMime(mime:string):StoredImageExtension {
-  if (!supportedMime(mime)) {
+export function extensionForMime(mime:string, fileName?:string):StoredImageExtension {
+  const normalized = normalizeImageMime(mime, fileName);
+  if (!supportedMime(normalized)) {
     throw new Error('MEDIA_MIME_UNSUPPORTED');
   }
-  return STORED_IMAGE_EXTENSIONS[mime];
+  return STORED_IMAGE_EXTENSIONS[normalized];
 }
+

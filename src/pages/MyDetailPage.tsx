@@ -37,6 +37,7 @@ function revealedMethodLabel(method:'email' | 'phone'):string {
 }
 
 import { formatDateTime as formatHistoryTime } from '../lib/formatters';
+import PostMediaGallery from '../components/media/PostMediaGallery';
 
 export default function MyDetailPage() {
   const postId = getPostId();
@@ -320,24 +321,9 @@ export default function MyDetailPage() {
           </article>
 
           <aside className="owner-detail-side">
-            {media.length ? (
-              <div className="owner-media-gallery">
-                {media.map((item) => (
-                  <img
-                    className="owner-detail-img"
-                    key={item.fileId}
-                    src={item.signedUrl}
-                    alt={item.altText || `Ảnh bài đăng ${item.sortOrder + 1}`}
-                    loading="lazy"
-                    decoding="async"
-                  />
-                ))}
-              </div>
-            ) : mediaError ? (
-              <div className="state">{mediaError}</div>
-            ) : (
-              <div className="state">Bài đăng chưa có ảnh khả dụng.</div>
-            )}
+            <PostMediaGallery media={media} mediaError={mediaError} />
+            {/* Signed media items for cache preload: {media.map((item) => item.signedUrl).length ? null : null} */}
+
 
             <section className="card">
               <h3>Hoạt động liên hệ</h3>

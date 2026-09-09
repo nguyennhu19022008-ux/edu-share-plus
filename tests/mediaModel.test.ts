@@ -47,3 +47,17 @@ test('stored extension is derived only from the accepted MIME type', () => {
   assert.equal(extensionForMime('image/webp'), 'webp');
   assert.throws(() => extensionForMime('image/heic'), /MEDIA_MIME_UNSUPPORTED/);
 });
+
+test('post media supports mobile MIME aliases and file extension fallbacks', () => {
+  const mobileFiles = [
+    file('camera.jpg', 'image/jpg', 2048),
+    file('PHOTO_UPPER.JPG', 'IMAGE/JPEG', 4096),
+    file('screenshot.png', '', 1024), // empty type from some mobile pickers
+    file('graphic.webp', 'application/octet-stream', 1024), // generic octet-stream
+  ];
+  assert.equal(validatePostMediaFiles(mobileFiles), null);
+  assert.equal(extensionForMime('image/jpg'), 'jpg');
+  assert.equal(extensionForMime('', 'document.png'), 'png');
+  assert.equal(extensionForMime('IMAGE/JPEG'), 'jpg');
+});
+

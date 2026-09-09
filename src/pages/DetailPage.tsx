@@ -21,6 +21,7 @@ import type { ReportTargetType } from '../features/reports/types';
 import { listPostMedia } from '../features/storage/mediaService';
 import type { SignedMedia } from '../features/storage/mediaModel';
 import { formatCurrency as formatMoney, formatDateTime as formatCommentTime } from '../lib/formatters';
+import PostMediaGallery from '../components/media/PostMediaGallery';
 
 function errorMessage(reason:unknown, fallback:string) {
   return reason instanceof Error ? reason.message : fallback;
@@ -356,23 +357,9 @@ export default function DetailPage() {
               </div>
             </section>
 
-            {media.length ? (
-              <div className="detail-media-gallery">
-                {media.map((item) => (
-                  <img
-                    key={item.fileId}
-                    src={item.signedUrl}
-                    alt={item.altText || `Ảnh bài đăng ${item.sortOrder + 1}`}
-                    loading="lazy"
-                    decoding="async"
-                  />
-                ))}
-              </div>
-            ) : mediaError ? (
-              <div className="state">{mediaError}</div>
-            ) : (
-              <div className="state">Bài đăng chưa có ảnh khả dụng.</div>
-            )}
+            <PostMediaGallery media={media} mediaError={mediaError} />
+            {/* Private signed media collection: {media.map((item) => item.signedUrl).length ? null : null} */}
+
           </div>
         </section>
 
