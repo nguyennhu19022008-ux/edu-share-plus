@@ -5,6 +5,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 import type { Session } from '@supabase/supabase-js';
@@ -73,6 +74,9 @@ export function AuthSessionProvider({ children }: PropsWithChildren) {
     return () => subscription.unsubscribe();
   }, []);
 
+  const profileRef = useRef<StudentSessionProfile | null>(null);
+  profileRef.current = profile;
+
   const refreshProfile = useCallback(async () => {
     const userId = session?.user.id;
     if (!userId) {
@@ -82,7 +86,11 @@ export function AuthSessionProvider({ children }: PropsWithChildren) {
       return null;
     }
 
-    setProfileLoading(true);
+    // Only set profileLoading=true if we do not yet have a profile (initial load).
+    // Background revalidations should never block or unmount the UI.
+    if (!profileRef.current) {
+      setProfileLoading(true);
+    }
     setProfileError('');
 
     try {
@@ -90,12 +98,14 @@ export function AuthSessionProvider({ children }: PropsWithChildren) {
       setProfile(nextProfile);
       return nextProfile;
     } catch (error) {
-      setProfile(null);
-      setProfileError(
-        error instanceof Error
-          ? error.message
-          : 'Không thể tải trạng thái tài khoản học sinh.',
-      );
+      if (!profileRef.current) {
+        setProfile(null);
+        setProfileError(
+          error instanceof Error
+            ? error.message
+            : 'Không thể tải trạng thái tài khoản học sinh.',
+        );
+      }
       return null;
     } finally {
       setProfileLoading(false);

@@ -515,11 +515,17 @@ export default function EditPostPage() {
                     {selectedFiles.map((file, index) => (
                       <div className="upload-thumb-card" key={`${file.name}-${index}`}>
                         <div className="upload-thumb-media">
-                          <img
-                            src={previewUrls[index]}
-                            alt={`Xem trước ảnh mới ${index + 1}`}
-                            loading="lazy"
-                          />
+                          {previewUrls[index] ? (
+                            <img
+                              src={previewUrls[index]}
+                              alt={`Xem trước ảnh mới ${index + 1}`}
+                              loading="lazy"
+                            />
+                          ) : (
+                            <div style={{ width: '100%', height: '100%', display: 'grid', placeItems: 'center', background: '#f8fafc', color: '#94a3b8', fontSize: '11px' }}>
+                              Đang tải...
+                            </div>
+                          )}
                           {media.length === 0 && index === 0 ? (
                             <span className="upload-thumb-cover-tag">Ảnh bìa</span>
                           ) : (

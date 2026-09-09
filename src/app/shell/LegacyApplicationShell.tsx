@@ -53,10 +53,15 @@ export default function LegacyApplicationShell() {
     registerServiceWorker();
   }, []);
 
-  // Re-check database authorization whenever the browser returns to the app.
-  // This catches role/status changes that are not encoded in the current JWT.
+  // Re-check database authorization when returning to the app tab.
+  // Throttled so opening OS file pickers or browser dialogs does not thrash the session.
   useEffect(() => {
+    let lastBump = Date.now();
+
     const bumpLifecycle = () => {
+      const now = Date.now();
+      if (now - lastBump < 60000) return;
+      lastBump = now;
       setLifecycleVersion((value) => value + 1);
     };
 
@@ -66,11 +71,9 @@ export default function LegacyApplicationShell() {
       }
     };
 
-    window.addEventListener('focus', bumpLifecycle);
     document.addEventListener('visibilitychange', onVisibilityChange);
 
     return () => {
-      window.removeEventListener('focus', bumpLifecycle);
       document.removeEventListener('visibilitychange', onVisibilityChange);
     };
   }, []);
@@ -180,7 +183,7 @@ export default function LegacyApplicationShell() {
   ]);
 
   if (protectedStudentRoute) {
-    if (!auth.authReady || auth.profileLoading) {
+    if (!auth.authReady || (auth.profileLoading && !auth.profile)) {
       return <RouteLoading />;
     }
 
