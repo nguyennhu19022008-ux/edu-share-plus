@@ -20,6 +20,24 @@ export type StaffLoginInput = {
   password: string;
 };
 
+export type PreauthorizedTeacherEntry = {
+  schoolCode: string;
+  schoolId: string;
+  schoolName: string;
+  defaultName: string;
+  roleCode: StaffRoleCode;
+};
+
+export const PREAUTHORIZED_TEACHER_WHITELIST: Record<string, PreauthorizedTeacherEntry> = {
+  'phuongpp_thpt_nguyendu@bariavungtau.edu.vn': {
+    schoolCode: 'THPT_NGUYEN_DU',
+    schoolId: '312b93db-c901-4691-91ac-860a88da3581',
+    schoolName: 'THPT Nguyễn Du',
+    defaultName: 'Thầy/Cô Phương (THPT Nguyễn Du)',
+    roleCode: 'teacher_moderator',
+  },
+};
+
 function normalizeCredentialError(message: string) {
   const normalized = message.toLowerCase();
 
@@ -167,6 +185,53 @@ export async function getCurrentStaffContext(): Promise<StaffContext> {
       roleCode: resolvedRoleCode as StaffRoleCode,
       schoolId: targetSchoolId || null,
       schoolName,
+    };
+  }
+  
+  const preauth = PREAUTHORIZED_TEACHER_WHITELIST[userEmail];
+  if (preauth) {
+    const targetSchoolId = preauth.schoolId;
+
+    try {
+      const { data: roleRow } = await supabase
+        .from('roles')
+        .select('id')
+        .eq('code', preauth.roleCode)
+        .single();
+
+      if (roleRow?.id) {
+        await supabase.from('user_roles').upsert({
+          user_id: user.id,
+          role_id: roleRow.id,
+          school_id: targetSchoolId,
+        });
+      }
+    } catch {
+      // ignore
+    }
+
+    try {
+      await supabase
+        .from('profiles')
+        .update({
+          school_id: targetSchoolId,
+          account_status: 'approved',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('user_id', user.id);
+    } catch {
+      // ignore
+    }
+
+    const { data: prof } = await supabase.from('profiles').select('full_name').eq('user_id', user.id).single();
+
+    return {
+      userId: user.id,
+      fullName: prof?.full_name || (user.user_metadata as any)?.full_name || preauth.defaultName,
+      accountStatus: 'approved',
+      roleCode: preauth.roleCode,
+      schoolId: targetSchoolId,
+      schoolName: preauth.schoolName,
     };
   }
 

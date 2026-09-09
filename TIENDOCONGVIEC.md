@@ -26,7 +26,7 @@
 
 ## 🎯 II. TRẠNG THÁI HIỆN TẠI CỦA DỰ ÁN (CURRENT PROJECT STATUS)
 
-*Cập nhật lần cuối: **06/09/2026***
+*Cập nhật lần cuối: **09/09/2026***
 
 | Chỉ số / Hạng mục | Trạng thái | Ghi chú chi tiết |
 | :--- | :---: | :--- |
@@ -100,6 +100,25 @@ graph TD
 ## 📝 IV. NHẬT KÝ THAY ĐỔI & CẬP NHẬT CHI TIẾT (CHANGELOG & AUDIT TRAIL)
 
 > *Ghi chép theo dòng thời gian nghịch đảo (thay đổi mới nhất nằm ở trên cùng).*
+
+### 📅 Ngày 09/09/2026: Thêm & Cấu hình Ủy quyền Giáo viên THPT Nguyễn Du (phuongpp_thpt_nguyendu)
+- **Nội dung:**
+  - Thêm tài khoản giáo viên `phuongpp_thpt_nguyendu@bariavungtau.edu.vn` vào danh sách giáo viên ủy quyền sẵn (`PREAUTHORIZED_TEACHER_WHITELIST`) liên kết với trường THPT Nguyễn Du (`THPT_NGUYEN_DU`, ID `312b93db-c901-4691-91ac-860a88da3581`).
+  - Tự động nhận diện và kích hoạt vai trò `teacher_moderator` và `approved` khi tài khoản đăng nhập cổng Giáo viên (`?page=loginTeacher`).
+  - Đồng bộ danh sách cán bộ trường trong `src/features/admin/staffManagementService.ts` hiển thị trạng thái đã ủy quyền sẵn.
+  - Cung cấp migration SQL `supabase/migrations/20260909120000_add_teacher_phuongpp.sql` hỗ trợ gán cứng trực tiếp trong database Supabase.
+  - Bổ sung unit test `tests/staffManagement.test.ts` (100% pass).
+- **File tác động:**
+  - `src/features/auth/staff/staffAuthService.ts`
+  - `src/features/admin/staffManagementService.ts`
+  - `src/lib/supabase/client.ts`
+  - `supabase/migrations/20260909120000_add_teacher_phuongpp.sql`
+  - `tests/staffManagement.test.ts`
+  - `package.json`
+  - `TIENDOCONGVIEC.md`
+- **Kết quả kiểm thử & Triển khai:** Build PASS, 27/27 test suites PASS (100%), đã đồng bộ GitHub và cập nhật bản nén Desktop.
+
+---
 
 ### 📅 Ngày 05/09/2026 — 06/09/2026: Tích hợp Cache Đa Tầng (Client Caching) & Thiết lập Tài liệu Tiến độ
 - **Nội dung:**

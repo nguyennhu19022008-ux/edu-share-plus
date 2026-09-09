@@ -1,10 +1,32 @@
 import { getSupabaseClient } from '../../lib/supabase/client';
+import { PREAUTHORIZED_TEACHER_WHITELIST } from '../auth/staff/staffAuthService';
 import type {
   AssignStaffInput,
   AssignStaffResult,
   RevokeStaffResult,
   StaffMember,
+  StaffRoleCode,
 } from './staffManagementTypes';
+
+function mergePreauthorizedStaff(list: StaffMember[], targetSchoolId?: string | null): StaffMember[] {
+  const result = [...list];
+  for (const [email, entry] of Object.entries(PREAUTHORIZED_TEACHER_WHITELIST)) {
+    if (targetSchoolId && entry.schoolId !== targetSchoolId) continue;
+    const exists = result.some((m) => m.email?.toLowerCase() === email.toLowerCase());
+    if (!exists) {
+      result.push({
+        userId: 'pre-' + email,
+        email,
+        fullName: entry.defaultName,
+        roleCode: (entry.roleCode === 'admin' ? 'system_admin' : entry.roleCode) as StaffRoleCode,
+        roleName: 'Giáo viên kiểm duyệt',
+        assignedAt: '2026-09-09T00:00:00.000Z',
+        status: 'Đã ủy quyền (Sẵn sàng đăng nhập)',
+      });
+    }
+  }
+  return result;
+}
 
 export async function listSchoolStaff(schoolId?: string | null): Promise<StaffMember[]> {
   const supabase = getSupabaseClient();
@@ -13,7 +35,7 @@ export async function listSchoolStaff(schoolId?: string | null): Promise<StaffMe
   });
 
   if (!error && data && data.length > 0) {
-    return data.map((row: any) => ({
+    const rpcList: StaffMember[] = data.map((row: any) => ({
       userId: row.user_id,
       email: row.email,
       fullName: row.full_name,
@@ -22,6 +44,7 @@ export async function listSchoolStaff(schoolId?: string | null): Promise<StaffMe
       assignedAt: row.assigned_at,
       status: row.status,
     }));
+    return mergePreauthorizedStaff(rpcList, schoolId);
   }
 
   // Fallback: query user_roles table and pre-authorized roster entries
@@ -66,7 +89,7 @@ export async function listSchoolStaff(schoolId?: string | null): Promise<StaffMe
     }
   }
 
-  return list;
+  return mergePreauthorizedStaff(list, schoolId);
 }
 
 export async function assignSchoolStaff(input: AssignStaffInput): Promise<AssignStaffResult> {
