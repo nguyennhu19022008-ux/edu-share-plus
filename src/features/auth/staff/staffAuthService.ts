@@ -33,7 +33,7 @@ export const PREAUTHORIZED_TEACHER_WHITELIST: Record<string, PreauthorizedTeache
     schoolCode: 'THPT_NGUYEN_DU',
     schoolId: '312b93db-c901-4691-91ac-860a88da3581',
     schoolName: 'THPT Nguyễn Du',
-    defaultName: 'Thầy/Cô Phương (THPT Nguyễn Du)',
+    defaultName: 'Phạm Phúc Phương ( Phó Hiệu trưởng )',
     roleCode: 'teacher_moderator',
   },
 };

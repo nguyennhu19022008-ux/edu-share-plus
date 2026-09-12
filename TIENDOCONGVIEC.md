@@ -141,6 +141,20 @@ graph TD
 
 ---
 
+### 📅 Ngày 12/09/2026: Cập nhật Chức danh Giáo viên THPT Nguyễn Du: Phạm Phúc Phương ( Phó Hiệu trưởng )
+
+- **Nội dung:**
+  - Cập nhật thông tin hiển thị của cán bộ `phuongpp_thpt_nguyendu@bariavungtau.edu.vn` thành `Phạm Phúc Phương ( Phó Hiệu trưởng )` trong danh sách Cán bộ & Giáo viên của trường THPT Nguyễn Du.
+  - Cập nhật `defaultName` trong `PREAUTHORIZED_TEACHER_WHITELIST` (`staffAuthService.ts`).
+  - Cập nhật trực tiếp `user_metadata` trong Supabase Auth cho tài khoản `phuongpp_thpt_nguyendu@bariavungtau.edu.vn`.
+  - Bổ sung kiểm thử `tests/staffManagement.test.ts` xác thực tên hiển thị mới.
+- **File tác động:**
+  - `src/features/auth/staff/staffAuthService.ts`
+  - `tests/staffManagement.test.ts`
+  - `TIENDOCONGVIEC.md`
+
+---
+
 ### 📅 Ngày 09/09/2026: Thêm & Cấu hình Ủy quyền Giáo viên THPT Nguyễn Du (phuongpp_thpt_nguyendu)
 
 - **Nội dung:**

@@ -30,4 +30,5 @@ test('PREAUTHORIZED_TEACHER_WHITELIST contains phuongpp teacher of THPT Nguyen D
   assert.ok(teacher, 'Teacher phuongpp must be in PREAUTHORIZED_TEACHER_WHITELIST');
   assert.equal(teacher.schoolCode, 'THPT_NGUYEN_DU');
   assert.equal(teacher.roleCode, 'teacher_moderator');
+  assert.equal(teacher.defaultName, 'Phạm Phúc Phương ( Phó Hiệu trưởng )');
 });
