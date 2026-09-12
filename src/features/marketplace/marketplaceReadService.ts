@@ -9,9 +9,17 @@ import {
   type MarketplaceReadResponse,
 } from './marketplaceReadModel';
 
-function marketplaceError(error:{ message?:string; code?:string } | null) {
+function marketplaceError(error: { message?: string; code?: string } | null) {
+  const rawMessage = error?.message || 'Lỗi không xác định.';
   const code = error?.code ? ` (${error.code})` : '';
-  return new Error(`Không thể tải dữ liệu chợ học tập${code}: ${error?.message || 'Lỗi không xác định.'}`);
+
+  if (rawMessage.includes('EDU_SHARE_MARKETPLACE_ACCESS_DENIED')) {
+    return new Error(
+      `EDU_SHARE_MARKETPLACE_ACCESS_DENIED: Tài khoản hiện chưa có quyền xem Chợ học tập (chỉ dành cho học sinh đã xác minh hoặc giáo viên quản trị).`
+    );
+  }
+
+  return new Error(`Không thể tải dữ liệu chợ học tập${code}: ${rawMessage}`);
 }
 
 const MARKETPLACE_CACHE_TTL_MS = 90 * 1000; // 90 seconds

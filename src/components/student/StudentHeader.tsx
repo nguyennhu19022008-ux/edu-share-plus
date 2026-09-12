@@ -4,6 +4,7 @@ import { useStudentAuth } from '../../features/auth/session/AuthSessionProvider'
 import { formatNotificationDate } from '../../features/notifications/notificationModel';
 import { listMyNotifications, markMyNotificationsRead } from '../../features/notifications/notificationService';
 import type { AppNotification } from '../../features/notifications/types';
+import { inspectExistingStaffSession, PREAUTHORIZED_TEACHER_WHITELIST } from '../../features/auth/staff/staffAuthService';
 
 interface HeaderNotification { id:string; title:string; message:string; date:string; read:boolean }
 
@@ -20,6 +21,7 @@ export default function StudentHeader({ activePage, user, notifications }: Stude
   const [liveNotifications, setLiveNotifications] = useState<AppNotification[]>([]);
   const [liveUnreadCount, setLiveUnreadCount] = useState(0);
   const [markingRead, setMarkingRead] = useState(false);
+  const [isStaffUser, setIsStaffUser] = useState(false);
 
   const authUser = auth.session ? {
     name: auth.profile?.fullName || 'Học sinh',
@@ -56,6 +58,36 @@ export default function StudentHeader({ activePage, user, notifications }: Stude
       isMounted = false;
     };
   }, [auth.session, notifications]);
+
+  useEffect(() => {
+    if (!auth.session) {
+      setIsStaffUser(false);
+      return;
+    }
+
+    const name = (auth.profile?.fullName || resolvedUser.name || '').toLowerCase();
+    const email = (auth.session.user.email || '').toLowerCase();
+
+    if (
+      name.includes('teacher') ||
+      name.includes('thầy') ||
+      name.includes('cô') ||
+      name.includes('giáo viên') ||
+      name.includes('hiệu trưởng') ||
+      email.includes('teacher') ||
+      Boolean(PREAUTHORIZED_TEACHER_WHITELIST[email])
+    ) {
+      setIsStaffUser(true);
+    }
+
+    inspectExistingStaffSession()
+      .then((state) => {
+        if (state.kind === 'staff') {
+          setIsStaffUser(true);
+        }
+      })
+      .catch(() => {});
+  }, [auth.session, auth.profile?.fullName, resolvedUser.name]);
 
   const handleMarkAllRead = async () => {
     if (markingRead) return;
@@ -103,7 +135,7 @@ export default function StudentHeader({ activePage, user, notifications }: Stude
         <button className="brand" type="button" onClick={() => navigateLegacy('index')}>
           <span className="brand-mark">E+</span>
           <span className="brand-title-wrap">
-            <span className="brand-name-line">Edu Share+ <span className="brand-audience-badge">HỌC SINH</span></span>
+            <span className="brand-name-line">Edu Share+ <span className="brand-audience-badge">{isStaffUser ? 'GIÁO VIÊN' : 'HỌC SINH'}</span></span>
             <small>Sàn trao đổi &amp; chia sẻ đồ dùng học tập #1</small>
           </span>
         </button>
@@ -158,6 +190,21 @@ export default function StudentHeader({ activePage, user, notifications }: Stude
             </>
           )}
 
+          {isStaffUser && (
+            <button
+              className="nav-btn student-nav-link admin-nav-btn"
+              type="button"
+              onClick={() => navigateLegacy('admin')}
+              style={{
+                backgroundColor: '#fef2f2',
+                color: '#dc2626',
+                fontWeight: 750,
+                border: '1px solid #fca5a5',
+              }}
+            >
+              Trang Quản trị
+            </button>
+          )}
           <button className={`nav-btn student-nav-link profile-nav-btn${isProfilePage ? ' active' : ''}`} type="button" onClick={() => navigateLegacy('profile')}>Hồ sơ</button>
           <button className={`nav-btn student-nav-link${isHomePage ? ' active' : ''}`} type="button" onClick={() => navigateLegacy('index')}>Trang chủ</button>
           <button className={`nav-btn student-nav-link${isMyPostsPage ? ' active' : ''}`} type="button" onClick={() => navigateLegacy('myPosts')}>Bài của tôi</button>

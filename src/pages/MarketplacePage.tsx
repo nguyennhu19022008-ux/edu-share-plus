@@ -255,7 +255,46 @@ export default function MarketplacePage() {
               <StickerLoader message="Đang tải sàn đồ dùng học tập..." subtext="Edu Share+ • Chia sẻ đồ dùng học tập an toàn" />
             </div>
           ) : null}
-          {!loading && error ? <div className="state"><p>{error}</p><button className="btn primary" type="button" onClick={()=>setRetryKey((value)=>value+1)}>Thử lại</button></div> : null}
+          {!loading && error ? (
+            <div className="state" style={{ gridColumn: '1 / -1', padding: '36px 20px', textAlign: 'center', backgroundColor: '#fff', borderRadius: '12px', border: '1px solid #fee2e2' }}>
+              <div style={{ width: '48px', height: '48px', margin: '0 auto 14px', borderRadius: '50%', backgroundColor: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#dc2626' }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="8" x2="12" y2="12" />
+                  <line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+              </div>
+              <h3 style={{ fontSize: '17px', fontWeight: 700, color: '#111827', margin: '0 0 8px' }}>
+                {error.includes('EDU_SHARE_MARKETPLACE_ACCESS_DENIED') ? 'Chưa thể truy cập Chợ học tập' : 'Không thể tải dữ liệu'}
+              </h3>
+              <p style={{ fontSize: '14px', color: '#4b5563', maxWidth: '540px', margin: '0 auto 20px', lineHeight: '1.55' }}>
+                {error.includes('EDU_SHARE_MARKETPLACE_ACCESS_DENIED')
+                  ? 'Chợ học tập chỉ dành cho học sinh đã đối chiếu danh sách trường hoặc Thầy/Cô quản trị viên. Nếu bạn là Giáo viên, bạn có thể chuyển ngay sang Cổng Quản trị để duyệt bài và đối chiếu tài khoản.'
+                  : error}
+              </p>
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                <button className="btn primary" type="button" onClick={() => setRetryKey((value) => value + 1)}>
+                  Thử lại
+                </button>
+                <button
+                  className="btn light"
+                  type="button"
+                  onClick={() => navigateLegacy('admin')}
+                  style={{ border: '1px solid #fca5a5', color: '#dc2626', backgroundColor: '#fef2f2', fontWeight: 650 }}
+                >
+                  Vào trang Quản trị giáo viên
+                </button>
+                <button
+                  className="btn light"
+                  type="button"
+                  onClick={() => navigateLegacy('profile')}
+                  style={{ border: '1px solid #d1d5db', color: '#374151', fontWeight: 600 }}
+                >
+                  Xem hồ sơ tài khoản
+                </button>
+              </div>
+            </div>
+          ) : null}
           {!loading && !error && view.posts.length ? view.posts.map((post)=><MarketplacePostCard key={post.id} post={post} saved={savedIds.has(post.id)} onToggleSaved={()=>void handleToggleSaved(post.id)}/>) : null}
           {!loading && !error && !view.posts.length ? <div className="state">Chưa có bài đăng phù hợp.</div> : null}
         </section>
