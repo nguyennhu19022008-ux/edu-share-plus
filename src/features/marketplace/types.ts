@@ -19,12 +19,15 @@ export interface MarketPostDisplay {
   ownerReputationLabel: string;
 }
 
-/** Legacy/mock smart ranking shape. Rank/AI values do not exist in Phase 5C real reads. */
+/** Phase 6 smart ranking & AI recommendation shape enriched from MarketplaceReadPost. */
 export interface MarketPost extends MarketPostDisplay {
   rankScore: number;
   aiScore: number;
   recommendationReason: string;
+  reputationBadgeLabel?: string;
+  explanationTag?: string;
 }
+
 
 export type MarketplaceReadPost = MarketPostDisplay;
 

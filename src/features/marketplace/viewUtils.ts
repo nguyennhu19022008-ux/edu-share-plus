@@ -24,7 +24,14 @@ export function marketTradeClass(value: TradeType) {
   return 'exchange';
 }
 
-export function marketReputationTone(score: number) {
+export function normalizeMarketReputationScore(rawScore: number) {
+  if (!Number.isFinite(rawScore)) return 5;
+  const scaled = rawScore > 10 ? rawScore / 10 : rawScore;
+  return Number(Math.min(10, Math.max(0, scaled)).toFixed(1));
+}
+
+export function marketReputationTone(rawScore: number) {
+  const score = normalizeMarketReputationScore(rawScore);
   if (score >= 8) return 'excellent';
   if (score >= 6) return 'good';
   if (score >= 4) return 'normal';

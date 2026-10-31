@@ -1,6 +1,9 @@
-﻿import assert from 'node:assert/strict';
+import assert from 'node:assert/strict';
 import test from 'node:test';
-import { calculateReputationScore } from '../src/features/reputation/reputationService';
+import {
+  calculateReputationScore,
+  evaluatePostOwnerReputation,
+} from '../src/features/reputation/reputationService';
 
 test('calculateReputationScore gives base score for verified student', () => {
   const rep = calculateReputationScore({
@@ -38,3 +41,28 @@ test('calculateReputationScore applies penalty for active moderation reports', (
 
   assert.ok(penalizedRep.score < cleanRep.score);
 });
+
+test('evaluatePostOwnerReputation normalizes 100-scale and 10-scale scores and computes composite rankScore', () => {
+  const highEval = evaluatePostOwnerReputation({
+    ownerReputationScore: 92, // 100-scale input normalized to 9.2
+    favoriteCount: 6,
+    hasImage: true,
+    tradeType: 'Cho tặng',
+  });
+  assert.equal(highEval.normalizedOwnerScore, 9.2);
+  assert.equal(highEval.reputationSummary.tier, 'gold');
+  assert.ok(highEval.rankScore >= 85);
+  assert.match(highEval.reason, /Đại sứ chia sẻ uy tín \(9\.2\/10\)/);
+  assert.match(highEval.reason, /Có ảnh thực tế/);
+
+  const lowEval = evaluatePostOwnerReputation({
+    ownerReputationScore: 3.0,
+    favoriteCount: 0,
+    hasImage: false,
+    tradeType: 'Bán giá rẻ',
+  });
+  assert.equal(lowEval.normalizedOwnerScore, 3);
+  assert.equal(lowEval.reputationSummary.tier, 'bronze');
+  assert.ok(lowEval.rankScore < highEval.rankScore);
+});
+

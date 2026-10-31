@@ -1,4 +1,4 @@
-﻿export type ReputationTier = 'bronze' | 'silver' | 'gold';
+export type ReputationTier = 'bronze' | 'silver' | 'gold';
 
 export interface ReputationSummary {
   score: number; // 0 - 100
@@ -69,3 +69,62 @@ export function calculateReputationScore(params: {
     },
   };
 }
+
+export interface PostReputationRankEvaluation {
+  normalizedOwnerScore: number; // 0 - 10 scale
+  reputationSummary: ReputationSummary;
+  rankScore: number; // 0 - 100 composite ranking score
+  reason: string;
+}
+
+export function evaluatePostOwnerReputation(post: {
+  ownerReputationScore: number;
+  ownerReputationLabel?: string | null;
+  favoriteCount?: number;
+  hasImage?: boolean;
+  tradeType?: string;
+}): PostReputationRankEvaluation {
+  const rawScore = Number.isFinite(post.ownerReputationScore) ? post.ownerReputationScore : 5;
+  const normalizedOwnerScore = rawScore > 10
+    ? Number(Math.min(10, Math.max(0, rawScore / 10)).toFixed(1))
+    : Number(Math.min(10, Math.max(0, rawScore)).toFixed(1));
+
+  const isVerifiedStudent = normalizedOwnerScore >= 4;
+  const estimatedTrades = Math.max(0, Math.round((normalizedOwnerScore - 5) * 1.5));
+  const estimatedRating = Number(Math.min(5, Math.max(3.5, normalizedOwnerScore / 2)).toFixed(1));
+
+  const reputationSummary = calculateReputationScore({
+    isVerifiedStudent,
+    completedTradesCount: estimatedTrades,
+    ratings: [estimatedRating],
+  });
+
+  const repBase = Math.round(normalizedOwnerScore * 6 + reputationSummary.score * 0.2);
+  const favoriteCount = Math.max(0, post.favoriteCount || 0);
+  const favBonus = Math.min(16, favoriteCount * 2);
+  const imageBonus = post.hasImage ? 7 : 0;
+  const isFreeShare = post.tradeType === 'Cho tặng' || post.tradeType === 'give';
+  const isLendShare = post.tradeType === 'Cho mượn' || post.tradeType === 'lend';
+  const shareBonus = isFreeShare ? 5 : isLendShare ? 3 : 0;
+
+  const rankScore = Math.max(10, Math.min(99, repBase + favBonus + imageBonus + shareBonus));
+  const scoreDisplay = Number.isInteger(normalizedOwnerScore)
+    ? String(normalizedOwnerScore)
+    : normalizedOwnerScore.toFixed(1);
+
+  const parts = [
+    `${reputationSummary.badgeLabel} (${scoreDisplay}/10)`,
+    `${favoriteCount} lượt lưu`,
+  ];
+  if (post.hasImage) {
+    parts.push('Có ảnh thực tế');
+  }
+
+  return {
+    normalizedOwnerScore,
+    reputationSummary,
+    rankScore,
+    reason: parts.join(' • '),
+  };
+}
+

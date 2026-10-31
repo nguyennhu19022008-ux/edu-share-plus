@@ -1,6 +1,12 @@
 import { navigateLegacy } from '../../../app/legacyRouter';
 import type { MarketPost, MarketPostDisplay, SmartMode } from '../types';
-import { formatMarketCardDate, formatMarketMoney, marketReputationTone, marketTradeClass } from '../viewUtils';
+import {
+  formatMarketCardDate,
+  formatMarketMoney,
+  marketReputationTone,
+  marketTradeClass,
+  normalizeMarketReputationScore,
+} from '../viewUtils';
 
 export function MarketStatIcon({ type }: { type:'list'|'gift'|'tag'|'image' }) {
   const icons = {
@@ -12,41 +18,149 @@ export function MarketStatIcon({ type }: { type:'list'|'gift'|'tag'|'image' }) {
   return <span className="market-stat-icon" aria-hidden="true">{icons[type]}</span>;
 }
 
-export function MarketplaceSmartStrip({ posts, mode, filteredCount }: { posts:MarketPost[]; mode:Exclude<SmartMode,'off'>; filteredCount:number }) {
-  if (!posts.length) return null;
+export function MarketplaceSmartStrip({
+  posts,
+  mode,
+  filteredCount,
+  studentClassLabel,
+  onModeChange,
+}: {
+  posts: MarketPost[];
+  mode: Exclude<SmartMode, 'off'>;
+  filteredCount: number;
+  studentClassLabel?: string | null;
+  onModeChange?: (nextMode: SmartMode) => void;
+}) {
   const isAi = mode === 'ai';
   return (
-    <section className="v26-feed-section">
+    <section
+      className="v26-feed-section"
+      aria-label={isAi ? 'Gợi ý AI trong kết quả đang lọc' : 'Bảng xếp hạng uy tín trong kết quả đang lọc'}
+    >
       <div className="v26-feed-head">
-        <div>
-          <h2>{isAi ? 'AI gợi ý trong kết quả đang lọc' : 'Ranking trong kết quả đang lọc'}</h2>
+        <div className="v26-feed-head-copy">
+          <span className="v26-feed-eyebrow">
+            {isAi ? 'ĐỘNG CƠ GỢI Ý AI HỌC ĐƯỜNG • PHASE 6' : 'BẢNG XẾP HẠNG TÍN NHIỆM HỌC ĐƯỜNG • PHASE 6'}
+          </span>
+          <h2>
+            {isAi
+              ? `AI gợi ý học liệu phù hợp${studentClassLabel ? ` cho Lớp ${studentClassLabel}` : ''}`
+              : 'Xếp hạng theo điểm uy tín & mức độ tin cậy'}
+          </h2>
           <div className="subtext">
             {isAi
-              ? 'AI chỉ xếp hạng các bài đã qua bộ lọc hiện tại, không tự bỏ qua danh mục/lớp/từ khóa bạn chọn.'
-              : 'Ranking xếp hạng các bài đã qua bộ lọc hiện tại theo lượt lưu, bình luận, xem liên hệ và độ mới.'}
-            {' '}• {filteredCount} bài phù hợp.
+              ? 'Ưu tiên học liệu khớp chương trình khối lớp, sách tặng 0 đồng và thiết bị học tập thiết yếu trong kết quả đang lọc.'
+              : 'Xếp hạng dựa trên điểm uy tín chủ bài đã xác thực, danh hiệu chia sẻ, lượt lưu và minh chứng ảnh thực tế.'}
+            {' '}• Đang phân tích {posts.length}/{filteredCount} bài phù hợp.
           </div>
         </div>
-        <span className="ai-badge">{isAi ? 'AI đề xuất' : 'Ranking nâng cao'}</span>
+        <div className="v26-feed-actions">
+          <span className="ai-badge">
+            {isAi ? (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3z" />
+                <path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9L19 15z" />
+              </svg>
+            ) : (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                <path d="m9 12 2 2 4-4" />
+              </svg>
+            )}
+            <span>{isAi ? 'AI đề xuất' : 'Xếp hạng uy tín'}</span>
+          </span>
+          {onModeChange ? (
+            <div className="v26-mode-pills" role="group" aria-label="Chuyển nhanh chế độ thông minh">
+              <button
+                type="button"
+                className={`v26-mode-pill${!isAi ? ' active' : ''}`}
+                onClick={() => onModeChange('rank')}
+              >
+                Uy tín
+              </button>
+              <button
+                type="button"
+                className={`v26-mode-pill${isAi ? ' active' : ''}`}
+                onClick={() => onModeChange('ai')}
+              >
+                Gợi ý AI
+              </button>
+              <button
+                type="button"
+                className="v26-mode-pill close"
+                onClick={() => onModeChange('off')}
+                title="Tắt chế độ thông minh"
+              >
+                Tắt
+              </button>
+            </div>
+          ) : null}
+        </div>
       </div>
-      <div className="v26-strip">
-        {posts.slice(0,6).map((post) => (
-          <article className="v26-mini-card" key={post.id}>
-            <div className="v26-mini-title">{post.title}</div>
-            <div className="tags"><span className="tag cat">{post.category}</span><span className="tag">{post.tradeType}</span></div>
-            <div className="meta">Lớp {post.className} • {post.date}</div>
-            <div className="v26-rank-line"><span>Điểm: {isAi ? post.aiScore : post.rankScore}</span><span>♥ {post.favoriteCount}</span></div>
-            <div className="muted v26-reason">{post.recommendationReason}</div>
-            <button className="btn small primary" type="button" onClick={() => navigateLegacy('detail',{ id:post.id })}>Xem</button>
-          </article>
-        ))}
-      </div>
+      {posts.length ? (
+        <div className="v26-strip">
+          {posts.slice(0, 6).map((post, index) => {
+            const repScore = normalizeMarketReputationScore(post.ownerReputationScore);
+            const repText = Number.isInteger(repScore) ? String(repScore) : repScore.toFixed(1);
+            const badgeTag = isAi
+              ? post.explanationTag || 'Gợi ý phù hợp'
+              : post.reputationBadgeLabel || post.ownerReputationLabel || 'Thành viên tích cực';
+            const classDisplay =
+              !post.className || post.className === 'Không công khai'
+                ? 'Không công khai lớp'
+                : `Lớp ${post.className}`;
+
+            return (
+              <article className="v26-mini-card" key={post.id}>
+                <div className="v26-mini-top">
+                  <span className="v26-rank-index">#{String(index + 1).padStart(2, '0')}</span>
+                  <span className="v26-smart-tag">{badgeTag}</span>
+                  <strong className="v26-mini-price">
+                    {post.price > 0 ? formatMarketMoney(post.price) : '0 ₫'}
+                  </strong>
+                </div>
+                <div className="v26-mini-title">{post.title}</div>
+                <div className="tags">
+                  <span className={`market-product-tag ${marketTradeClass(post.tradeType)}`}>{post.tradeType}</span>
+                  <span className="market-product-tag category">{post.category}</span>
+                </div>
+                <div className="meta">
+                  {post.name} • {classDisplay} • Uy tín {repText}/10
+                </div>
+                <div className="v26-rank-line">
+                  <span>
+                    {isAi ? 'Điểm AI' : 'Điểm xếp hạng'}: {isAi ? post.aiScore : post.rankScore}/100
+                  </span>
+                  <span className="v26-fav-stat">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M7 4.5A2.5 2.5 0 0 1 9.5 2h5A2.5 2.5 0 0 1 17 4.5V21l-5-3.4L7 21V4.5Z" />
+                    </svg>
+                    {post.favoriteCount} lượt lưu
+                  </span>
+                </div>
+                <div className="muted v26-reason">{post.recommendationReason}</div>
+                <button
+                  className="btn small primary v26-detail-btn"
+                  type="button"
+                  onClick={() => navigateLegacy('detail', { id: post.id })}
+                >
+                  Xem chi tiết
+                </button>
+              </article>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="state v26-empty-state">
+          Chưa có bài đăng phù hợp để {isAi ? 'gợi ý AI' : 'xếp hạng uy tín'} trong bộ lọc hiện tại.
+        </div>
+      )}
     </section>
   );
 }
 
 export function MarketplacePostCard({ post, saved, onToggleSaved }: { post:MarketPostDisplay; saved:boolean; onToggleSaved:()=>void }) {
-  const score = Math.max(0, Math.min(10, post.ownerReputationScore));
+  const score = normalizeMarketReputationScore(post.ownerReputationScore);
   return (
     <article className="post-card market-product-card">
       <div className="market-product-card-body">

@@ -5,14 +5,14 @@ import { useStudentAuth } from '../features/auth/session/AuthSessionProvider';
 import { listMySavedPosts, setPostSaved } from '../features/interactions/interactionService';
 import { SkeletonMarketplaceGrid } from '../components/common/Skeleton';
 import { StickerLoader } from '../components/common/StickerLoader';
-import { MarketplacePostCard, MarketStatIcon } from '../features/marketplace/components/MarketplaceCards';
+import { MarketplacePostCard, MarketplaceSmartStrip, MarketStatIcon } from '../features/marketplace/components/MarketplaceCards';
 import MarketplacePagination from '../features/marketplace/components/MarketplacePagination';
 import { deriveMarketplacePageState } from '../features/marketplace/marketplacePageModel';
 import {
   type MarketplaceReadResponse,
 } from '../features/marketplace/marketplaceReadModel';
 import { listMarketplacePosts } from '../features/marketplace/marketplaceReadService';
-import type { MarketSort, TradeType } from '../features/marketplace/types';
+import type { MarketSort, SmartMode, TradeType } from '../features/marketplace/types';
 import { PAGE_SIZE, TRADE_TYPES } from '../features/marketplace/viewUtils';
 
 const EMPTY_RESPONSE: MarketplaceReadResponse = {
@@ -51,6 +51,7 @@ export default function MarketplacePage() {
   const [debouncedKeyword,setDebouncedKeyword] = useState(initialSearch);
   const [heroKeyword,setHeroKeyword] = useState(initialSearch);
   const [filters,setFilters] = useState<ServerFilters>(INITIAL_FILTERS);
+  const [smartMode,setSmartMode] = useState<SmartMode>('off');
   const [page,setPage] = useState(1);
   const [response,setResponse] = useState<MarketplaceReadResponse>(EMPTY_RESPONSE);
   const [loading,setLoading] = useState(true);
@@ -143,7 +144,20 @@ export default function MarketplacePage() {
       });
   }, [query, retryKey, page]);
 
-  const view = deriveMarketplacePageState(response);
+  const studentClassLabel = useMemo(() => {
+    if (filters.classId) {
+      return response.classes.find((item) => item.id === filters.classId)?.label ?? null;
+    }
+    if (auth.profile?.classId) {
+      return response.classes.find((item) => item.id === auth.profile?.classId)?.label ?? null;
+    }
+    return null;
+  }, [filters.classId, auth.profile?.classId, response.classes]);
+
+  const view = useMemo(
+    () => deriveMarketplacePageState(response, { smartMode, studentClassLabel }),
+    [response, smartMode, studentClassLabel],
+  );
 
   const updateFilter = <K extends keyof ServerFilters>(key:K,value:ServerFilters[K]) => {
     setFilters((current) => ({ ...current,[key]:value }));
@@ -162,10 +176,15 @@ export default function MarketplacePage() {
 
   const clearFilters = () => {
     setFilters(INITIAL_FILTERS);
+    setSmartMode('off');
     setKeyword('');
     setDebouncedKeyword('');
     setHeroKeyword('');
     setPage(1);
+  };
+
+  const toggleSmartMode = (targetMode: Exclude<SmartMode, 'off'>, checked: boolean) => {
+    setSmartMode(checked ? targetMode : 'off');
   };
 
   const changePage = (target:number) => {
@@ -240,9 +259,53 @@ export default function MarketplacePage() {
                 <option value="new">Mới nhất</option><option value="priceAsc">Giá thấp trước</option><option value="priceDesc">Giá cao trước</option><option value="image">Có ảnh trước</option>
               </select>
             </div>
-            <div className="subtext">Xếp hạng uy tín và gợi ý AI sẽ được bật ở Phase 6 sau khi có dữ liệu giao dịch đáng tin cậy.</div>
+            <div className="market-smart-switches" role="group" aria-label="Tùy chọn xếp hạng uy tín và gợi ý AI">
+              <label className={`market-switch-control${smartMode === 'rank' ? ' is-active' : ''}`}>
+                <span className="market-switch-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                    <path d="m9 12 2 2 4-4" />
+                  </svg>
+                </span>
+                <span>Bật xếp hạng theo uy tín</span>
+                <input
+                  type="checkbox"
+                  aria-label="Bật xếp hạng theo uy tín"
+                  checked={smartMode === 'rank'}
+                  onChange={(event) => toggleSmartMode('rank', event.target.checked)}
+                />
+                <span className="market-switch" aria-hidden="true" />
+              </label>
+              <span className="market-switch-separator" aria-hidden="true" />
+              <label className={`market-switch-control market-switch-control-ai${smartMode === 'ai' ? ' is-active' : ''}`}>
+                <span className="market-switch-icon market-spark" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3z" />
+                    <path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9L19 15z" />
+                  </svg>
+                </span>
+                <span>Bật gợi ý AI</span>
+                <input
+                  type="checkbox"
+                  aria-label="Bật gợi ý AI"
+                  checked={smartMode === 'ai'}
+                  onChange={(event) => toggleSmartMode('ai', event.target.checked)}
+                />
+                <span className="market-switch" aria-hidden="true" />
+              </label>
+            </div>
           </div>
         </section>
+
+        {!loading && !error && smartMode !== 'off' ? (
+          <MarketplaceSmartStrip
+            posts={view.smartPosts}
+            mode={smartMode}
+            filteredCount={view.totalCount}
+            studentClassLabel={studentClassLabel}
+            onModeChange={setSmartMode}
+          />
+        ) : null}
 
         <div className="listing-title">
           <div><span className="eyebrow">SẢN PHẨM ĐANG MỞ</span><h2>Khám phá đồ dùng học tập</h2></div>
