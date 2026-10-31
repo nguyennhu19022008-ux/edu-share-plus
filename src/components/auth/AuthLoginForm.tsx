@@ -303,28 +303,11 @@ export function AuthLoginForm({ role }: AuthLoginFormProps) {
 
       <main className="auth-market-wrap">
         <section className="auth-market-card">
-          <div className="auth-beam-wrap" aria-hidden="true">
-            <svg className="auth-beam-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
-              <rect className="auth-beam-runner" x="1" y="1" width="98" height="98" rx="4" pathLength="100" />
-            </svg>
-          </div>
-
           <div className={`auth-kicker ${isTeacher ? 'teacher' : 'student'}`}>
             {isTeacher ? 'Cổng giáo viên' : 'Học sinh'}
           </div>
 
-          <h1 className="auth-bouncy-heading" aria-label={headingText}>
-            {Array.from(headingText).map((char, index) => (
-              <span
-                key={index}
-                className="auth-bouncy-letter"
-                style={{ animationDelay: `${420 + index * 36}ms` }}
-                aria-hidden="true"
-              >
-                {char === ' ' ? '\u00A0' : char}
-              </span>
-            ))}
-          </h1>
+          <h1 className="auth-title">{headingText}</h1>
 
           <p className="auth-desc">
             {isTeacher
@@ -333,7 +316,7 @@ export function AuthLoginForm({ role }: AuthLoginFormProps) {
           </p>
 
           <form className="ecom-form" onSubmit={submit}>
-            <div className="field auth-stagger-item auth-stagger-1 auth-from-left">
+            <div className="field">
               <label className="req">{isTeacher ? 'Email giáo viên' : 'Email'}</label>
               <div className="input-icon">
                 <svg
@@ -364,7 +347,7 @@ export function AuthLoginForm({ role }: AuthLoginFormProps) {
               </div>
             </div>
 
-            <div className="field auth-stagger-item auth-stagger-2 auth-from-right">
+            <div className="field">
               <div className="label-row">
                 <label className="req">{isTeacher ? 'Mật khẩu quản trị' : 'Mật khẩu'}</label>
                 <button
@@ -406,16 +389,14 @@ export function AuthLoginForm({ role }: AuthLoginFormProps) {
               </div>
             </div>
 
-            <div
-              className={`auth-info ${isTeacher ? 'teacher-info' : ''} auth-stagger-item auth-stagger-3 auth-from-left`}
-            >
+            <div className={`auth-info ${isTeacher ? 'teacher-info' : ''}`}>
               {isTeacher
                 ? 'Khu vực này dành riêng cho giáo viên và ban quản trị. Các thao tác kiểm duyệt được ghi vào nhật ký hệ thống.'
                 : 'Email phải được xác minh và tài khoản phải được giáo viên/nhà trường phê duyệt trước khi sử dụng đầy đủ khu vực học sinh.'}
             </div>
 
             <button
-              className="btn primary full auth-stagger-item auth-stagger-4 auth-from-right"
+              className="btn primary full"
               type="submit"
               disabled={
                 submitting || (isTeacher && teacherSessionState === 'checking')

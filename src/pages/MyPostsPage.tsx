@@ -271,10 +271,10 @@ export default function MyPostsPage() {
         {/* 1. Page Header */}
         <section className="ecom-page-title owner-page-header">
           <div>
-            <span className="owner-controls-eyebrow" style={{ color: '#ee4d2d', fontWeight: 800, fontSize: '11px', letterSpacing: '0.05em' }}>
+            <span className="owner-controls-eyebrow" style={{ color: '#047857', fontWeight: 800, fontSize: '11px', letterSpacing: '0.05em' }}>
               QUẢN LÝ TIN ĐĂNG
             </span>
-            <h1 style={{ margin: '4px 0 2px', fontSize: '28px', fontWeight: 900, color: '#111827', letterSpacing: '-0.02em' }}>
+            <h1 style={{ margin: '4px 0 2px', fontSize: '28px', fontWeight: 900, color: '#0F172A', letterSpacing: '-0.02em' }}>
               Bài đăng của tôi
             </h1>
             <p className="owner-subtitle" style={{ margin: 0, color: '#64748b', fontSize: '13px', fontWeight: 600 }}>
@@ -293,8 +293,8 @@ export default function MyPostsPage() {
               borderRadius: 8,
               fontWeight: 800,
               fontSize: '13.5px',
-              background: '#ee4d2d',
-              boxShadow: '0 2px 8px rgba(238,77,45,0.25)',
+              background: '#047857',
+              boxShadow: 'none',
             }}
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">

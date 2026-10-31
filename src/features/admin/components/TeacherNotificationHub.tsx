@@ -71,17 +71,17 @@ export function TeacherNotificationHub({
   if (!isOpen) return null;
 
   return (
-    <div className="admin-moderation-card" style={{ marginBottom: '1.5rem', border: '2px solid var(--accent, #ee4d2d)' }}>
+    <div className="admin-moderation-card" style={{ marginBottom: '1.5rem', border: '1px solid #E2E8F0', borderTop: '3px solid #047857' }}>
       <div className="admin-moderation-header">
         <div className="admin-moderation-title-row">
           <div>
-            <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <span style={{ display: 'inline-flex', width: 20, height: 20, color: '#ee4d2d' }}><BellIcon /></span>
+            <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#0F172A' }}>
+              <span style={{ display: 'inline-flex', width: 20, height: 20, color: '#047857' }}><BellIcon /></span>
               <span>Trung tâm Thông báo Giáo viên & Quản trị</span>
               {unreadCount > 0 && (
                 <span
                   style={{
-                    backgroundColor: '#ee4d2d',
+                    backgroundColor: '#047857',
                     color: '#fff',
                     fontSize: '0.75rem',
                     padding: '0.15rem 0.5rem',
@@ -162,16 +162,16 @@ export function TeacherNotificationHub({
                     <tr
                       key={item.id}
                       style={{
-                        backgroundColor: isUnread ? 'rgba(238, 77, 45, 0.05)' : undefined,
+                        backgroundColor: isUnread ? 'rgba(4, 120, 87, 0.04)' : undefined,
                         cursor: 'pointer',
                       }}
                       onClick={() => void handleItemClick(item)}
                     >
                       <td style={{ fontSize: '1.25rem' }}>{icon}</td>
                       <td>
-                        <strong>{item.title}</strong>
+                        <strong style={{ color: '#0F172A' }}>{item.title}</strong>
                       </td>
-                      <td>{item.body}</td>
+                      <td style={{ color: '#1E293B' }}>{item.body}</td>
                       <td>
                         <small className="meta">
                           {new Date(item.createdAt).toLocaleString('vi-VN')}
@@ -181,9 +181,9 @@ export function TeacherNotificationHub({
                         <span
                           className="admin-status-pill"
                           style={{
-                            backgroundColor: isUnread ? '#ffebe7' : '#f1f5f9',
-                            color: isUnread ? '#d73211' : '#64748b',
-                            borderColor: isUnread ? '#ffc4b8' : '#cbd5e1',
+                            backgroundColor: isUnread ? '#ECFDF5' : '#F1F5F1',
+                            color: isUnread ? '#047857' : '#64748B',
+                            borderColor: isUnread ? '#A7F3D0' : '#E2E8F0',
                           }}
                         >
                           {isUnread ? 'Chưa đọc' : 'Đã xem'}

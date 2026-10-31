@@ -146,7 +146,7 @@ export default function StudentHeader({ activePage, user, notifications }: Stude
               className="btn primary student-login-header-btn"
               type="button"
               onClick={() => navigateLegacy('loginStudent')}
-              style={{ minHeight: '34px', padding: '0 14px', fontSize: '12.5px', borderRadius: '8px', fontWeight: 750 }}
+              style={{ minHeight: '34px', padding: '0 14px', fontSize: '12.5px', borderRadius: '8px', fontWeight: 750, background: '#047857', border: '1px solid #047857', color: '#fff' }}
             >
               Đăng nhập
             </button>
@@ -161,7 +161,7 @@ export default function StudentHeader({ activePage, user, notifications }: Stude
               </button>
 
               <button className="nav-btn notify-btn student-notify-btn" type="button" title="Thông báo" aria-label="Thông báo" aria-expanded={notificationsOpen} onClick={() => setNotificationsOpen((value) => !value)}>
-                <span className="notify-badge" style={{ display:unreadCount ? 'inline-flex' : 'none' }}>{unreadCount || ''}</span>
+                <span className="notify-badge" style={{ display:unreadCount ? 'inline-flex' : 'none', background: '#047857' }}>{unreadCount || ''}</span>
               </button>
 
               <button
@@ -175,9 +175,9 @@ export default function StudentHeader({ activePage, user, notifications }: Stude
                   padding: '4px 10px',
                   fontSize: '11.5px',
                   borderRadius: '8px',
-                  border: '1px solid #fee2e2',
-                  backgroundColor: '#fff1f2',
-                  color: '#e11d48',
+                  border: '1px solid #E2E8F0',
+                  backgroundColor: '#FFFFFF',
+                  color: '#475569',
                   fontWeight: 750,
                   cursor: 'pointer',
                   display: 'inline-flex',
@@ -196,10 +196,11 @@ export default function StudentHeader({ activePage, user, notifications }: Stude
               type="button"
               onClick={() => navigateLegacy('admin')}
               style={{
-                backgroundColor: '#fef2f2',
-                color: '#dc2626',
+                backgroundColor: '#ECFDF5',
+                color: '#047857',
                 fontWeight: 750,
-                border: '1px solid #fca5a5',
+                border: '1px solid #A7F3D0',
+                borderRadius: '8px',
               }}
             >
               Trang Quản trị
@@ -219,7 +220,7 @@ export default function StudentHeader({ activePage, user, notifications }: Stude
               <button
                 type="button"
                 className="btn-mark-read"
-                style={{ background: 'none', border: 'none', color: '#ee4d2d', cursor: 'pointer', fontSize: '12px', fontWeight: 650 }}
+                style={{ background: 'none', border: 'none', color: '#047857', cursor: 'pointer', fontSize: '12px', fontWeight: 650 }}
                 onClick={handleMarkAllRead}
                 disabled={markingRead}
               >

@@ -434,8 +434,9 @@ export default function MyDetailPage() {
                       style={{
                         padding: '6px 12px',
                         borderRadius: '8px',
-                        border: rating === star ? '2px solid #ea580c' : '1px solid #d1d5db',
-                        background: rating === star ? '#fff7ed' : '#fff',
+                        border: rating === star ? '2px solid #047857' : '1px solid #d1d5db',
+                        background: rating === star ? '#ecfdf5' : '#fff',
+                        color: rating === star ? '#064e3b' : '#374151',
                         fontWeight: rating === star ? 700 : 500,
                         cursor: 'pointer',
                         display: 'inline-flex',
@@ -445,7 +446,7 @@ export default function MyDetailPage() {
                       aria-label={`${star} sao`}
                     >
                       <span>{star}</span>
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill={rating >= star ? '#ea580c' : 'none'} stroke="#ea580c" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill={rating >= star ? '#047857' : 'none'} stroke="#047857" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                         <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
                       </svg>
                     </button>

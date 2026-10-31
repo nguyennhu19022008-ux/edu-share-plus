@@ -86,11 +86,11 @@ export function StaffManagementPanel() {
 
   return (
     <section className="roster-management-panel" style={{ display: 'grid', gap: '20px' }}>
-      <div className="card" style={{ padding: '22px' }}>
+      <div className="admin-moderation-card" style={{ padding: '24px', border: '1px solid #E2E8F0', borderRadius: '12px', background: '#FFFFFF', boxShadow: 'none' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
           <div>
-            <h2 style={{ margin: 0, fontSize: '18px', color: '#0f172a' }}>Cấp quyền Giáo viên / Quản trị viên mới</h2>
-            <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#64748b' }}>
+            <h2 style={{ margin: 0, fontSize: '18px', color: '#0F172A', fontWeight: 850 }}>Cấp quyền Giáo viên / Quản trị viên mới</h2>
+            <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#64748B' }}>
               Nhập email tài khoản giáo viên để cấp quyền kiểm duyệt ngay lập tức (không cần chạy lệnh SQL).
             </p>
           </div>
@@ -101,23 +101,23 @@ export function StaffManagementPanel() {
 
         <form onSubmit={handleAssign} style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
           <label style={{ display: 'grid', gap: '6px', flex: '1 1 260px' }}>
-            <span style={{ fontSize: '12px', fontWeight: 700, color: '#334155' }}>Email giáo viên / cán bộ</span>
+            <span style={{ fontSize: '12px', fontWeight: 700, color: '#0F172A' }}>Email giáo viên / cán bộ</span>
             <input
               type="email"
               required
               placeholder="Ví dụ: giaovien@truong.edu.vn"
               value={inputEmail}
               onChange={(e) => setInputEmail(e.target.value)}
-              style={{ height: '40px', padding: '0 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
+              style={{ height: '40px', padding: '0 12px', borderRadius: '8px', border: '1px solid #CBD5E1', color: '#0F172A', background: '#FFFFFF' }}
             />
           </label>
 
           <label style={{ display: 'grid', gap: '6px', flex: '1 1 220px' }}>
-            <span style={{ fontSize: '12px', fontWeight: 700, color: '#334155' }}>Vai trò phân quyền</span>
+            <span style={{ fontSize: '12px', fontWeight: 700, color: '#0F172A' }}>Vai trò phân quyền</span>
             <select
               value={inputRole}
               onChange={(e) => setInputRole(e.target.value as any)}
-              style={{ height: '40px', padding: '0 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
+              style={{ height: '40px', padding: '0 12px', borderRadius: '8px', border: '1px solid #CBD5E1', color: '#0F172A', background: '#FFFFFF' }}
             >
               <option value="teacher_moderator">Giáo viên kiểm duyệt (teacher_moderator)</option>
               <option value="school_admin">Quản trị viên trường (school_admin)</option>
@@ -128,22 +128,22 @@ export function StaffManagementPanel() {
             type="submit"
             className="btn primary"
             disabled={submitting || !inputEmail.trim()}
-            style={{ height: '40px', padding: '0 20px', fontWeight: 700 }}
+            style={{ height: '40px', padding: '0 20px', fontWeight: 750, borderRadius: '8px', background: '#047857', border: '1px solid #047857', color: '#fff' }}
           >
             {submitting ? 'Đang cấp quyền…' : 'Cấp quyền ngay'}
           </button>
         </form>
       </div>
 
-      <div className="card" style={{ padding: '22px' }}>
+      <div className="admin-moderation-card" style={{ padding: '24px', border: '1px solid #E2E8F0', borderRadius: '12px', background: '#FFFFFF', boxShadow: 'none' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
           <div>
-            <h2 style={{ margin: 0, fontSize: '18px', color: '#0f172a' }}>Danh sách Cán bộ & Giáo viên của trường</h2>
-            <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#64748b' }}>
+            <h2 style={{ margin: 0, fontSize: '18px', color: '#0F172A', fontWeight: 850 }}>Danh sách Cán bộ & Giáo viên của trường</h2>
+            <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#64748B' }}>
               Danh sách các thầy cô đang có quyền duyệt bài, xác minh danh tính học sinh và xử lý báo cáo vi phạm.
             </p>
           </div>
-          <button type="button" className="btn gray" onClick={() => void loadData()} disabled={loading}>
+          <button type="button" className="btn gray" onClick={() => void loadData()} disabled={loading} style={{ borderRadius: '8px', border: '1px solid #E2E8F0', background: '#F8FAF8' }}>
             {loading ? 'Đang tải…' : 'Làm mới'}
           </button>
         </div>

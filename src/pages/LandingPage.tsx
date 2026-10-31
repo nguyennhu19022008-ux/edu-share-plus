@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { navigateLegacy } from '../app/legacyRouter';
 import {
   estimateItemImpact,
@@ -46,7 +46,7 @@ const SCALE_PRESETS = [
   { count: 100, label: '100 món (Cấp Chi đoàn)' },
 ] as const;
 
-interface ShowcaseItem {
+export interface ShowcaseItem {
   id: string;
   title: string;
   category: string;
@@ -59,11 +59,13 @@ interface ShowcaseItem {
   priceDisplay: string;
   location: string;
   donorBadge: string;
-  description?: string;
+  imageUrl?: string;
+  description: string;
+  conditionNotes?: string;
   searchKeyword: string;
 }
 
-const SHOWCASE_ITEMS: ShowcaseItem[] = [
+export const SHOWCASE_ITEMS: ShowcaseItem[] = [
   {
     id: 'casio-580',
     title: 'Máy tính Casio fx-580VN X',
@@ -77,6 +79,8 @@ const SHOWCASE_ITEMS: ShowcaseItem[] = [
     priceDisplay: '0 VNĐ (Mượn học kỳ)',
     location: 'Kệ Thư viện Tầng 2',
     donorBadge: 'Học sinh Lớp 12A1',
+    description: 'Máy tính Casio fx-580VN X chính hãng Bitex với tốc độ xử lý nhanh gấp 4 lần dòng cũ, màn hình độ phân giải cao 192×63 điểm, đầy đủ nắp trượt bảo vệ và pin nguyên bản. Phục vụ học tập môn Toán, Lý, Hóa, Sinh và kỳ thi Tốt nghiệp THPT.',
+    conditionNotes: 'Ngoại quan đẹp 96%, phím bấm nảy êm không kẹt, màn hình sáng nét không trầy xước, tem kiểm định hợp quy Bitex nguyên vẹn.',
     searchKeyword: 'Casio fx-580VN X',
   },
   {
@@ -92,6 +96,9 @@ const SHOWCASE_ITEMS: ShowcaseItem[] = [
     priceDisplay: '0 VNĐ (Miễn phí)',
     location: 'Kệ Sách Thư viện B3',
     donorBadge: 'Học sinh Cựu Khóa',
+    imageUrl: '/assets/local-ui-books.jpg',
+    description: 'Trọn bộ sách giáo khoa Lớp 12 theo chương trình GDPT 2018 (bộ Kết Nối Tri Thức Với Cuộc Sống). Bao gồm các môn Toán (tập 1, 2), Ngữ văn (tập 1, 2), Tiếng Anh Global Success, Vật lý, Hóa học, Sinh học.',
+    conditionNotes: 'Sách đã bọc bìa kiếng cẩn thận, không rách gáy, toàn bộ ghi chú nháp bằng bút chì đã được tẩy sạch sẽ.',
     searchKeyword: 'SGK Lớp 12',
   },
   {
@@ -107,6 +114,8 @@ const SHOWCASE_ITEMS: ShowcaseItem[] = [
     priceDisplay: '0 VNĐ (Miễn phí)',
     location: 'Tủ sách Chi đoàn 11B2',
     donorBadge: 'Chi đoàn 11B2',
+    description: 'Tuyển tập các chuyên đề học tập nâng cao môn Hóa học và Vật lý lớp 11, tuyển chọn hệ thống bài tập trắc nghiệm và tự luận định hướng bám sát cấu trúc đề thi Đánh giá năng lực và Tốt nghiệp THPT.',
+    conditionNotes: 'Tình trạng 85%, một số trang có đánh dấu dạ quang vàng các công thức trọng tâm, gáy sách nguyên vẹn chắc chắn.',
     searchKeyword: 'Chuyên đề 11',
   },
   {
@@ -122,6 +131,8 @@ const SHOWCASE_ITEMS: ShowcaseItem[] = [
     priceDisplay: '10.000 VNĐ',
     location: 'Văn phòng Đoàn trường',
     donorBadge: 'Học sinh Lớp 11A4',
+    description: 'Hộp compa cơ khí chính xác kèm thước eke tam giác, thước đo độ 180°, ngòi chì kim 0.5mm và tẩy kỹ thuật chuyên dụng cho phân môn Công nghệ và Hình học không gian.',
+    conditionNotes: 'Đầy đủ hộp nhựa đựng nguyên bản, mới 98%, khớp quay compa chắc chắn không rơ lắc.',
     searchKeyword: 'Bộ dụng cụ vẽ kỹ thuật',
   },
 ];
@@ -164,6 +175,230 @@ const CURRICULUM_DIRECTORIES = [
   },
 ];
 
+export function ShowcaseDetailModal({
+  item,
+  onClose,
+  onSelect,
+}: {
+  item: ShowcaseItem;
+  onClose: () => void;
+  onSelect: (keyword: string) => void;
+}) {
+  const modalRef = useRef<HTMLDivElement>(null);
+  const closeBtnRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    closeBtnRef.current?.focus();
+
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onClose();
+        return;
+      }
+
+      if (e.key === 'Tab' && modalRef.current) {
+        const focusableElements = modalRef.current.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        if (focusableElements.length === 0) return;
+        const first = focusableElements[0];
+        const last = focusableElements[focusableElements.length - 1];
+
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [onClose]);
+
+  return (
+    <div
+      className="lp-modal-backdrop"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+      role="presentation"
+    >
+      <div
+        ref={modalRef}
+        className="lp-modal-container"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modalItemTitle"
+      >
+        <div className="lp-modal-header">
+          <div className="lp-modal-badge-group">
+            <span className={`lp-trade-badge lp-badge-${item.badgeVariant}`}>
+              {item.tradeLabel}
+            </span>
+            <span className="lp-grade-badge">{item.gradeBadge}</span>
+            <span className="lp-card-category">{item.category}</span>
+          </div>
+          <button
+            ref={closeBtnRef}
+            type="button"
+            className="lp-modal-close-btn"
+            onClick={onClose}
+            aria-label="Đóng cửa sổ chi tiết"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
+
+        <div className="lp-modal-body">
+          <div className="lp-modal-main-grid">
+            <div className="lp-modal-visual-frame">
+              <div className="lp-modal-image-box">
+                {item.imageUrl ? (
+                  <div className="lp-modal-photo-wrapper">
+                    <img
+                      src={item.imageUrl}
+                      alt={item.title}
+                      className="lp-modal-photo"
+                    />
+                  </div>
+                ) : (
+                  <div className="lp-modal-icon-display" aria-hidden="true">
+                    {item.categoryCode === 'calculator' ? (
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="4" y="2" width="16" height="20" rx="2" />
+                        <line x1="8" y1="6" x2="16" y2="6" />
+                        <line x1="16" y1="14" x2="16" y2="18" />
+                        <path d="M16 10h.01" />
+                        <path d="M12 10h.01" />
+                        <path d="M8 10h.01" />
+                        <path d="M12 14h.01" />
+                        <path d="M8 14h.01" />
+                        <path d="M12 18h.01" />
+                        <path d="M8 18h.01" />
+                      </svg>
+                    ) : item.categoryCode === 'textbook' || item.categoryCode === 'reference_book' ? (
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z" />
+                        <path d="M6 6h10" />
+                        <path d="M6 10h10" />
+                        <path d="M6 14h6" />
+                      </svg>
+                    ) : (
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="12" cy="12" r="10" />
+                        <path d="m4.93 4.93 4.24 4.24" />
+                        <path d="m14.83 9.17 4.24-4.24" />
+                        <path d="m14.83 14.83 4.24 4.24" />
+                        <path d="m9.17 14.83-4.24 4.24" />
+                        <circle cx="12" cy="12" r="4" />
+                      </svg>
+                    )}
+                  </div>
+                )}
+                <span className="lp-modal-photo-caption">Học liệu thực tế tại Kệ trường</span>
+              </div>
+
+              <div className="lp-modal-verify-stamp">
+                <svg className="lp-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                  <path d="m9 12 2 2 4-4" />
+                </svg>
+                <span>Đã kiểm duyệt bởi Giáo viên THPT</span>
+              </div>
+            </div>
+
+            <div className="lp-modal-details-col">
+              <h2 id="modalItemTitle" className="lp-modal-title">
+                {item.title}
+              </h2>
+
+              <div className="lp-modal-specs-ledger">
+                <div className="lp-modal-spec-row">
+                  <span className="lp-spec-label">Hình thức giao dịch</span>
+                  <strong className="lp-spec-val">{item.tradeLabel}</strong>
+                </div>
+                <div className="lp-modal-spec-row">
+                  <span className="lp-spec-label">Danh mục học liệu</span>
+                  <span className="lp-spec-val">{item.category}</span>
+                </div>
+                <div className="lp-modal-spec-row">
+                  <span className="lp-spec-label">Tình trạng vật lý</span>
+                  <strong className="lp-spec-val lp-ink-teal">{item.gradeBadge}</strong>
+                </div>
+                <div className="lp-modal-spec-row">
+                  <span className="lp-spec-label">Chi phí nhận học liệu</span>
+                  <strong className="lp-spec-val lp-font-mono lp-ink-teal">{item.priceDisplay}</strong>
+                </div>
+                <div className="lp-modal-spec-row">
+                  <span className="lp-spec-label">Vị trí bàn giao</span>
+                  <span className="lp-spec-val">{item.location}</span>
+                </div>
+                <div className="lp-modal-spec-row">
+                  <span className="lp-spec-label">Người chia sẻ</span>
+                  <span className="lp-spec-val">{item.donorBadge} (Bảo mật RLS)</span>
+                </div>
+              </div>
+
+              <div className="lp-modal-desc-box">
+                <h4 className="lp-modal-subhead">Mô tả &amp; Ghi chú thực tế</h4>
+                <p className="lp-modal-desc-text">
+                  {item.description}
+                </p>
+                {item.conditionNotes && (
+                  <div className="lp-modal-condition-note">
+                    <strong>Tình trạng chi tiết:</strong> {item.conditionNotes}
+                  </div>
+                )}
+              </div>
+
+              <div className="lp-modal-trust-callout">
+                <svg className="lp-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="16" x2="12" y2="12" />
+                  <line x1="12" y1="8" x2="12.01" y2="8" />
+                </svg>
+                <span>
+                  Giao dịch phi thương mại diễn ra trực tiếp tại Kệ Thư viện trường dưới sự hướng dẫn của Ban Quản trị.
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="lp-modal-footer">
+          <button
+            type="button"
+            className="lp-btn lp-btn-ghost"
+            onClick={onClose}
+          >
+            Đóng
+          </button>
+          <button
+            type="button"
+            className="lp-btn lp-btn-primary"
+            onClick={() => onSelect(item.searchKeyword)}
+          >
+            Đăng ký nhận ngay tại Thư viện ›
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function LandingPage() {
   const [search, setSearch] = useState('');
 
@@ -171,6 +406,23 @@ export default function LandingPage() {
   const [selectedCategory, setSelectedCategory] = useState<SimulatorCategoryCode>('textbook');
   const [selectedTrade, setSelectedTrade] = useState<TradeType>('give');
   const [itemCount, setItemCount] = useState<number>(10);
+
+  // Detail Modal State & Focus Management
+  const [selectedModalItem, setSelectedModalItem] = useState<ShowcaseItem | null>(null);
+  const cardRefs = useRef<Map<string, HTMLElement>>(new Map());
+
+  const handleOpenModal = (item: ShowcaseItem, el: HTMLElement | null) => {
+    if (el) cardRefs.current.set(item.id, el);
+    setSelectedModalItem(item);
+  };
+
+  const handleCloseModal = () => {
+    const currentId = selectedModalItem?.id;
+    setSelectedModalItem(null);
+    if (currentId && cardRefs.current.has(currentId)) {
+      cardRefs.current.get(currentId)?.focus();
+    }
+  };
 
   const startMarketplaceSearch = (prefill?: string) => {
     const keyword = String(prefill ?? search).trim();
@@ -218,7 +470,7 @@ export default function LandingPage() {
       { threshold: 0.08, rootMargin: '0px 0px -40px 0px' }
     );
 
-    const targets = document.querySelectorAll('.lp-reveal');
+    const targets = document.querySelectorAll('.lp-reveal, .scroll-reveal');
     targets.forEach((el) => observer.observe(el));
 
     return () => observer.disconnect();
@@ -252,13 +504,8 @@ export default function LandingPage() {
             onClick={() => navigateLegacy('landing')}
             aria-label="Về trang chủ Edu Share+"
           >
-            <span className="lp-brand-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z" />
-                <path d="M6 6h10" />
-                <path d="M6 10h10" />
-                <path d="m9 16 2 2 4-4" />
-              </svg>
+            <span className="lp-brand-icon brand-mark" aria-hidden="true">
+              E+
             </span>
             <span className="lp-brand-text">
               Edu Share<span className="lp-brand-plus">+</span>
@@ -304,7 +551,7 @@ export default function LandingPage() {
 
       <main className="lp-main-content">
         {/* 3. Section 2: Hero Split Architecture (7:5 Split) */}
-        <section className="lp-section lp-hero-section lp-reveal" id="about" aria-labelledby="heroTitle">
+        <section className="lp-section lp-hero-section" id="about" aria-labelledby="heroTitle">
           <div className="lp-container lp-container-fluid">
             <div className="lp-hero-frame">
               {/* Left Column: 7 Parts */}
@@ -427,6 +674,17 @@ export default function LandingPage() {
                       Vận hành phi thương mại, bàn giao học liệu trực tiếp tại Kệ sách Thư viện
                     </span>
                   </div>
+                </div>
+
+                {/* Editorial Photo Frame: Authentic GDPT 2018 Textbooks & STEM Notes */}
+                <div className="lp-editorial-photo-frame lp-hero-photo-frame">
+                  <img
+                    src="/assets/landing-curriculum-stem.jpg"
+                    alt="Học liệu chuẩn mực GDPT 2018 và ghi chú thực hành STEM"
+                    className="lp-editorial-photo-img"
+                    loading="eager"
+                  />
+                  <span className="lp-editorial-photo-tag">GDPT 2018 — HỌC LIỆU CHUẨN MỰC</span>
                 </div>
 
                 <div className="lp-ledger-footer">
@@ -658,53 +916,68 @@ export default function LandingPage() {
                 </div>
               </div>
 
-              {/* Lower Bento Row: 3 Gapless Cells (4 - 4 - 4 Columns) */}
-              <div className="lp-bento-cell lp-bento-span-4">
-                <div className="lp-pillar-icon" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                    <path d="m9 12 2 2 4-4" />
-                  </svg>
+              {/* Editorial Visual Anchor: Authentic Student Study Desk & Notebook Stack */}
+              <div className="lp-bento-cell lp-sim-photo-cell">
+                <div className="lp-editorial-photo-frame lp-sim-photo-frame">
+                  <img
+                    src="/assets/landing-simulator-desk.jpg"
+                    alt="Tập vở và tài nguyên học tập thực tế trên bàn học của học sinh"
+                    className="lp-editorial-photo-img"
+                    loading="lazy"
+                  />
+                  <span className="lp-editorial-photo-tag">BẰNG CHỨNG HỌC LIỆU — TIẾT KIỆM HÀNG TRIỆU ĐỒNG TÀI NGUYÊN</span>
                 </div>
-                <span className="lp-pillar-kicker">CHỐT CHẶN NỘI DUNG</span>
-                <h4 className="lp-pillar-title">Kiểm Duyệt 2 Lớp Tự Động &amp; Giáo Viên</h4>
-                <p className="lp-pillar-desc">
-                  Mọi bài đăng đều đi qua bộ lọc từ khóa chuẩn tắc và sự kiểm duyệt trực tiếp từ Ban Giám thị / Thầy Cô phụ trách trước khi xuất hiện trên sàn.
-                </p>
-                <div className="lp-pillar-badge">100% Bài đăng hợp lệ</div>
               </div>
 
-              <div className="lp-bento-cell lp-bento-span-4">
-                <div className="lp-pillar-icon" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M16 3h5v5" />
-                    <path d="M4 20L21 3" />
-                    <path d="M21 16v5h-5" />
-                    <path d="M15 15l6 6" />
-                    <path d="M4 4l5 5" />
-                  </svg>
+              {/* Lower Bento Row: Open Horizontal Hairline Strip */}
+              <div className="lp-bento-pillars-strip">
+                <div className="lp-bento-cell">
+                  <div className="lp-pillar-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                      <path d="m9 12 2 2 4-4" />
+                    </svg>
+                  </div>
+                  <span className="lp-pillar-kicker">CHỐT CHẶN NỘI DUNG</span>
+                  <h4 className="lp-pillar-title">Kiểm Duyệt 2 Lớp Tự Động &amp; Giáo Viên</h4>
+                  <p className="lp-pillar-desc">
+                    Mọi bài đăng đều đi qua bộ lọc từ khóa chuẩn tắc và sự kiểm duyệt trực tiếp từ Ban Giám thị / Thầy Cô phụ trách trước khi xuất hiện trên sàn.
+                  </p>
+                  <div className="lp-pillar-badge">100% Bài đăng hợp lệ</div>
                 </div>
-                <span className="lp-pillar-kicker">GIAO THỨC MINH BẠCH</span>
-                <h4 className="lp-pillar-title">Xác Thực Hai Phía (2-Sided Verification)</h4>
-                <p className="lp-pillar-desc">
-                  Giao dịch chỉ được đóng hoàn tất và tích lũy điểm uy tín khi cả Người trao và Người nhận cùng bấm xác nhận thực tế tại Kệ sách Thư viện.
-                </p>
-                <div className="lp-pillar-badge">Chống gian lận &amp; thất lạc</div>
-              </div>
 
-              <div className="lp-bento-cell lp-bento-span-4">
-                <div className="lp-pillar-icon" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-                    <polyline points="9 22 9 12 15 12 15 22" />
-                  </svg>
+                <div className="lp-bento-cell">
+                  <div className="lp-pillar-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M16 3h5v5" />
+                      <path d="M4 20L21 3" />
+                      <path d="M21 16v5h-5" />
+                      <path d="M15 15l6 6" />
+                      <path d="M4 4l5 5" />
+                    </svg>
+                  </div>
+                  <span className="lp-pillar-kicker">GIAO THỨC MINH BẠCH</span>
+                  <h4 className="lp-pillar-title">Xác Thực Hai Phía (2-Sided Verification)</h4>
+                  <p className="lp-pillar-desc">
+                    Giao dịch chỉ được đóng hoàn tất và tích lũy điểm uy tín khi cả Người trao và Người nhận cùng bấm xác nhận thực tế tại Kệ sách Thư viện.
+                  </p>
+                  <div className="lp-pillar-badge">Chống gian lận &amp; thất lạc</div>
                 </div>
-                <span className="lp-pillar-kicker">AN TOÀN HỌC ĐƯỜNG</span>
-                <h4 className="lp-pillar-title">Kệ Sách Thư Viện &amp; Văn Phòng Đoàn</h4>
-                <p className="lp-pillar-desc">
-                  Điểm tiếp nhận vật lý cố định trong trường. Nghiêm cấm tuyệt đối mọi hành vi hẹn gặp trao đổi đồ tại các khu vực ngoài khuôn viên trường.
-                </p>
-                <div className="lp-pillar-badge">Địa điểm kiểm soát 100%</div>
+
+                <div className="lp-bento-cell">
+                  <div className="lp-pillar-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                      <polyline points="9 22 9 12 15 12 15 22" />
+                    </svg>
+                  </div>
+                  <span className="lp-pillar-kicker">AN TOÀN HỌC ĐƯỜNG</span>
+                  <h4 className="lp-pillar-title">Kệ Sách Thư Viện &amp; Văn Phòng Đoàn</h4>
+                  <p className="lp-pillar-desc">
+                    Điểm tiếp nhận vật lý cố định trong trường. Nghiêm cấm tuyệt đối mọi hành vi hẹn gặp trao đổi đồ tại các khu vực ngoài khuôn viên trường.
+                  </p>
+                  <div className="lp-pillar-badge">Địa điểm kiểm soát 100%</div>
+                </div>
               </div>
             </div>
           </div>
@@ -818,6 +1091,17 @@ export default function LandingPage() {
                     Khám phá toàn bộ danh mục trên Sàn ›
                   </button>
                 </div>
+
+                {/* Editorial Photo Frame: Authentic Math Exam Prep Book */}
+                <div className="lp-editorial-photo-frame lp-directory-photo-frame">
+                  <img
+                    src="/assets/landing-hero-math.jpg"
+                    alt="Bí kíp bứt phá môn Toán - Tài liệu chuyên đề ôn thi trọng tâm GDPT 2018"
+                    className="lp-editorial-photo-img"
+                    loading="lazy"
+                  />
+                  <span className="lp-editorial-photo-tag">TÀI LIỆU ÔN THI TRỌNG TÂM — GDPT 2018</span>
+                </div>
               </div>
 
               {/* Right Column: 4 Safety Checkpoints & Institutional Governance (7 parts) */}
@@ -906,55 +1190,89 @@ export default function LandingPage() {
               </button>
             </div>
 
+            {/* Editorial Uniform Feature: Circular Student Uniform Exchange */}
+            <div className="lp-showcase-editorial-highlight">
+              <div className="lp-editorial-photo-frame lp-showcase-photo-frame">
+                <img
+                  src="/assets/landing-uniform-polo.jpg"
+                  alt="Đồng phục học sinh THPT trao tặng và tuần hoàn chi phí 0đ"
+                  className="lp-editorial-photo-img"
+                  loading="lazy"
+                />
+                <span className="lp-editorial-photo-tag">ĐỒNG PHỤC HỌC SINH THPT — TUẦN HOÀN 0 VNĐ</span>
+              </div>
+              <div className="lp-showcase-highlight-text">
+                <div className="lp-kicker-badge">CHIA SẺ TRANG PHỤC HỌC ĐƯỜNG</div>
+                <h3 className="lp-showcase-highlight-title">Đồng Phục &amp; Cặp Sách Học Sinh THPT</h3>
+                <p className="lp-showcase-highlight-desc">
+                  Áo polo thể dục, áo khoác gió đồng phục mùa đông được giặt ủi sạch sẽ, kiểm định chất lượng vải bởi Đoàn trường trước khi chuyển giao miễn phí hoặc giá tượng trưng.
+                </p>
+                <div className="lp-showcase-highlight-meta">
+                  <span className="lp-badge-give">Trao tặng 0 VNĐ</span>
+                  <span className="lp-grade-badge">Grade A (Mới &gt;90%)</span>
+                  <span className="lp-card-location">Điểm nhận: Tủ đồ Đoàn trường</span>
+                </div>
+              </div>
+            </div>
+
             <div className="lp-showcase-grid" role="region" aria-label="Kệ học liệu mẫu">
               {SHOWCASE_ITEMS.map((item) => (
-                <article key={item.id} className="lp-showcase-card lp-product-card">
-                  {/* Field 1: Loại giao dịch & Grade sản phẩm */}
-                  <div className="lp-card-header">
+                <article
+                  key={item.id}
+                  ref={(node) => {
+                    if (node) cardRefs.current.set(item.id, node);
+                    else cardRefs.current.delete(item.id);
+                  }}
+                  className="lp-showcase-card lp-product-card item-showcase-card"
+                  onClick={() => handleOpenModal(item, cardRefs.current.get(item.id) ?? null)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      handleOpenModal(item, e.currentTarget);
+                    }
+                  }}
+                  aria-label={`Xem chi tiết ${item.title}`}
+                  data-donor-badge={item.donorBadge}
+                >
+                  {/* Field 1 & 2: Loại giao dịch & Grade tình trạng */}
+                  <div className="lp-card-header lp-card-top-row">
                     <span className={`lp-trade-badge lp-badge-${item.badgeVariant}`}>
                       {item.tradeLabel}
                     </span>
                     <span className="lp-grade-badge">{item.gradeBadge}</span>
                   </div>
 
-                  {/* Field 2: Tên sản phẩm & Danh mục */}
-                  <div className="lp-card-body">
-                    <span className="lp-card-category">{item.category}</span>
+                  {/* Field 3: Tên sản phẩm */}
+                  <div className="lp-card-body lp-card-main-info">
                     <h3 className="lp-card-title">{item.title}</h3>
                   </div>
 
-                  {/* Field 3: Giá tiền */}
+                  {/* Field 4: Giá tiền */}
                   <div className="lp-card-price-row">
                     <span className="lp-card-price-label">Chi phí nhận:</span>
                     <strong className="lp-card-price-value">{item.priceDisplay}</strong>
                   </div>
 
-                  {/* Field 4 & 5: Nơi đăng ký nhận & Thông tin liên hệ / Người chia sẻ */}
+                  {/* Field 5: Nơi đăng ký nhận */}
                   <div className="lp-card-footer">
-                    <div className="lp-card-location-meta">
-                      <div className="lp-card-location">
-                        <svg className="lp-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                          <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
-                          <circle cx="12" cy="10" r="3" />
-                        </svg>
-                        <span>{item.location}</span>
-                      </div>
-                      <div className="lp-card-donor-pill" title="Người chia sẻ">
-                        <svg className="lp-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                          <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
-                          <circle cx="12" cy="7" r="4" />
-                        </svg>
-                        <span>{item.donorBadge}</span>
-                      </div>
+                    <div className="lp-card-location">
+                      <svg className="lp-icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+                        <circle cx="12" cy="10" r="3" />
+                      </svg>
+                      <span>{item.location}</span>
                     </div>
-                    <button
-                      type="button"
+
+                    <span className="lp-sr-only">Người chia sẻ: {item.donorBadge}</span>
+
+                    <span
                       className="lp-card-action-btn"
-                      onClick={() => startMarketplaceSearch(item.searchKeyword)}
-                      aria-label={`Đăng ký nhận ${item.title}`}
+                      aria-hidden="true"
                     >
-                      Đăng ký nhận ›
-                    </button>
+                      Chi tiết ›
+                    </span>
                   </div>
                 </article>
               ))}
@@ -962,6 +1280,18 @@ export default function LandingPage() {
           </div>
         </section>
       </main>
+
+      {/* 8. Showcase Item Detail Modal (Editorial Swiss Dialog) */}
+      {selectedModalItem && (
+        <ShowcaseDetailModal
+          item={selectedModalItem}
+          onClose={handleCloseModal}
+          onSelect={(keyword) => {
+            handleCloseModal();
+            startMarketplaceSearch(keyword);
+          }}
+        />
+      )}
 
       {/* 8. Institutional Footer */}
       <footer className="lp-footer" role="contentinfo">

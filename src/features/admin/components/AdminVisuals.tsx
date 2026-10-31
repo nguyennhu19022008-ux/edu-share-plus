@@ -198,7 +198,7 @@ function BarChart({ items }: { items: Array<[string, number]> }) {
 function DonutChart({ items }: { items: Array<[string, number]> }) {
   const total = items.reduce((sum, [, value]) => sum + value, 0) || 1;
   let cursor = 0;
-  const colors = ['#ee4d2d', '#f59e0b', '#10b981', '#2563eb'];
+  const colors = ['#047857', '#064E3B', '#10B981', '#F59E0B'];
   const segments = items
     .map(([, value], index) => {
       const start = cursor;

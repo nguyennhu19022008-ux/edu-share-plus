@@ -83,7 +83,7 @@ export default function StudentRegisterPage() {
       <main className="auth-market-wrap">
         <section className="auth-market-card auth-wide-card">
           <div className="auth-kicker student">Tạo tài khoản</div>
-          <h1>Tạo tài khoản học sinh</h1>
+          <h1 className="auth-title">Tạo tài khoản học sinh</h1>
           <p className="auth-desc">Tạo tài khoản để đăng bài, bình luận, lưu bài quan tâm và quản lý hồ sơ cá nhân.</p>
           <form className="ecom-form" onSubmit={submit}>
             <div className="field"><label className="req">Họ và tên</label><input name="name" required maxLength={120} autoComplete="name" placeholder="Nhập họ và tên đầy đủ" disabled={submitting} /></div>

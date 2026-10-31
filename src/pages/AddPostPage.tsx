@@ -341,26 +341,26 @@ export default function AddPostPage() {
             </div>
 
             {isSale ? (
-              <section className="card ecom-form-card">
+              <section className="form-sub-section">
                 <h2>Thông tin bán giá rẻ & Gợi ý tham khảo</h2>
                 <p className="form-note">Học sinh được chủ động định giá món đồ theo nhu cầu thực tế.</p>
 
                 {priceEstimate ? (
-                  <div style={{ margin: '12px 0 16px', padding: '14px 16px', borderRadius: '12px', background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+                  <div style={{ margin: '12px 0 16px', padding: '14px 16px', borderRadius: '8px', background: '#F1F5F1', border: '1px solid #E2E8F0' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                      <strong style={{ color: '#0f172a', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <strong style={{ color: '#0F172A', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#047857" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                           <circle cx="12" cy="12" r="10" />
                           <path d="M12 16v-4" />
                           <path d="M12 8h.01" />
                         </svg>
                         Gợi ý mức giá tham khảo:
                       </strong>
-                      <span style={{ fontSize: '12px', fontWeight: 700, color: '#2563eb' }}>
+                      <span style={{ fontSize: '12px', fontWeight: 700, color: '#047857' }}>
                         {new Intl.NumberFormat('vi-VN').format(priceEstimate.suggestedMinPrice)}đ - {new Intl.NumberFormat('vi-VN').format(priceEstimate.suggestedMaxPrice)}đ
                       </span>
                     </div>
-                    <p style={{ margin: 0, fontSize: '12px', color: '#475569', lineHeight: 1.5 }}>
+                    <p style={{ margin: 0, fontSize: '12px', color: '#1E293B', lineHeight: 1.5 }}>
                       {priceEstimate.adviceMessage} (Bạn có thể tự do đặt giá phù hợp theo ý muốn).
                     </p>
                   </div>

@@ -333,29 +333,29 @@ export default function ProfilePage() {
               <section className="profile-main">
                 <ProfileInfoCard profile={profile} />
 
-                <div className="profile-card" style={{ background: 'linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%)', border: '1px solid #bbf7d0' }}>
+                <div className="profile-card profile-impact-card">
                   <div className="profile-card-head">
-                    <h3 style={{ color: '#166534' }}>🌱 Tác động Xanh & Điểm Uy tín V2</h3>
-                    <span className="tag" style={{ background: '#dcfce7', color: '#15803d', fontWeight: 800 }}>
+                    <h3>🌱 Tác động Xanh & Điểm Uy tín V2</h3>
+                    <span className="tag cat">
                       {reputationSummary.badgeLabel}
                     </span>
                   </div>
-                  <div className="grid-2" style={{ marginTop: '10px' }}>
-                    <div style={{ padding: '12px', background: '#fff', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
-                      <small style={{ color: '#64748b', display: 'block' }}>Điểm tin cậy học đường</small>
-                      <strong style={{ fontSize: '20px', color: '#0f172a' }}>
+                  <div className="profile-impact-grid">
+                    <div className="profile-metric-tile">
+                      <small>Điểm tin cậy học đường</small>
+                      <strong>
                         {reputationSummary.score} / 100
                       </strong>
-                      <div style={{ fontSize: '11px', color: '#16a34a', marginTop: '4px' }}>
+                      <div className="metric-sub">
                         ⭐ Đánh giá: {reputationSummary.averageRating} / 5 ({transactions.length} giao dịch)
                       </div>
                     </div>
-                    <div style={{ padding: '12px', background: '#fff', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
-                      <small style={{ color: '#64748b', display: 'block' }}>Tác động tiết kiệm & Môi trường</small>
-                      <strong style={{ fontSize: '20px', color: '#16a34a' }}>
+                    <div className="profile-metric-tile">
+                      <small>Tác động tiết kiệm & Môi trường</small>
+                      <strong>
                         {formatVnd(transactions.reduce((sum, t) => sum + t.financialSaved, 0))}
                       </strong>
-                      <div style={{ fontSize: '11px', color: '#475569', marginTop: '4px' }}>
+                      <div className="metric-sub" style={{ color: '#475569' }}>
                         ♻️ Giảm ~{Number(transactions.reduce((sum, t) => sum + t.wasteReducedKg, 0).toFixed(2))} kg rác thải học tập
                       </div>
                     </div>

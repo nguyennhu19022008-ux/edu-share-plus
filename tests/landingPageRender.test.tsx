@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { renderToStaticMarkup } from 'react-dom/server';
-import LandingPage from '../src/pages/LandingPage';
+import LandingPage, { SHOWCASE_ITEMS, ShowcaseDetailModal } from '../src/pages/LandingPage';
 import {
   estimateItemImpact,
   IMPACT_BENCHMARKS,
@@ -96,9 +96,12 @@ test('LandingPage renders completely with Style 4 Architectural Bento structure'
   assert.ok(html.includes('Chi đoàn 11B2'));
   assert.ok(html.includes('Học sinh Lớp 11A4'));
   assert.ok(!html.includes('landing-v2-product-skeleton'));
-  // Removed clutter: description and savings box from cards
+  // Removed clutter: description, savings box, and donor pill from card surface
   assert.ok(!html.includes('lp-card-desc'));
   assert.ok(!html.includes('lp-card-impact-box'));
+  assert.ok(!html.includes('lp-card-donor-pill'));
+  assert.ok(html.includes('item-showcase-card'));
+  assert.ok(html.includes('Chi tiết ›'));
 
   // 10. Mandatory Absence of Slide 0
   assert.ok(!html.includes('DESIGN BY VUONGGIA'));
@@ -145,4 +148,63 @@ test('Impact Simulator mathematical model correctly estimates savings and waste'
   const uniformGive = estimateItemImpact('uniform', 'give', 0);
   assert.equal(uniformGive.financialSaved * 100, 12000000);
   assert.equal(Number((uniformGive.wasteReducedKg * 100).toFixed(2)), 75.0);
+});
+
+test('Showcase Item Detail Modal renders full specs, image/icon, description notes, donor badge, and action button', () => {
+  // Test Modal with Casio fx-580VN X (Calculator category with icon preview)
+  const casioItem = SHOWCASE_ITEMS.find((item) => item.id === 'casio-580');
+  assert.ok(casioItem, 'Casio fx-580VN X item must exist');
+
+  const casioModalHtml = renderToStaticMarkup(
+    <ShowcaseDetailModal
+      item={casioItem}
+      onClose={() => {}}
+      onSelect={() => {}}
+    />
+  );
+
+  // Accessible Dialog Attributes
+  assert.ok(casioModalHtml.includes('role="dialog"'));
+  assert.ok(casioModalHtml.includes('aria-modal="true"'));
+  assert.ok(casioModalHtml.includes('aria-labelledby="modalItemTitle"'));
+  assert.ok(casioModalHtml.includes('lp-modal-container'));
+
+  // Full Details in Modal
+  assert.ok(casioModalHtml.includes('Máy tính Casio fx-580VN X'));
+  assert.ok(casioModalHtml.includes('Thiết bị &amp; Máy tính'));
+  assert.ok(casioModalHtml.includes('Cho mượn kỳ 1'));
+  assert.ok(casioModalHtml.includes('Grade A (Mới &gt;95%)'));
+  assert.ok(casioModalHtml.includes('0 VNĐ (Mượn học kỳ)'));
+  assert.ok(casioModalHtml.includes('Kệ Thư viện Tầng 2'));
+  assert.ok(casioModalHtml.includes('Học sinh Lớp 12A1 (Bảo mật RLS)'));
+
+  // Description & Condition Notes
+  assert.ok(casioModalHtml.includes('Máy tính Casio fx-580VN X chính hãng Bitex'));
+  assert.ok(casioModalHtml.includes('Ngoại quan đẹp 96%, phím bấm nảy êm không kẹt'));
+
+  // Trust & Teacher Seal
+  assert.ok(casioModalHtml.includes('Đã kiểm duyệt bởi Giáo viên THPT'));
+  assert.ok(casioModalHtml.includes('Giao dịch phi thương mại diễn ra trực tiếp tại Kệ Thư viện trường'));
+
+  // Action Buttons
+  assert.ok(casioModalHtml.includes('Đóng'));
+  assert.ok(casioModalHtml.includes('Đăng ký nhận ngay tại Thư viện ›'));
+
+  // Test Modal with SGK 12 (has authentic photo imageUrl)
+  const sgkItem = SHOWCASE_ITEMS.find((item) => item.id === 'sgk-12');
+  assert.ok(sgkItem, 'SGK 12 item must exist');
+  assert.equal(sgkItem.imageUrl, '/assets/local-ui-books.jpg');
+
+  const sgkModalHtml = renderToStaticMarkup(
+    <ShowcaseDetailModal
+      item={sgkItem}
+      onClose={() => {}}
+      onSelect={() => {}}
+    />
+  );
+
+  assert.ok(sgkModalHtml.includes('lp-modal-photo-wrapper'));
+  assert.ok(sgkModalHtml.includes('src="/assets/local-ui-books.jpg"'));
+  assert.ok(sgkModalHtml.includes('alt="Bộ SGK Lớp 12 GDPT 2018 (Kết Nối Tri Thức)"'));
+  assert.ok(sgkModalHtml.includes('Học sinh Cựu Khóa (Bảo mật RLS)'));
 });

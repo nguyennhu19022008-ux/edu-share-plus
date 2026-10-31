@@ -149,7 +149,7 @@ export default function UpdatePasswordPage() {
             {copy.kicker}
           </div>
 
-          <h1>Tạo mật khẩu mới</h1>
+          <h1 className="auth-title">Tạo mật khẩu mới</h1>
           <p className="auth-desc">
             Mật khẩu mới phải có ít nhất 8 ký tự, gồm chữ hoa, chữ thường và chữ số.
           </p>
@@ -158,7 +158,21 @@ export default function UpdatePasswordPage() {
             <div className="field">
               <label className="req">Mật khẩu mới</label>
               <div className="input-icon">
-                <span>●</span>
+                <svg
+                  className="auth-input-svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                </svg>
                 <input
                   name="password"
                   type="password"
@@ -174,7 +188,21 @@ export default function UpdatePasswordPage() {
             <div className="field">
               <label className="req">Xác nhận mật khẩu mới</label>
               <div className="input-icon">
-                <span>●</span>
+                <svg
+                  className="auth-input-svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                </svg>
                 <input
                   name="confirmPassword"
                   type="password"

@@ -334,7 +334,7 @@ export default function EditPostPage() {
         {detail.rejectionReason ? <div className="reason-box"><b>Lý do từ chối gần nhất: </b>{detail.rejectionReason}</div> : null}
 
         {!canEdit ? (
-          <section className="card ecom-form-card">
+          <section className="form-sub-section" style={{ marginTop: 0, paddingTop: 0, borderTop: 'none' }}>
             <div className="state error">Bài đã hoàn tất hoặc thu hồi nên chỉ có thể xem, không thể chỉnh sửa lại trong Core V2.</div>
             <button className="btn gray" type="button" onClick={() => navigateLegacy('myDetail', { id:post.id })}>Xem chi tiết</button>
           </section>
@@ -377,7 +377,7 @@ export default function EditPostPage() {
             </div>
 
             {isSale ? (
-              <section className="card ecom-form-card">
+              <section className="form-sub-section">
                 <h2>Thông tin bán giá rẻ</h2>
                 <div className="grid-2">
                   <div className="field"><label className="req" htmlFor="edit-sale-price">Giá bán (VNĐ)</label><input id="edit-sale-price" name="salePrice" inputMode="numeric" required defaultValue={post.salePrice ?? ''} /></div>
