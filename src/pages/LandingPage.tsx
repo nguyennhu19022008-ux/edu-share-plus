@@ -819,7 +819,10 @@ export default function LandingPage() {
                   <div className="lp-sim-metrics-grid">
                     <div className="lp-sim-metric-cell">
                       <span className="lp-metric-label">TỔNG TIẾT KIỆM CHO PHỤ HUYNH</span>
-                      <strong className="lp-metric-value lp-ink-teal">
+                      <strong
+                        key={`saved-${selectedCategory}-${selectedTrade}-${itemCount}`}
+                        className="lp-metric-value lp-ink-teal"
+                      >
                         {formatVnd(impactResult.totalFinancialSaved)}
                       </strong>
                       <span className="lp-metric-sub">
@@ -829,7 +832,10 @@ export default function LandingPage() {
 
                     <div className="lp-sim-metric-cell">
                       <span className="lp-metric-label">TỔNG RÁC THẢI HỌC ĐƯỜNG GIẢM</span>
-                      <strong className="lp-metric-value lp-ink-dark">
+                      <strong
+                        key={`waste-${selectedCategory}-${selectedTrade}-${itemCount}`}
+                        className="lp-metric-value lp-ink-dark"
+                      >
                         {impactResult.totalWasteKg.toFixed(2)} kg
                       </strong>
                       <span className="lp-metric-sub">

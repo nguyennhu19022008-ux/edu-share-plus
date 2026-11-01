@@ -556,8 +556,85 @@ body.admin-redesign-body.admin-modal-open{overflow:hidden}
 .admin-post-table tbody tr:nth-child(9) { animation-delay: 360ms; }
 .admin-post-table tbody tr:nth-child(10) { animation-delay: 400ms; }
 
+@keyframes adminTextSlideUp {
+  0% {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.admin-page-heading h1,
+.admin-moderation-title-row h2,
+.admin-card-heading h2,
+.admin-chart-heading h2 {
+  animation: adminTextSlideUp 480ms cubic-bezier(0.16, 1, 0.3, 1) 50ms both;
+}
+
+.admin-page-heading p,
+.admin-card-heading p,
+.admin-chart-heading p {
+  animation: adminTextSlideUp 480ms cubic-bezier(0.16, 1, 0.3, 1) 110ms both;
+}
+
+.admin-summary-card {
+  transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1), border-color 220ms ease, box-shadow 220ms ease;
+}
+
+.admin-summary-card:hover {
+  transform: translateY(-3px);
+  border-color: #047857;
+  box-shadow: 0 14px 28px -16px rgba(6, 78, 59, 0.14);
+}
+
+.admin-summary-card strong {
+  transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1), color 220ms ease;
+  transform-origin: left center;
+}
+
+.admin-summary-card:hover strong {
+  transform: translateY(-1px) scale(1.03);
+  color: #064E3B;
+}
+
+.admin-summary-card .admin-summary-icon {
+  transition: transform 240ms cubic-bezier(0.16, 1, 0.3, 1), background-color 240ms ease, color 240ms ease;
+}
+
+.admin-summary-card:hover .admin-summary-icon {
+  transform: scale(1.08);
+  background: #064E3B;
+  color: #ffffff;
+}
+
+.admin-rate-item,
+.admin-rank-row,
+.admin-chart-panel {
+  transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1), border-color 200ms ease, background-color 200ms ease;
+}
+
+.admin-rate-item:hover,
+.admin-rank-row:hover {
+  transform: translateX(3px);
+  border-color: #047857;
+}
+
+.admin-chart-panel:hover {
+  border-color: #047857;
+}
+
 /* Calm mobile performance: disable animations and heavy transitions on <= 768px */
 @media (max-width: 768px) {
+  .admin-page-heading h1,
+  .admin-page-heading p,
+  .admin-moderation-title-row h2,
+  .admin-card-heading h2,
+  .admin-card-heading p,
+  .admin-chart-heading h2,
+  .admin-chart-heading p,
   .admin-summary-card,
   .admin-container .metric-card,
   .admin-advanced,
@@ -571,6 +648,13 @@ body.admin-redesign-body.admin-modal-open{overflow:hidden}
     transform: none !important;
     transition: none !important;
   }
+
+  .admin-summary-card:hover,
+  .admin-rate-item:hover,
+  .admin-rank-row:hover {
+    transform: none !important;
+  }
 }
+
 
 

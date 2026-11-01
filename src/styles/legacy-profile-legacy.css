@@ -1248,3 +1248,133 @@ th {
 
 /* Edu Share+ V2.7 — production hardening UI helpers */
 .health-grid-v270{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:14px 0}.health-card-v270{border:1px solid rgba(15,23,42,.08);border-radius:18px;background:#fff;padding:14px;box-shadow:0 10px 28px rgba(15,23,42,.06)}.health-card-v270 b{display:block;font-size:22px}.health-card-v270 span{color:#64748b;font-size:13px}.btn.blue{background:#2563eb;color:#fff}.btn.blue:hover{filter:brightness(.96)}.ai-badge{white-space:nowrap}.page-info{display:inline-flex;align-items:center}
+
+/* =========================================================
+   Style 4 Profile Text & Card Motion System
+   ========================================================= */
+
+@keyframes profileTextSlideUp {
+  0% {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes profileCardReveal {
+  0% {
+    opacity: 0;
+    transform: translateY(18px) scale(0.985);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.profile-page .eyebrow {
+  animation: profileTextSlideUp 450ms cubic-bezier(0.16, 1, 0.3, 1) 30ms both;
+}
+
+.profile-page .ecom-page-title h1 {
+  animation: profileTextSlideUp 520ms cubic-bezier(0.16, 1, 0.3, 1) 80ms both;
+}
+
+.profile-page .ecom-page-title p {
+  animation: profileTextSlideUp 520ms cubic-bezier(0.16, 1, 0.3, 1) 130ms both;
+}
+
+.profile-side,
+.profile-main .profile-card {
+  animation: profileCardReveal 520ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.profile-main .profile-card:nth-child(1) { animation-delay: 60ms; }
+.profile-main .profile-card:nth-child(2) { animation-delay: 120ms; }
+.profile-main .profile-card:nth-child(3) { animation-delay: 180ms; }
+.profile-main .profile-card:nth-child(4) { animation-delay: 240ms; }
+
+.profile-card h3 {
+  animation: profileTextSlideUp 480ms cubic-bezier(0.16, 1, 0.3, 1) 60ms both;
+}
+
+.profile-metric-tile {
+  transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1), border-color 220ms ease, box-shadow 220ms ease;
+}
+
+.profile-metric-tile:hover {
+  transform: translateY(-3px);
+  border-color: #047857;
+  box-shadow: 0 12px 24px -14px rgba(6, 78, 59, 0.14);
+}
+
+.profile-metric-tile strong,
+.profile-metric-tile b {
+  transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1), color 220ms ease;
+  transform-origin: left center;
+}
+
+.profile-metric-tile:hover strong,
+.profile-metric-tile:hover b {
+  transform: scale(1.03);
+  color: #064E3B;
+}
+
+.profile-info-item {
+  transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1), border-color 200ms ease, background-color 200ms ease;
+}
+
+.profile-info-item:hover {
+  transform: translateX(3px);
+  border-color: #047857;
+}
+
+.mini-card {
+  position: relative;
+  transition: transform 240ms cubic-bezier(0.16, 1, 0.3, 1), border-color 240ms ease, box-shadow 240ms ease;
+}
+
+.mini-card:hover {
+  transform: translateY(-4px);
+  border-color: #047857;
+  box-shadow: 0 16px 30px -16px rgba(6, 78, 59, 0.16);
+}
+
+.mini-card b {
+  transition: color 200ms ease;
+}
+
+.mini-card:hover b {
+  color: #064E3B;
+}
+
+.notify-item {
+  transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1), border-color 200ms ease;
+}
+
+.notify-item:hover {
+  transform: translateX(3px);
+  border-color: #047857;
+}
+
+@media (max-width: 768px) {
+  .profile-page .eyebrow,
+  .profile-page .ecom-page-title h1,
+  .profile-page .ecom-page-title p,
+  .profile-side,
+  .profile-main .profile-card,
+  .profile-card h3 {
+    animation: none !important;
+  }
+
+  .profile-metric-tile:hover,
+  .profile-info-item:hover,
+  .mini-card:hover,
+  .notify-item:hover {
+    transform: none !important;
+  }
+}
+

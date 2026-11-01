@@ -208,3 +208,52 @@ test('Showcase Item Detail Modal renders full specs, image/icon, description not
   assert.ok(sgkModalHtml.includes('alt="Bộ SGK Lớp 12 GDPT 2018 (Kết Nối Tri Thức)"'));
   assert.ok(sgkModalHtml.includes('Học sinh Cựu Khóa (Bảo mật RLS)'));
 });
+
+test('Style 4 Text & Card Animation CSS uses valid custom properties, real DOM selectors, defined keyframes, and calm mobile overrides', async () => {
+  const fs = await import('node:fs');
+  const path = await import('node:path');
+  const stylesDir = path.resolve(process.cwd(), 'src/styles');
+
+  const landingCss = fs.readFileSync(path.join(stylesDir, 'legacy-landing.css'), 'utf8');
+  const marketCss = fs.readFileSync(path.join(stylesDir, 'legacy-market.css'), 'utf8');
+  const studentCss = fs.readFileSync(path.join(stylesDir, 'legacy-student.css'), 'utf8');
+  const profileCss = fs.readFileSync(path.join(stylesDir, 'legacy-profile-legacy.css'), 'utf8');
+  const adminCss = fs.readFileSync(path.join(stylesDir, 'legacy-admin.css'), 'utf8');
+  const checkpointCss = fs.readFileSync(path.join(stylesDir, 'checkpoint.css'), 'utf8');
+
+  // 1. Landing CSS: must NOT reference non-existent variables (--lp-teal, --lp-teal-mid, --lp-teal-tint, --lp-paper-alt, --lp-white)
+  assert.ok(!landingCss.includes('var(--lp-teal)'), 'Must not use undefined --lp-teal');
+  assert.ok(!landingCss.includes('var(--lp-teal-mid)'), 'Must not use undefined --lp-teal-mid');
+  assert.ok(!landingCss.includes('var(--lp-teal-tint)'), 'Must not use undefined --lp-teal-tint');
+  assert.ok(!landingCss.includes('var(--lp-paper-alt)'), 'Must not use undefined --lp-paper-alt');
+  assert.ok(!landingCss.includes('var(--lp-white)'), 'Must not use undefined --lp-white');
+  assert.ok(landingCss.includes('var(--lp-accent-teal'), 'Must use defined --lp-accent-teal');
+  assert.ok(landingCss.includes('var(--lp-accent-emerald'), 'Must use defined --lp-accent-emerald');
+  assert.ok(landingCss.includes('.lp-editorial-photo-frame'), 'Must target actual .lp-editorial-photo-frame');
+  assert.ok(landingCss.includes('.lp-pillar-icon'), 'Must target actual .lp-pillar-icon');
+  assert.ok(landingCss.includes('.lp-dir-badge'), 'Must target actual .lp-dir-badge');
+  assert.ok(landingCss.includes('.lp-card-price-value'), 'Must target actual .lp-card-price-value');
+
+  // 2. Market CSS: @keyframes cardStaggerFadeIn must be defined and real selectors targeted
+  assert.ok(marketCss.includes('@keyframes cardStaggerFadeIn'), 'Must define @keyframes cardStaggerFadeIn');
+  assert.ok(marketCss.includes('.market-product-card .market-product-title'), 'Must target .market-product-title');
+  assert.ok(marketCss.includes('.market-product-card .market-product-price'), 'Must target .market-product-price');
+  assert.ok(marketCss.includes('.market-banner > span'), 'Must target direct children of .market-banner');
+  assert.ok(marketCss.includes('.v26-mini-card .v26-mini-title'), 'Must target .v26-mini-title');
+
+  // 3. Student CSS: must target .owner-dashboard-compact .owner-summary-card and enable .owner-post-card::before
+  assert.ok(studentCss.includes('.owner-dashboard-compact .owner-summary-card'), 'Must target .owner-dashboard-compact .owner-summary-card');
+  assert.ok(studentCss.includes('.owner-controls-heading h2'), 'Must target .owner-controls-heading h2');
+  assert.ok(/\.owner-post-card::before\s*\{[^}]*display:\s*block/s.test(studentCss), 'Must set display: block on .owner-post-card::before');
+
+  // 4. Profile CSS: must target .profile-metric-tile strong
+  assert.ok(profileCss.includes('.profile-metric-tile strong'), 'Must target .profile-metric-tile strong');
+
+  // 5. Admin & Checkpoint CSS: calm mobile performance and zero gradient text
+  assert.ok(adminCss.includes('.admin-chart-heading h2'), 'Must animate .admin-chart-heading h2');
+  assert.ok(checkpointCss.includes('@media (prefers-reduced-motion: reduce)'), 'Must include prefers-reduced-motion in checkpoint.css');
+  for (const css of [landingCss, marketCss, studentCss, profileCss, adminCss, checkpointCss]) {
+    assert.ok(!css.includes('background-clip: text'), 'Must not use gradient text (background-clip: text)');
+  }
+});
+

@@ -427,8 +427,8 @@ button, input, textarea, select { font: inherit; }
 .admin-table-primary:hover,
 .auth-market-card button[type="submit"]:hover {
   transform: translateY(-1.5px);
-  filter: brightness(1.06);
-  box-shadow: 0 6px 20px rgba(238, 77, 45, 0.28);
+  filter: brightness(1.04);
+  box-shadow: 0 8px 20px -6px rgba(6, 78, 59, 0.24);
 }
 
 .btn:active,
@@ -438,12 +438,12 @@ button, input, textarea, select { font: inherit; }
   transform: scale(0.97);
 }
 
-/* 3. Interactive Inputs with Smooth Glow */
+/* 3. Interactive Inputs with Crisp Forest Emerald Focus Ring */
 input:not([type="checkbox"]):not([type="radio"]):focus,
 textarea:focus,
 select:focus {
-  border-color: #ee4d2d !important;
-  box-shadow: 0 0 0 3.5px rgba(238, 77, 45, 0.12) !important;
+  border-color: #047857 !important;
+  box-shadow: 0 0 0 3px rgba(4, 120, 87, 0.14) !important;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -763,6 +763,28 @@ select:focus {
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
     gap: 8px !important;
   }
+
+  /* 8. Calm Mobile Performance: disable repeating animations & hover transforms */
+  .ecom-page,
+  .admin-shell,
+  .landing-page,
+  .auth-market-wrap,
+  .profile-page,
+  .detail-market-page,
+  .market-page,
+  .notify-badge {
+    animation: none !important;
+  }
+
+  .market-grid article:hover,
+  .product-card:hover,
+  .market-grid article:hover img,
+  .product-card:hover img,
+  .btn.primary:hover,
+  .admin-table-primary:hover,
+  .auth-market-card button[type="submit"]:hover {
+    transform: none !important;
+  }
 }
 
 /* Extra Compact Phones <= 360px */
@@ -776,5 +798,17 @@ select:focus {
     grid-template-columns: 1fr !important;
   }
 }
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 
 

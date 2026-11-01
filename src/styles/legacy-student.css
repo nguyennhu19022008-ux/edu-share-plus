@@ -514,4 +514,168 @@
     font-weight: 800 !important;
   }
 
+  /* =========================================================
+     Style 4 Owner Text & Card Motion System
+     ========================================================= */
+
+  @keyframes ownerTextSlideUp {
+    0% {
+      opacity: 0;
+      transform: translateY(14px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes ownerCardReveal {
+    0% {
+      opacity: 0;
+      transform: translateY(18px) scale(0.985);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  .owner-page-header .owner-controls-eyebrow,
+  .owner-controls-heading .owner-controls-eyebrow {
+    animation: ownerTextSlideUp 460ms cubic-bezier(0.16, 1, 0.3, 1) 30ms both;
+  }
+
+  .owner-page-header h1,
+  .owner-controls-heading h2,
+  .owner-controls-heading b,
+  .owner-detail-title {
+    animation: ownerTextSlideUp 520ms cubic-bezier(0.16, 1, 0.3, 1) 60ms both;
+  }
+
+  .owner-page-header .owner-subtitle,
+  .owner-controls-heading .owner-result-summary,
+  .owner-controls-heading small {
+    animation: ownerTextSlideUp 520ms cubic-bezier(0.16, 1, 0.3, 1) 120ms both;
+  }
+
+  .owner-dashboard-compact .owner-summary-card,
+  .owner-summary-grid .owner-summary-card {
+    animation: ownerCardReveal 560ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    transition: transform 240ms cubic-bezier(0.16, 1, 0.3, 1), border-color 240ms ease, box-shadow 240ms ease !important;
+  }
+
+  .owner-dashboard-compact .owner-summary-card:nth-child(1),
+  .owner-summary-grid .owner-summary-card:nth-child(1) { animation-delay: 40ms; }
+  .owner-dashboard-compact .owner-summary-card:nth-child(2),
+  .owner-summary-grid .owner-summary-card:nth-child(2) { animation-delay: 95ms; }
+  .owner-dashboard-compact .owner-summary-card:nth-child(3),
+  .owner-summary-grid .owner-summary-card:nth-child(3) { animation-delay: 150ms; }
+  .owner-dashboard-compact .owner-summary-card:nth-child(4),
+  .owner-summary-grid .owner-summary-card:nth-child(4) { animation-delay: 205ms; }
+
+  .owner-summary-card:hover {
+    transform: translateY(-4px) !important;
+    border-color: #047857 !important;
+    box-shadow: 0 14px 28px -14px rgba(6, 78, 59, 0.14) !important;
+  }
+
+  .owner-summary-card b {
+    transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1), color 220ms ease;
+    transform-origin: left center;
+  }
+
+  .owner-summary-card:hover b {
+    transform: translateY(-1px) scale(1.03);
+    color: #064e3b !important;
+  }
+
+  .owner-summary-mark {
+    transition: transform 240ms cubic-bezier(0.16, 1, 0.3, 1), background-color 240ms ease, color 240ms ease;
+  }
+
+  .owner-summary-card:hover .owner-summary-mark {
+    transform: scale(1.08);
+    background: #064e3b !important;
+    color: #ffffff !important;
+  }
+
+  .owner-post-grid .owner-post-card {
+    position: relative;
+    animation: ownerCardReveal 540ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    transition: transform 240ms cubic-bezier(0.16, 1, 0.3, 1), border-color 240ms ease, box-shadow 240ms ease !important;
+  }
+
+  .owner-post-grid .owner-post-card:nth-child(1) { animation-delay: 50ms; }
+  .owner-post-grid .owner-post-card:nth-child(2) { animation-delay: 105ms; }
+  .owner-post-grid .owner-post-card:nth-child(3) { animation-delay: 160ms; }
+  .owner-post-grid .owner-post-card:nth-child(4) { animation-delay: 215ms; }
+  .owner-post-grid .owner-post-card:nth-child(5) { animation-delay: 270ms; }
+  .owner-post-grid .owner-post-card:nth-child(6) { animation-delay: 325ms; }
+
+  .owner-post-card::before {
+    content: '';
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background-color: #047857;
+    transform: scaleX(0);
+    transform-origin: left center;
+    transition: transform 280ms cubic-bezier(0.16, 1, 0.3, 1);
+    z-index: 3;
+  }
+
+  .owner-post-card:hover {
+    transform: translateY(-5px) !important;
+    border-color: #047857 !important;
+    box-shadow: 0 18px 34px -16px rgba(6, 78, 59, 0.16) !important;
+  }
+
+  .owner-post-card:hover::before {
+    transform: scaleX(1);
+  }
+
+  .owner-card-title {
+    transition: color 200ms ease;
+  }
+
+  .owner-post-card:hover .owner-card-title {
+    color: #064e3b !important;
+  }
+
+  .timeline-body {
+    transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1), border-color 200ms ease;
+  }
+
+  .timeline-item:hover .timeline-body {
+    transform: translateX(3px);
+    border-color: #047857 !important;
+  }
+
+  @media (max-width: 768px) {
+    .owner-page-header .owner-controls-eyebrow,
+    .owner-page-header h1,
+    .owner-page-header .owner-subtitle,
+    .owner-controls-heading .owner-controls-eyebrow,
+    .owner-controls-heading h2,
+    .owner-controls-heading .owner-result-summary,
+    .owner-controls-heading b,
+    .owner-controls-heading small,
+    .owner-detail-title,
+    .owner-dashboard-compact .owner-summary-card,
+    .owner-summary-grid .owner-summary-card,
+    .owner-post-grid .owner-post-card {
+      animation: none !important;
+      transition: none !important;
+    }
+
+    .owner-summary-card:hover,
+    .owner-post-card:hover {
+      transform: none !important;
+    }
+  }
+
+
 

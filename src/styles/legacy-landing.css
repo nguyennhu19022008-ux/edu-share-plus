@@ -2511,6 +2511,612 @@ html {
 }
 
 /* --------------------------------------------------------------------------
+   13. Editorial Text & Card Motion System (Style 4 Hardware-Accelerated)
+   -------------------------------------------------------------------------- */
+
+@keyframes lpTextSlideUp {
+  0% {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes lpKickerReveal {
+  0% {
+    opacity: 0;
+    transform: translateX(-12px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes lpUnderlineDraw {
+  0% {
+    transform: scaleX(0);
+  }
+  100% {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes lpCardReveal {
+  0% {
+    opacity: 0;
+    transform: translateY(22px) scale(0.985);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes lpMetricPop {
+  0% {
+    opacity: 0.35;
+    transform: translateY(8px) scale(0.97);
+  }
+  65% {
+    opacity: 1;
+    transform: translateY(-2px) scale(1.015);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes lpDotPulse {
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(4, 120, 87, 0.35);
+  }
+  50% {
+    transform: scale(1.12);
+    box-shadow: 0 0 0 5px rgba(4, 120, 87, 0);
+  }
+}
+
+/* Topbar status dot subtle pulse */
+.lp-topbar-dot {
+  animation: lpDotPulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Nav menu solid emerald underline reveal on hover/focus */
+.lp-nav-menu a {
+  position: relative;
+}
+
+.lp-nav-menu a::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -4px;
+  height: 2px;
+  background-color: var(--lp-accent-teal, #064e3b);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.lp-nav-menu a:hover::after,
+.lp-nav-menu a:focus-visible::after {
+  transform: scaleX(1);
+}
+
+/* Hero text staggered entrance */
+.lp-hero-left .lp-kicker-badge {
+  animation: lpKickerReveal 0.55s cubic-bezier(0.16, 1, 0.3, 1) 0.04s both;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.lp-hero-left .lp-kicker-badge:hover {
+  transform: translateY(-2px);
+  border-color: var(--lp-accent-emerald, #047857);
+  box-shadow: 0 4px 12px -4px rgba(6, 78, 59, 0.14);
+}
+
+.lp-hero-left .lp-hero-title {
+  animation: lpTextSlideUp 0.68s cubic-bezier(0.16, 1, 0.3, 1) 0.12s both;
+}
+
+.lp-hero-title-accent {
+  position: relative;
+  display: inline-block;
+}
+
+.lp-hero-title-accent::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 2px;
+  height: 3px;
+  background-color: var(--lp-accent-emerald, #047857);
+  transform-origin: left center;
+  animation: lpUnderlineDraw 0.75s cubic-bezier(0.16, 1, 0.3, 1) 0.45s both;
+}
+
+.lp-hero-left .lp-hero-description {
+  animation: lpTextSlideUp 0.68s cubic-bezier(0.16, 1, 0.3, 1) 0.22s both;
+}
+
+.lp-hero-left .lp-search-bar {
+  animation: lpTextSlideUp 0.68s cubic-bezier(0.16, 1, 0.3, 1) 0.3s both;
+}
+
+.lp-hero-left .lp-quick-pills {
+  animation: lpTextSlideUp 0.68s cubic-bezier(0.16, 1, 0.3, 1) 0.38s both;
+}
+
+.lp-pill-btn {
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.22s ease, background-color 0.22s ease, color 0.22s ease, box-shadow 0.22s ease;
+}
+
+.lp-pill-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px -6px rgba(6, 78, 59, 0.18);
+}
+
+/* Editorial Photo Frame interactive lift (Hero, Simulator, Directory, Showcase) */
+.lp-hero-right {
+  animation: lpCardReveal 0.78s cubic-bezier(0.16, 1, 0.3, 1) 0.18s both;
+}
+
+.lp-editorial-photo-frame,
+.lp-hero-photo-frame {
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s ease, box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.lp-editorial-photo-frame:hover,
+.lp-hero-photo-frame:hover {
+  transform: translateY(-4px);
+  border-color: var(--lp-accent-emerald, #047857);
+  box-shadow: 0 24px 44px -18px rgba(6, 78, 59, 0.16);
+}
+
+.lp-editorial-photo-img {
+  transition: transform 0.65s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.lp-editorial-photo-frame:hover .lp-editorial-photo-img,
+.lp-hero-photo-frame:hover .lp-editorial-photo-img {
+  transform: scale(1.025);
+}
+
+/* Empirical Ledger Matrix text & card animations */
+.lp-ledger-header {
+  animation: lpTextSlideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.25s both;
+}
+
+.lp-ledger-cell {
+  position: relative;
+  overflow: hidden;
+  animation: lpCardReveal 0.65s cubic-bezier(0.16, 1, 0.3, 1) both;
+  transition: background-color 0.28s ease, transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.lp-ledger-cell:nth-child(1) { animation-delay: 0.28s; }
+.lp-ledger-cell:nth-child(2) { animation-delay: 0.36s; }
+.lp-ledger-cell:nth-child(3) { animation-delay: 0.44s; }
+.lp-ledger-cell:nth-child(4) { animation-delay: 0.52s; }
+
+.lp-ledger-cell::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background-color: var(--lp-accent-emerald, #047857);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.lp-ledger-cell:hover {
+  background-color: var(--lp-bg-subtle, #f1f5f1);
+}
+
+.lp-ledger-cell:hover::before {
+  transform: scaleX(1);
+}
+
+.lp-ledger-num {
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), color 0.28s ease;
+  transform-origin: left bottom;
+}
+
+.lp-ledger-cell:hover .lp-ledger-num {
+  transform: translateY(-2px) scale(1.03);
+}
+
+/* Scroll-reveal section child stagger when .lp-reveal.is-visible */
+.lp-reveal.is-visible .lp-section-kicker,
+.lp-reveal.is-visible .lp-kicker-badge {
+  animation: lpKickerReveal 0.52s cubic-bezier(0.16, 1, 0.3, 1) 0.05s both;
+}
+
+.lp-reveal.is-visible .lp-section-title,
+.lp-reveal.is-visible .lp-frame-title,
+.lp-reveal.is-visible .lp-cell-title {
+  animation: lpTextSlideUp 0.62s cubic-bezier(0.16, 1, 0.3, 1) 0.12s both;
+}
+
+.lp-reveal.is-visible .lp-section-desc,
+.lp-reveal.is-visible .lp-frame-desc,
+.lp-reveal.is-visible .lp-cell-subtitle {
+  animation: lpTextSlideUp 0.62s cubic-bezier(0.16, 1, 0.3, 1) 0.2s both;
+}
+
+.lp-reveal.is-visible .lp-bento-cell {
+  animation: lpCardReveal 0.65s cubic-bezier(0.16, 1, 0.3, 1) 0.18s both;
+}
+
+.lp-reveal.is-visible .lp-bento-pillars-strip .lp-bento-cell:nth-child(1) { animation-delay: 0.22s; }
+.lp-reveal.is-visible .lp-bento-pillars-strip .lp-bento-cell:nth-child(2) { animation-delay: 0.3s; }
+.lp-reveal.is-visible .lp-bento-pillars-strip .lp-bento-cell:nth-child(3) { animation-delay: 0.38s; }
+
+.lp-reveal.is-visible .lp-step-item {
+  animation: lpCardReveal 0.62s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.lp-reveal.is-visible .lp-step-item:nth-child(1) { animation-delay: 0.14s; }
+.lp-reveal.is-visible .lp-step-item:nth-child(2) { animation-delay: 0.22s; }
+.lp-reveal.is-visible .lp-step-item:nth-child(3) { animation-delay: 0.3s; }
+.lp-reveal.is-visible .lp-step-item:nth-child(4) { animation-delay: 0.38s; }
+
+.lp-reveal.is-visible .lp-directory-row {
+  animation: lpTextSlideUp 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.lp-reveal.is-visible .lp-directory-row:nth-child(1) { animation-delay: 0.12s; }
+.lp-reveal.is-visible .lp-directory-row:nth-child(2) { animation-delay: 0.18s; }
+.lp-reveal.is-visible .lp-directory-row:nth-child(3) { animation-delay: 0.24s; }
+.lp-reveal.is-visible .lp-directory-row:nth-child(4) { animation-delay: 0.3s; }
+.lp-reveal.is-visible .lp-directory-row:nth-child(5) { animation-delay: 0.36s; }
+
+.lp-reveal.is-visible .lp-safety-cell {
+  animation: lpCardReveal 0.62s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.lp-reveal.is-visible .lp-safety-cell:nth-child(1) { animation-delay: 0.14s; }
+.lp-reveal.is-visible .lp-safety-cell:nth-child(2) { animation-delay: 0.22s; }
+.lp-reveal.is-visible .lp-safety-cell:nth-child(3) { animation-delay: 0.3s; }
+.lp-reveal.is-visible .lp-safety-cell:nth-child(4) { animation-delay: 0.38s; }
+
+.lp-reveal.is-visible .lp-showcase-grid .item-showcase-card {
+  animation: lpCardReveal 0.65s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.lp-reveal.is-visible .lp-showcase-grid .item-showcase-card:nth-child(1) { animation-delay: 0.12s; }
+.lp-reveal.is-visible .lp-showcase-grid .item-showcase-card:nth-child(2) { animation-delay: 0.2s; }
+.lp-reveal.is-visible .lp-showcase-grid .item-showcase-card:nth-child(3) { animation-delay: 0.28s; }
+.lp-reveal.is-visible .lp-showcase-grid .item-showcase-card:nth-child(4) { animation-delay: 0.36s; }
+
+/* Interactive Bento & Pillar Card micro-interactions */
+.lp-bento-pillars-strip .lp-bento-cell {
+  position: relative;
+  transition: background-color 0.28s ease, transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.lp-bento-pillars-strip .lp-bento-cell::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background-color: var(--lp-accent-emerald, #047857);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.lp-bento-pillars-strip .lp-bento-cell:hover {
+  background-color: var(--lp-bg-subtle, #f1f5f1);
+}
+
+.lp-bento-pillars-strip .lp-bento-cell:hover::before {
+  transform: scaleX(1);
+}
+
+.lp-pillar-icon {
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.28s ease, color 0.28s ease, border-color 0.28s ease;
+}
+
+.lp-bento-pillars-strip .lp-bento-cell:hover .lp-pillar-icon {
+  transform: translateY(-3px) scale(1.05);
+  background-color: var(--lp-accent-teal, #064e3b);
+  color: var(--lp-bg-pure, #ffffff);
+  border-color: var(--lp-accent-teal, #064e3b);
+}
+
+.lp-pillar-title {
+  transition: color 0.22s ease;
+}
+
+.lp-bento-pillars-strip .lp-bento-cell:hover .lp-pillar-title {
+  color: var(--lp-accent-teal, #064e3b);
+}
+
+.lp-pillar-badge {
+  transition: background-color 0.22s ease, color 0.22s ease, border-color 0.22s ease;
+}
+
+.lp-bento-pillars-strip .lp-bento-cell:hover .lp-pillar-badge {
+  border-color: var(--lp-accent-emerald, #047857);
+  color: var(--lp-accent-teal, #064e3b);
+}
+
+/* Interactive Impact Simulator metric pop & cell highlight */
+.lp-sim-metric-cell {
+  transition: background-color 0.25s ease;
+}
+
+.lp-sim-metric-cell:hover {
+  background-color: var(--lp-accent-teal-subtle, #ecfdf5);
+}
+
+.lp-metric-value {
+  animation: lpMetricPop 0.42s cubic-bezier(0.16, 1, 0.3, 1) both;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  transform-origin: left center;
+}
+
+.lp-sim-metric-cell:hover .lp-metric-value {
+  transform: translateX(3px);
+}
+
+/* Privacy Matrix pane hover micro-interactions */
+.lp-privacy-pane {
+  transition: background-color 0.28s ease;
+}
+
+.lp-privacy-pane.is-verified:hover {
+  background-color: var(--lp-accent-teal-subtle, #ecfdf5);
+}
+
+.lp-privacy-row {
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.lp-privacy-row:hover {
+  transform: translateX(4px);
+}
+
+/* 4-Step Process Strip card hover effects */
+.lp-step-item {
+  position: relative;
+  transition: background-color 0.28s ease, transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.lp-step-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background-color: var(--lp-accent-emerald, #047857);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.lp-step-item:hover {
+  background-color: var(--lp-bg-subtle, #f1f5f1);
+}
+
+.lp-step-item:hover::before {
+  transform: scaleX(1);
+}
+
+.lp-step-num {
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), color 0.28s ease;
+  transform-origin: left center;
+}
+
+.lp-step-item:hover .lp-step-num {
+  transform: scale(1.06);
+  color: var(--lp-accent-teal, #064e3b);
+}
+
+.lp-step-title {
+  transition: color 0.22s ease;
+}
+
+.lp-step-item:hover .lp-step-title {
+  color: var(--lp-accent-teal, #064e3b);
+}
+
+.lp-step-pill {
+  transition: background-color 0.22s ease, color 0.22s ease, border-color 0.22s ease;
+}
+
+.lp-step-item:hover .lp-step-pill {
+  background-color: var(--lp-accent-teal, #064e3b);
+  color: var(--lp-bg-pure, #ffffff);
+  border-color: var(--lp-accent-teal, #064e3b);
+}
+
+/* Curriculum Directory Row interactive effects */
+.lp-dir-title {
+  transition: color 0.22s ease, transform 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.lp-directory-row:hover .lp-dir-title {
+  color: var(--lp-accent-teal, #064e3b);
+  transform: translateX(3px);
+}
+
+.lp-dir-badge {
+  transition: transform 0.24s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.24s ease, color 0.24s ease, border-color 0.24s ease;
+}
+
+.lp-directory-row:hover .lp-dir-badge {
+  transform: translateX(2px);
+  background-color: var(--lp-accent-teal, #064e3b);
+  color: var(--lp-bg-pure, #ffffff);
+  border-color: var(--lp-accent-teal, #064e3b);
+}
+
+/* Safety Matrix cell interactive effects */
+.lp-safety-cell {
+  position: relative;
+  transition: background-color 0.28s ease;
+}
+
+.lp-safety-cell::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background-color: var(--lp-accent-emerald, #047857);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.lp-safety-cell:hover {
+  background-color: var(--lp-bg-subtle, #f1f5f1);
+}
+
+.lp-safety-cell:hover::before {
+  transform: scaleX(1);
+}
+
+.lp-safety-title {
+  transition: color 0.22s ease, transform 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.lp-safety-cell:hover .lp-safety-title {
+  color: var(--lp-accent-teal, #064e3b);
+  transform: translateX(3px);
+}
+
+/* Showcase Editorial Highlight & Product Card interactive effects */
+.lp-showcase-editorial-highlight {
+  transition: border-color 0.32s ease, box-shadow 0.32s cubic-bezier(0.16, 1, 0.3, 1), transform 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.lp-showcase-editorial-highlight:hover {
+  transform: translateY(-3px);
+  border-color: var(--lp-accent-emerald, #047857);
+  box-shadow: 0 20px 36px -18px rgba(6, 78, 59, 0.14);
+}
+
+.lp-showcase-highlight-title {
+  transition: color 0.24s ease;
+}
+
+.lp-showcase-editorial-highlight:hover .lp-showcase-highlight-title {
+  color: var(--lp-accent-teal, #064e3b);
+}
+
+.item-showcase-card {
+  position: relative;
+}
+
+.item-showcase-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background-color: var(--lp-accent-emerald, #047857);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 3;
+}
+
+.item-showcase-card:hover {
+  transform: translateY(-6px);
+  border-color: var(--lp-accent-emerald, #047857);
+  box-shadow: 0 20px 34px -14px rgba(6, 78, 59, 0.18);
+}
+
+.item-showcase-card:hover::before {
+  transform: scaleX(1);
+}
+
+.lp-card-title {
+  transition: color 0.22s ease;
+}
+
+.item-showcase-card:hover .lp-card-title {
+  color: var(--lp-accent-teal, #064e3b);
+}
+
+.lp-card-price-row {
+  transition: background-color 0.24s ease, border-color 0.24s ease;
+}
+
+.lp-card-price-value {
+  transition: transform 0.24s cubic-bezier(0.16, 1, 0.3, 1), color 0.24s ease;
+  transform-origin: left center;
+}
+
+.item-showcase-card:hover .lp-card-price-value {
+  transform: translateX(2px) scale(1.03);
+}
+
+/* Calm Mobile Performance (<= 768px): disable animations & heavy transitions */
+@media (max-width: 768px) {
+  .lp-topbar-dot,
+  .lp-hero-left .lp-kicker-badge,
+  .lp-hero-left .lp-hero-title,
+  .lp-hero-title-accent::after,
+  .lp-hero-left .lp-hero-description,
+  .lp-hero-left .lp-search-bar,
+  .lp-hero-left .lp-quick-pills,
+  .lp-hero-right,
+  .lp-ledger-header,
+  .lp-ledger-cell,
+  .lp-reveal.is-visible .lp-section-kicker,
+  .lp-reveal.is-visible .lp-kicker-badge,
+  .lp-reveal.is-visible .lp-section-title,
+  .lp-reveal.is-visible .lp-frame-title,
+  .lp-reveal.is-visible .lp-cell-title,
+  .lp-reveal.is-visible .lp-section-desc,
+  .lp-reveal.is-visible .lp-frame-desc,
+  .lp-reveal.is-visible .lp-cell-subtitle,
+  .lp-reveal.is-visible .lp-bento-cell,
+  .lp-reveal.is-visible .lp-step-item,
+  .lp-reveal.is-visible .lp-directory-row,
+  .lp-reveal.is-visible .lp-safety-cell,
+  .lp-reveal.is-visible .lp-showcase-grid .item-showcase-card,
+  .lp-metric-value {
+    animation: none !important;
+  }
+
+  .lp-reveal {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+
+  .item-showcase-card:hover,
+  .lp-editorial-photo-frame:hover,
+  .lp-hero-photo-frame:hover,
+  .lp-showcase-editorial-highlight:hover,
+  .lp-pill-btn:hover {
+    transform: none !important;
+  }
+}
+
+/* --------------------------------------------------------------------------
    Accessibility & Reduced Motion
    -------------------------------------------------------------------------- */
 
@@ -2524,3 +3130,5 @@ html {
     scroll-behavior: auto !important;
   }
 }
+
+
